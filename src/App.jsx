@@ -211,7 +211,7 @@ function Toasts({list,dismiss}){
 
 function Auth({onLogin,onClose,users,setUsers}){
   var [tab,setTab]=useState("in"),[em,setEm]=useState(""),[pw,setPw]=useState(""),[nm,setNm]=useState(""),[err,setErr]=useState("");
-  var login=()=>{var u=users.find(u=>u.email===em&&u.pw===pw);u?(onLogin(u),onClose()):setErr("Invalid credentials.");};
+  var login=()=>{var u=users.find(u=>u.email===em&&u.pw===pw);if(u){onLogin(u);onClose();}else{setErr("Invalid credentials.");}};
   var reg=()=>{if(!nm||!em||!pw){setErr("All fields required.");return;}if(users.find(u=>u.email===em)){setErr("Already registered.");return;}var nu={id:"u"+Date.now(),name:nm,email:em,pw,avatar:nm.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2),role:"customer"};setUsers(u=>[...u,nu]);onLogin(nu);onClose();};
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:370,padding:24}}>
@@ -276,7 +276,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var sub=items.reduce((s,i)=>s+i.price*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
   var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
-  var applyCode=()=>{var r=applyDisc(discounts,code,sub);r.err?(setDerr(r.err),setDisc(null)):(setDisc(r),setDerr(""));};
+  var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
   var finalize=paid=>{var customer=type==="dine-in"?"Table "+(table||"?"):(cname||"Guest");var o={id:uid(),branchId:branch?.id,userId:user?.id||"guest",customer,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),total,status:"pending",time:nowT(),type,paid,slot:type==="collection"?slot:null,discCode:disc?.code||null};onOrder(o);setLast(o);setCart({});push({title:"New Order!",body:o.id+" - "+fmt(o.total),color:"#bf4626"});setStep(type==="collection"?"cdone":"done");};
 
   if(step==="cdone"&&last) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
