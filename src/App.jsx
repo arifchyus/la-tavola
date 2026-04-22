@@ -70,6 +70,8 @@ var HOURS={
 };
 var DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 var isOpenNow=id=>{var h=HOURS[id];if(!h)return true;var d=DAYS[new Date().getDay()],hrs=h[d];if(!hrs)return false;var c=new Date().getHours()+new Date().getMinutes()/60;return c>=hrs[0]&&c<hrs[1];};
+// Not used in UI but kept for potential future use
+// eslint-disable-next-line no-unused-vars
 var isOpen=id=>true;
 var USERS=[
   {id:"u1",name:"Alex Johnson",email:"alex@example.com",pw:"pass123",avatar:"AJ",role:"customer"},
@@ -196,7 +198,7 @@ function printR(o,b){
     if(tip>0) breakdown+=`<tr><td>Tip</td><td>+${fmt(tip)}</td></tr>`;
   }
   var split=o.splitN>1?`<p style="text-align:center;color:#7c3aed;font-weight:700;margin:8px 0">Split ${o.splitN} ways = ${fmt(o.total/o.splitN)} each</p>`:"";
-  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:monospace;padding:20px;font-size:13px;max-width:320px;margin:0 auto}h2{color:#bf4626;margin:0 0 4px}p{margin:3px 0}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:3px 0;border-bottom:1px dashed #ccc}.t{font-weight:700;font-size:16px;color:#bf4626;border-top:2px solid #bf4626;padding-top:6px!important}.f{text-align:center;color:#999;margin-top:16px;font-size:11px}</style></head><body><h2>La Tavola${b?" - "+b.name:""}</h2><p>${b?b.addr:""}</p><p>${b?b.phone:""}</p><hr><p><b>${o.id}</b></p><p>${o.time} | ${o.type}</p><p>${o.customer}</p>${o.takenBy?`<p>Served by ${o.takenBy}</p>`:""}${o.slot?`<p>Collect: <b>${o.slot}</b></p>`:""}<hr><table>${rows}${breakdown?'<tr><td colspan="2">&nbsp;</td></tr>'+breakdown:""}<tr class="t"><td>TOTAL</td><td>${fmt(o.total)}</td></tr></table>${split}<p style="text-align:center">${o.paid?"PAID"+(o.payMethod?" - "+o.payMethod:""):"UNPAID"}</p><div class="f">VAT No. GB 123 4567 89<br>Thank you for dining with us!<br>www.latavola.co.uk</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:monospace;padding:20px;font-size:13px;max-width:320px;margin:0 auto}h2{color:#bf4626;margin:0 0 4px}p{margin:3px 0}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:3px 0;border-bottom:1px dashed #ccc}.t{font-weight:700;font-size:16px;color:#bf4626;border-top:2px solid #bf4626;padding-top:6px!important}.f{text-align:center;color:#999;margin-top:16px;font-size:11px}</style></head><body><h2>La Tavola${b?" - "+b.name:""}</h2><p>${b?b.addr:""}</p><p>${b?b.phone:""}</p><hr><p><b>${o.id}</b></p><p>${o.time} | ${o.type}</p><p>${o.customer}</p>${o.takenBy?`<p>Served by ${o.takenBy}</p>`:""}${o.slot?`<p>Collect: <b>${o.slot}</b></p>`:""}<hr><table>${rows}${breakdown?'<tr><td colspan="2">&nbsp;</td></tr>'+breakdown:""}<tr class="t"><td>TOTAL</td><td>${fmt(o.total)}</td></tr></table>${split}<p style="text-align:center">${o.paid?"PAID"+(o.payMethod?" - "+o.payMethod:""):"UNPAID"}</p><div class="f">VAT No. GB 123 4567 89<br>Thank you for dining with us!<br>www.latavola.co.uk</div>`+"<scr"+"ipt>window.onload=()=>window.print()</scr"+"ipt></body></html>");
   w.document.close();
 }
 
@@ -641,7 +643,7 @@ function PosV({menu,onOrder,push,user,branch}){
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(""),[type,setType]=useState("dine-in");
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
-  var [splitN,setSplitN]=useState(1),[showSplit,setShowSplit]=useState(false);
+  var [splitN,setSplitN]=useState(1);
   var [lastOrder,setLastOrder]=useState(null);
   var rawSub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   var discAmt=rawSub*(discPct/100);
@@ -845,6 +847,7 @@ export default function App(){
       window.addEventListener("offline",goOffline);
       return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   // Sync queued orders when back online
