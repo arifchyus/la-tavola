@@ -1,0 +1,26 @@
+{
+  "short_name": "La Tavola",
+  "name": "La Tavola Restaurant",
+  "description": "Restaurant ordering and POS system",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1a1208",
+  "background_color": "#f7f3ee",
+  "categories": ["food", "business", "productivity"]
+}

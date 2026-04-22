@@ -1,0 +1,930 @@
+import{useState,useEffect,useRef,useCallback}from"react";
+
+//  OFFLINE STORAGE 
+// Safe localStorage wrappers - fail silently in sandboxed environments
+var LS={
+  get:k=>{try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}},
+  del:k=>{try{localStorage.removeItem(k);}catch(e){}},
+};
+
+// Detect online status
+var isOnline=()=>typeof navigator!=="undefined"&&navigator.onLine!==false;
+
+// Offline order queue - stored until internet returns
+var OFFLINE_QUEUE_KEY="latavola_offline_queue";
+var queueOffline=order=>{
+  var q=LS.get(OFFLINE_QUEUE_KEY)||[];
+  q.push({...order,queuedAt:Date.now()});
+  LS.set(OFFLINE_QUEUE_KEY,q);
+  return q.length;
+};
+var getQueue=()=>LS.get(OFFLINE_QUEUE_KEY)||[];
+var clearQueue=()=>LS.del(OFFLINE_QUEUE_KEY);
+
+// String.fromCharCode with surrogate pairs - CONFIRMED WORKING in emoji-test.jsx
+var EM={
+  squid:String.fromCharCode(0xD83E,0xDD91),tomato:String.fromCharCode(0xD83C,0xDF45),
+  soup:String.fromCharCode(0xD83C,0xDF72),pizza:String.fromCharCode(0xD83C,0xDF55),
+  burger:String.fromCharCode(0xD83C,0xDF54),fish:String.fromCharCode(0xD83D,0xDC1F),
+  pasta:String.fromCharCode(0xD83C,0xDF5D),fries:String.fromCharCode(0xD83C,0xDF5F),
+  salad:String.fromCharCode(0xD83E,0xDD57),coffee:String.fromCharCode(0x2615),
+  choc:String.fromCharCode(0xD83C,0xDF6B),drink:String.fromCharCode(0xD83E,0xDD64),
+  water:String.fromCharCode(0xD83D,0xDCA7),cart:String.fromCharCode(0xD83D,0xDED2),
+  pin:String.fromCharCode(0xD83D,0xDCCD),cal:String.fromCharCode(0xD83D,0xDCC5),
+  star:String.fromCharCode(0x2B50),person:String.fromCharCode(0xD83D,0xDC64),
+  chat:String.fromCharCode(0xD83D,0xDCAC),cook:String.fromCharCode(0xD83C,0xDF73),
+  gear:String.fromCharCode(0x2699),chart:String.fromCharCode(0xD83D,0xDCCA),
+  party:String.fromCharCode(0xD83C,0xDF89),bag:String.fromCharCode(0xD83D,0xDECD),
+  wave:String.fromCharCode(0xD83D,0xDC4B),pound:String.fromCharCode(0x00A3),
+};
+var fmt=n=>EM.pound+Number(n).toFixed(2);
+var nowT=()=>new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+var uid=()=>"ORD-"+Math.floor(Math.random()*90000+10000);
+var rid=()=>"RES-"+Math.floor(Math.random()*9000+1000);
+
+var MENU=[
+  {id:1,cat:"Starters",name:"Crispy Calamari",price:8.99,desc:"Lightly breaded with aioli",icon:"squid",avail:true,stock:20},
+  {id:2,cat:"Starters",name:"Bruschetta",price:6.49,desc:"Tomato, basil and mozzarella",icon:"tomato",avail:true,stock:15},
+  {id:3,cat:"Starters",name:"Soup of the Day",price:5.99,desc:"Rotating seasonal selection",icon:"soup",avail:true,stock:8},
+  {id:4,cat:"Mains",name:"Margherita Pizza",price:13.99,desc:"San Marzano tomato, fior di latte",icon:"pizza",avail:true,stock:25},
+  {id:5,cat:"Mains",name:"Beef Burger",price:14.99,desc:"6oz patty, cheddar, lettuce, tomato",icon:"burger",avail:true,stock:18},
+  {id:6,cat:"Mains",name:"Grilled Salmon",price:18.99,desc:"Lemon butter, seasonal veg",icon:"fish",avail:true,stock:10},
+  {id:7,cat:"Mains",name:"Pasta Carbonara",price:12.99,desc:"Pancetta, egg, pecorino",icon:"pasta",avail:true,stock:20},
+  {id:8,cat:"Sides",name:"Truffle Fries",price:4.99,desc:"Parmesan and truffle oil",icon:"fries",avail:true,stock:30},
+  {id:9,cat:"Sides",name:"Garden Salad",price:4.49,desc:"Mixed leaves, cucumber, tomato",icon:"salad",avail:true,stock:20},
+  {id:10,cat:"Desserts",name:"Tiramisu",price:6.99,desc:"Espresso and mascarpone",icon:"coffee",avail:true,stock:12},
+  {id:11,cat:"Desserts",name:"Choc Lava Cake",price:7.49,desc:"Warm centre, vanilla ice cream",icon:"choc",avail:true,stock:10},
+  {id:12,cat:"Drinks",name:"Soft Drink",price:2.99,desc:"Cola, Lemonade, OJ",icon:"drink",avail:true,stock:50},
+  {id:13,cat:"Drinks",name:"Sparkling Water",price:1.99,desc:"500ml bottle",icon:"water",avail:true,stock:40},
+];
+var BRANCHES=[
+  {id:"b1",name:"City Centre",addr:"12 King Street, London EC2A",phone:"020 7123 4567"},
+  {id:"b2",name:"Canary Wharf",addr:"One Canada Square, London E14",phone:"020 7987 6543"},
+  {id:"b3",name:"Shoreditch",addr:"45 Brick Lane, London E1",phone:"020 3456 7890"},
+];
+var HOURS={
+  b1:{Mon:[11,22],Tue:[11,22],Wed:[11,22],Thu:[11,23],Fri:[11,23],Sat:[10,23],Sun:[10,21]},
+  b2:{Mon:[7,22],Tue:[7,22],Wed:[7,22],Thu:[7,22],Fri:[7,23],Sat:[9,23],Sun:[10,20]},
+  b3:{Mon:[12,22],Tue:[12,22],Wed:[12,23],Thu:[12,23],Fri:[12,24],Sat:[11,24],Sun:[11,21]},
+};
+var DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var isOpenNow=id=>{var h=HOURS[id];if(!h)return true;var d=DAYS[new Date().getDay()],hrs=h[d];if(!hrs)return false;var c=new Date().getHours()+new Date().getMinutes()/60;return c>=hrs[0]&&c<hrs[1];};
+var isOpen=id=>true;
+var USERS=[
+  {id:"u1",name:"Alex Johnson",email:"alex@example.com",pw:"pass123",avatar:"AJ",role:"customer"},
+  {id:"u2",name:"Sarah Lee",email:"sarah@example.com",pw:"pass123",avatar:"SL",role:"customer"},
+  {id:"s1",name:"Marco Rossi",email:"marco@staff.com",pw:"staff123",avatar:"MR",role:"owner"},
+  {id:"s2",name:"Chef Paolo",email:"chef@staff.com",pw:"chef123",avatar:"CP",role:"kitchen"},
+];
+var DISCOUNTS=[
+  {code:"WELCOME10",type:"percent",value:10,desc:"10% off",active:true,uses:0,max:100},
+  {code:"FLAT5",type:"fixed",value:5,desc:"5 off orders over 25",active:true,uses:0,max:500,minOrder:25},
+];
+var ORDERS0=[
+  {id:"ORD-1001",branchId:"b1",userId:"u1",customer:"Table 3",items:[{id:4,name:"Margherita Pizza",qty:2,price:13.99},{id:8,name:"Truffle Fries",qty:1,price:4.99}],total:32.97,status:"preparing",time:"12:45",type:"dine-in",paid:true,slot:null},
+  {id:"ORD-1002",branchId:"b1",userId:"u2",customer:"John Smith",items:[{id:5,name:"Beef Burger",qty:1,price:14.99},{id:12,name:"Soft Drink",qty:2,price:2.99}],total:20.97,status:"ready",time:"12:50",type:"takeaway",paid:true,slot:null},
+  {id:"ORD-1003",branchId:"b2",userId:"u1",customer:"Table 7",items:[{id:6,name:"Grilled Salmon",qty:1,price:18.99}],total:18.99,status:"pending",time:"13:02",type:"collection",paid:false,slot:"13:30"},
+];
+var SL={pending:"Pending",preparing:"Preparing",ready:"Ready",delivered:"Delivered",collected:"Collected",cancelled:"Cancelled"};
+var SC={pending:"#d97706",preparing:"#2563eb",ready:"#059669",delivered:"#6b7280",collected:"#7c3aed",cancelled:"#dc2626"};
+var SB={pending:"#fef3c7",preparing:"#eff6ff",ready:"#d1fae5",delivered:"#f3f4f6",collected:"#f5f3ff",cancelled:"#fee2e2"};
+var TIERS=[{name:"Bronze",min:0,color:"#b45309",bg:"#fef3c7"},{name:"Silver",min:200,color:"#6b7280",bg:"#f3f4f6"},{name:"Gold",min:500,color:"#d4952a",bg:"#fffbeb"},{name:"Platinum",min:1000,color:"#7c3aed",bg:"#f5f3ff"}];
+var getTier=pts=>[...TIERS].reverse().find(t=>pts>=t.min)||TIERS[0];
+var getSlots=()=>{var s=[],now=new Date(),st=new Date(now);st.setMinutes(Math.ceil(st.getMinutes()/15)*15+15,0,0);for(var i=0;i<10;i++){var t=new Date(st.getTime()+i*15*60000);s.push(("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2));}return s;};
+var applyDisc=(ds,code,sub)=>{var d=ds.find(d=>d.code===code.toUpperCase()&&d.active);if(!d)return{err:"Invalid code."};if(d.minOrder&&sub<d.minOrder)return{err:"Min order "+fmt(d.minOrder)};var sv=d.type==="percent"?sub*(d.value/100):d.value;return{saving:Math.min(sv,sub),desc:d.desc,code:d.code};};
+
+var CSS=`
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f7f3ee;color:#1a1208;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Playfair Display',serif}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#d4c9b8;border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.fadeup{animation:fadeUp .3s ease both}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);border:1px solid #ede8de}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .18s}
+.btn-r{background:#bf4626;color:#fff}.btn-r:hover{background:#a33a1e;transform:translateY(-1px)}
+.btn-d{background:#1a1208;color:#fff}.btn-d:hover{background:#2e2218}
+.btn-p{background:#7c3aed;color:#fff}
+.btn-o{border:2px solid #e8e0d4;color:#1a1208;background:#fff}.btn-o:hover{background:#1a1208;color:#fff;border-color:#1a1208}
+.btn-g{color:#8a8078;padding:8px 12px}.btn-g:hover{background:#f0ebe3;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.field{width:100%;padding:10px 13px;border:2px solid #e8e0d4;border-radius:9px;font-size:14px;background:#fff;color:#1a1208;outline:none;transition:border-color .15s}
+.field:focus{border-color:#bf4626}
+.lbl{display:block;font-size:11px;font-weight:700;color:#8a8078;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px}
+.bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.page{max-width:940px;margin:0 auto;padding:20px 14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.hr{height:1px;background:#ede8de;margin:12px 0}
+.nav{background:#1a1208;height:58px;display:flex;align-items:center;padding:0 16px;position:sticky;top:0;z-index:500;gap:8px;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.nlogo{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:#d4952a;flex-shrink:0}
+.ntabs{display:flex;gap:2px;flex:1;justify-content:center;overflow-x:auto}
+.ntabs::-webkit-scrollbar{display:none}
+.ntab{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;color:#888;background:transparent;border:none;white-space:nowrap;cursor:pointer;transition:all .18s}
+.ntab.on{background:#bf4626;color:#fff}
+.ntab:hover:not(.on){color:#fff;background:rgba(255,255,255,.1)}
+.nright{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.av{background:#bf4626;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.mnav{display:none}.hmob{display:flex}
+@media(max-width:680px){
+  .mnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#1a1208;border-top:1px solid #2e2218;z-index:400;overflow-x:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .mnav::-webkit-scrollbar{display:none}
+  .mbtn{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 16px;font-size:10px;font-weight:600;color:#555;border:none;background:transparent;cursor:pointer;white-space:nowrap;transition:color .15s}
+  .mbtn.on{color:#d4952a}.mico{font-size:22px;line-height:1.1}
+  .hmob{display:none!important}.ntabs{display:none!important}
+  main{padding-bottom:72px!important}
+}
+@media(max-width:560px){.g2,.g3{grid-template-columns:1fr}.ag{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}}
+.kbg{background:#0a0a0a;min-height:100vh;padding:14px}
+.lbar{height:7px;background:#ede8de;border-radius:4px;overflow:hidden}
+.lfill{height:100%;border-radius:4px;transition:width .8s}
+
+/* POS responsive layout */
+.pos-wrap{min-height:calc(100vh - 58px);background:#f0ebe0;display:flex;flex-direction:column}
+.pos-body{display:flex;flex:1;overflow:hidden}
+.pos-menu{flex:1 1 60%;padding:12px;overflow-y:auto}
+.pos-cart{flex:1 1 40%;background:#fff;display:flex;flex-direction:column;border-left:1px solid #ede8de;max-width:400px;min-width:300px}
+.pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+
+/* Phone: stack vertically, cart slides over menu */
+@media(max-width:700px){
+  .pos-body{flex-direction:column}
+  .pos-cart{max-width:100%;min-width:0;border-left:none;border-top:2px solid #ede8de;max-height:55vh}
+  .pos-grid{grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:6px}
+}
+
+/* Tablet portrait: smaller cart, bigger menu buttons */
+@media(min-width:701px) and (max-width:1024px){
+  .pos-cart{flex:0 0 340px;max-width:340px}
+  .pos-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+}
+
+/* Desktop / large tablet: balanced layout */
+@media(min-width:1025px) and (max-width:1440px){
+  .pos-cart{flex:0 0 380px;max-width:380px}
+  .pos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+}
+
+/* Large EPOS / monitor: maximum menu density */
+@media(min-width:1441px){
+  .pos-cart{flex:0 0 440px;max-width:440px}
+  .pos-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+}
+
+/* Landscape phone: side-by-side */
+@media(max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .pos-body{flex-direction:row}
+  .pos-cart{max-width:280px;min-width:260px;max-height:none;border-top:none;border-left:1px solid #ede8de}
+  .pos-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px}
+}
+`;
+
+function printR(o,b){
+  var w=window.open("","_blank","width=380,height=640");if(!w)return;
+  var rows=o.items.map(i=>`<tr><td>${i.name} x${i.qty}</td><td>${fmt(i.price*i.qty)}</td></tr>`).join("");
+  var sub=o.subtotal||o.total, disc=o.discount||0, tip=o.tip||0;
+  var breakdown="";
+  if(sub&&(disc||tip)){
+    breakdown=`<tr><td>Subtotal</td><td>${fmt(sub)}</td></tr>`;
+    if(disc>0) breakdown+=`<tr><td>Discount${o.discReason?" ("+o.discReason+")":""}</td><td>-${fmt(disc)}</td></tr>`;
+    if(tip>0) breakdown+=`<tr><td>Tip</td><td>+${fmt(tip)}</td></tr>`;
+  }
+  var split=o.splitN>1?`<p style="text-align:center;color:#7c3aed;font-weight:700;margin:8px 0">Split ${o.splitN} ways = ${fmt(o.total/o.splitN)} each</p>`:"";
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:monospace;padding:20px;font-size:13px;max-width:320px;margin:0 auto}h2{color:#bf4626;margin:0 0 4px}p{margin:3px 0}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:3px 0;border-bottom:1px dashed #ccc}.t{font-weight:700;font-size:16px;color:#bf4626;border-top:2px solid #bf4626;padding-top:6px!important}.f{text-align:center;color:#999;margin-top:16px;font-size:11px}</style></head><body><h2>La Tavola${b?" - "+b.name:""}</h2><p>${b?b.addr:""}</p><p>${b?b.phone:""}</p><hr><p><b>${o.id}</b></p><p>${o.time} | ${o.type}</p><p>${o.customer}</p>${o.takenBy?`<p>Served by ${o.takenBy}</p>`:""}${o.slot?`<p>Collect: <b>${o.slot}</b></p>`:""}<hr><table>${rows}${breakdown?'<tr><td colspan="2">&nbsp;</td></tr>'+breakdown:""}<tr class="t"><td>TOTAL</td><td>${fmt(o.total)}</td></tr></table>${split}<p style="text-align:center">${o.paid?"PAID"+(o.payMethod?" - "+o.payMethod:""):"UNPAID"}</p><div class="f">VAT No. GB 123 4567 89<br>Thank you for dining with us!<br>www.latavola.co.uk</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+function Toasts({list,dismiss}){
+  return <div style={{position:"fixed",top:64,right:10,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:300,width:"calc(100% - 20px)"}}>
+    {list.map(n=><div key={n.id} className="fadeup" style={{background:"#fff",borderRadius:11,padding:"10px 12px",boxShadow:"0 4px 16px rgba(0,0,0,.12)",borderLeft:"4px solid "+(n.color||"#bf4626"),display:"flex",gap:8,alignItems:"flex-start"}}>
+      <div style={{flex:1}}><p style={{fontWeight:700,fontSize:13}}>{n.title}</p><p style={{fontSize:12,color:"#8a8078"}}>{n.body}</p></div>
+      <button onClick={()=>dismiss(n.id)} style={{color:"#ccc",fontSize:15,lineHeight:1}}>x</button>
+    </div>)}
+  </div>;
+}
+
+function Auth({onLogin,onClose,users,setUsers}){
+  var [tab,setTab]=useState("in"),[em,setEm]=useState(""),[pw,setPw]=useState(""),[nm,setNm]=useState(""),[err,setErr]=useState("");
+  var login=()=>{var u=users.find(u=>u.email===em&&u.pw===pw);u?(onLogin(u),onClose()):setErr("Invalid credentials.");};
+  var reg=()=>{if(!nm||!em||!pw){setErr("All fields required.");return;}if(users.find(u=>u.email===em)){setErr("Already registered.");return;}var nu={id:"u"+Date.now(),name:nm,email:em,pw,avatar:nm.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2),role:"customer"};setUsers(u=>[...u,nu]);onLogin(nu);onClose();};
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:370,padding:24}}>
+      <h2 style={{fontSize:22,marginBottom:4}}>Welcome</h2>
+      <p style={{color:"#8a8078",fontSize:13,marginBottom:16}}>La Tavola member portal</p>
+      <div style={{display:"flex",gap:4,marginBottom:16,background:"#f7f3ee",borderRadius:9,padding:3}}>
+        {[["in","Sign In"],["up","Register"]].map(([k,l])=><button key={k} onClick={()=>{setTab(k);setErr("");}} style={{flex:1,padding:"7px",borderRadius:7,fontWeight:700,fontSize:13,background:tab===k?"#fff":"transparent",color:tab===k?"#1a1208":"#8a8078",border:"none",cursor:"pointer"}}>{l}</button>)}
+      </div>
+      {tab==="up"&&<div style={{marginBottom:9}}><label className="lbl">Name</label><input className="field" value={nm} onChange={e=>setNm(e.target.value)} placeholder="Alex Johnson"/></div>}
+      <div style={{marginBottom:9}}><label className="lbl">Email</label><input className="field" value={em} onChange={e=>setEm(e.target.value)} placeholder="you@example.com"/></div>
+      <div style={{marginBottom:12}}><label className="lbl">Password</label><input type="password" className="field" value={pw} onChange={e=>setPw(e.target.value)} placeholder="password"/></div>
+      {err&&<p style={{color:"#dc2626",fontSize:12,marginBottom:9,fontWeight:600}}>{err}</p>}
+      <button className="btn btn-r" style={{width:"100%",padding:"12px"}} onClick={tab==="in"?login:reg}>{tab==="in"?"Sign In":"Create Account"}</button>
+      {tab==="in"&&<p style={{fontSize:11,color:"#8a8078",marginTop:8,textAlign:"center"}}>Demo: alex@example.com / pass123 | Staff: marco@staff.com / staff123</p>}
+    </div>
+  </div>;
+}
+
+function Pay({amount,onSuccess,onClose}){
+  var [step,setStep]=useState("form"),[card,setCard]=useState(""),[exp,setExp]=useState(""),[cvc,setCvc]=useState(""),[nm,setNm]=useState(""),[err,setErr]=useState("");
+  var go=()=>{if(card.replace(/\s/g,"").length<16){setErr("Enter card number.");return;}if(exp.length<5){setErr("Enter expiry.");return;}if(cvc.length<3){setErr("Enter CVC.");return;}setErr("");setStep("processing");setTimeout(()=>{setStep("done");setTimeout(onSuccess,1200);},1800);};
+  var fc=v=>v.replace(/\D/g,"").slice(0,16).replace(/(.{4})/g,"$1 ").trim();
+  var fe=v=>{var d=v.replace(/\D/g,"").slice(0,4);return d.length>2?d.slice(0,2)+"/"+d.slice(2):d;};
+  return <div onClick={step==="form"?onClose:null} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:380,padding:22}}>
+      {step==="processing"&&<div style={{textAlign:"center",padding:"24px 0"}}><p style={{fontSize:16,animation:"pulse 1s infinite"}}>Processing...</p></div>}
+      {step==="done"&&<div style={{textAlign:"center",padding:"24px 0"}}><p style={{fontSize:26,color:"#059669",fontWeight:700}}>Payment Successful!</p><p style={{color:"#8a8078",marginTop:6}}>{fmt(amount)} charged</p></div>}
+      {step==="form"&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div><h3 style={{fontSize:18,marginBottom:2}}>Secure Payment</h3><p style={{color:"#8a8078",fontSize:12}}>SSL encrypted</p></div><div style={{background:"#1a1208",color:"#d4952a",borderRadius:9,padding:"6px 12px",fontWeight:700,fontSize:16}}>{fmt(amount)}</div></div>
+        <div style={{background:"#1a1208",borderRadius:10,padding:"14px 16px",marginBottom:12,color:"#fff"}}><p style={{fontSize:16,letterSpacing:3,fontFamily:"monospace",marginBottom:8}}>{card||".... .... .... ...."}</p><div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.6}}><span>{nm||"CARDHOLDER"}</span><span>{exp||"MM/YY"}</span></div></div>
+        <div style={{marginBottom:8}}><input className="field" value={nm} onChange={e=>setNm(e.target.value.toUpperCase())} placeholder="Name on card"/></div>
+        <div style={{marginBottom:8}}><input className="field" value={card} onChange={e=>setCard(fc(e.target.value))} placeholder="Card number" maxLength={19}/></div>
+        <div style={{display:"flex",gap:8,marginBottom:10}}><input className="field" value={exp} onChange={e=>setExp(fe(e.target.value))} placeholder="MM/YY" maxLength={5}/><input className="field" value={cvc} onChange={e=>setCvc(e.target.value.replace(/\D/g,"").slice(0,3))} placeholder="CVC"/></div>
+        {err&&<p style={{color:"#dc2626",fontSize:12,marginBottom:8,fontWeight:600}}>{err}</p>}
+        <button className="btn btn-r" style={{width:"100%",padding:"11px"}} onClick={go}>Pay {fmt(amount)}</button>
+        <p style={{fontSize:11,color:"#8a8078",textAlign:"center",marginTop:6}}>Test: 4242 4242 4242 4242</p>
+      </>}
+    </div>
+  </div>;
+}
+
+function BranchSel({onSelect}){
+  return <div className="page" style={{maxWidth:560}}>
+    <h2 style={{fontSize:26,marginBottom:4,textAlign:"center"}}>Choose Your Branch</h2>
+    <p style={{color:"#8a8078",textAlign:"center",marginBottom:20,fontSize:14}}>Select a location to start ordering</p>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {BRANCHES.map(b=><button key={b.id} onClick={()=>onSelect(b)} style={{textAlign:"left",background:"#fff",borderRadius:13,padding:"15px 16px",border:"2px solid #ede8de",boxShadow:"0 2px 10px rgba(0,0,0,.06)",cursor:"pointer",width:"100%",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#bf4626"} onMouseLeave={e=>e.currentTarget.style.borderColor="#ede8de"}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><p style={{fontWeight:700,fontSize:15,marginBottom:2}}>La Tavola - {b.name}</p><p style={{color:"#8a8078",fontSize:13,marginBottom:1}}>{b.addr}</p><p style={{color:"#8a8078",fontSize:13}}>{b.phone}</p></div><span className="bdg" style={{background:"#d1fae5",color:"#059669"}}>Open</span></div>
+      </button>)}
+    </div>
+  </div>;
+}
+
+function MenuV({menu,user,branch,onOrder,push,discounts}){
+  var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
+  var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState({}),[step,setStep]=useState("menu");
+  var [type,setType]=useState("dine-in"),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
+  var [slot,setSlot]=useState(null),[code,setCode]=useState(""),[disc,setDisc]=useState(null),[derr,setDerr]=useState("");
+  var [last,setLast]=useState(null),[showPay,setPay]=useState(false);
+  var slots=getSlots(),busy=[slots[2],slots[5]];
+  var items=Object.keys(cart).map(id=>({...menu.find(m=>m.id===+id),qty:cart[id]})).filter(Boolean);
+  var sub=items.reduce((s,i)=>s+i.price*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
+  var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
+  var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
+  var applyCode=()=>{var r=applyDisc(discounts,code,sub);r.err?(setDerr(r.err),setDisc(null)):(setDisc(r),setDerr(""));};
+  var finalize=paid=>{var customer=type==="dine-in"?"Table "+(table||"?"):(cname||"Guest");var o={id:uid(),branchId:branch?.id,userId:user?.id||"guest",customer,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),total,status:"pending",time:nowT(),type,paid,slot:type==="collection"?slot:null,discCode:disc?.code||null};onOrder(o);setLast(o);setCart({});push({title:"New Order!",body:o.id+" - "+fmt(o.total),color:"#bf4626"});setStep(type==="collection"?"cdone":"done");};
+
+  if(step==="cdone"&&last) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
+    <p style={{fontSize:48,marginBottom:12}}>{EM.bag}</p>
+    <h2 style={{fontSize:24,marginBottom:5}}>Collection Confirmed!</h2>
+    <div style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",borderRadius:12,padding:"16px 20px",margin:"16px auto",color:"#fff",display:"inline-block",minWidth:180}}><p style={{fontSize:10,opacity:.7,letterSpacing:2,marginBottom:3}}>COLLECT AT</p><p style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:700}}>{last.slot}</p></div>
+    <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:14}}><button className="btn btn-r" onClick={()=>{setStep("menu");setSlot(null);setDisc(null);setCode("");}}>Order Again</button><button className="btn btn-o" onClick={()=>printR(last,branch)}>Receipt</button></div>
+  </div>;
+
+  if(step==="done") return <div className="page fadeup" style={{maxWidth:380,textAlign:"center"}}>
+    <p style={{fontSize:48,marginBottom:10}}>{EM.party}</p>
+    <h2 style={{fontSize:24,marginBottom:4}}>Order Confirmed!</h2>
+    <p style={{color:"#8a8078",marginBottom:4}}>ID: <strong>{last?.id}</strong></p>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:20}}>We will have it ready soon.</p>
+    <button className="btn btn-r" onClick={()=>setStep("menu")}>Order Again</button>
+  </div>;
+
+  if(step==="checkout") return <>
+    {showPay&&<Pay amount={total} onSuccess={()=>{setPay(false);finalize(true);}} onClose={()=>setPay(false)}/>}
+    <div className="page fadeup" style={{maxWidth:500}}>
+      <button className="btn btn-g" onClick={()=>setStep("menu")} style={{marginBottom:10,fontSize:13}}>Back to menu</button>
+      <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
+      <div className="card" style={{marginBottom:10}}>
+        <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Order type</p>
+        <div className="g3" style={{marginBottom:12}}>{[["dine-in","Dine In"],["takeaway","Takeaway"],["collection","Collection"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setSlot(null);}} style={{padding:"10px 4px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid "+(type===tp?"#bf4626":"#ede8de"),background:type===tp?"#fff5f3":"#fff",color:type===tp?"#bf4626":"#1a1208",cursor:"pointer"}}>{lb}</button>)}</div>
+        {type==="dine-in"&&<div><label className="lbl">Table Number</label><input className="field" value={table} onChange={e=>setTable(e.target.value)} placeholder="e.g. 5"/></div>}
+        {type==="takeaway"&&<div><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>}
+        {type==="collection"&&<div><div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div><label className="lbl">Collection Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginTop:4}}>{slots.map(s=><button key={s} disabled={busy.includes(s)} onClick={()=>setSlot(s)} style={{padding:"8px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(slot===s?"#7c3aed":"#ede8de"),background:slot===s?"#f5f0ff":"#fff",color:slot===s?"#7c3aed":busy.includes(s)?"#ccc":"#1a1208",opacity:busy.includes(s)?.4:1,cursor:busy.includes(s)?"not-allowed":"pointer"}}>{s}</button>)}</div></div>}
+      </div>
+      <div className="card" style={{marginBottom:10}}>
+        <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Order Summary</p>
+        {items.map(i=><div key={i.id} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ede8de",fontSize:13}}><span>{i.name} x{i.qty}</span><span style={{fontWeight:600}}>{fmt(i.price*i.qty)}</span></div>)}
+        <div style={{marginTop:9}}><div style={{display:"flex",gap:7,marginBottom:4}}><input className="field" value={code} onChange={e=>{setCode(e.target.value.toUpperCase());setDerr("");setDisc(null);}} placeholder="Discount code" style={{flex:1}}/><button className="btn btn-o" onClick={applyCode} style={{padding:"0 12px",flexShrink:0}}>Apply</button></div>{derr&&<p style={{fontSize:11,color:"#dc2626",fontWeight:600}}>{derr}</p>}{disc&&<p style={{fontSize:11,color:"#059669",fontWeight:600}}>Applied: {disc.desc} - saving {fmt(disc.saving)}</p>}</div>
+        <div className="hr"/>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#8a8078",marginBottom:3}}><span>Subtotal</span><span>{fmt(sub)}</span></div>
+        {saving>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#059669",marginBottom:3}}><span>Discount</span><span>- {fmt(saving)}</span></div>}
+        <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
+      </div>
+      {type==="collection"?<button className="btn btn-p" disabled={!slot} onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14}}>Pay and Reserve {slot?"("+slot+")":""} - {fmt(total)}</button>:<div style={{display:"flex",gap:8}}><button className="btn btn-r" onClick={()=>setPay(true)} style={{flex:1,padding:"12px"}}>Pay Now - {fmt(total)}</button><button className="btn btn-o" onClick={()=>finalize(false)} style={{flex:1,padding:"12px"}}>Pay Later</button></div>}
+    </div>
+  </>;
+
+  return <div className="page">
+    <div style={{background:"linear-gradient(135deg,#1a1208,#2e1f10)",borderRadius:16,padding:"22px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 50%,rgba(212,149,42,.12),transparent 70%)"}}/>
+      <div style={{position:"relative",zIndex:1}}>
+        <p style={{color:"#d4952a",fontSize:10,letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>Welcome to</p>
+        <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>La Tavola</h1>
+        {branch&&<p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{branch.addr}</p>}
+        {user&&<p style={{color:"#d4952a",fontSize:13,marginTop:6}}>{EM.wave} Hello, {user.name.split(" ")[0]}!</p>}
+      </div>
+    </div>
+    <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,marginBottom:12}}>
+      {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"7px 14px",borderRadius:50,fontWeight:600,fontSize:12,border:"2px solid "+(cat===c?"#bf4626":"#ede8de"),background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",flexShrink:0,cursor:"pointer",transition:"all .18s"}}>{c}</button>)}
+    </div>
+    <div className="ag" style={{marginBottom:88}}>
+      {menu.filter(i=>i.cat===cat&&i.avail).map(item=><div key={item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <span style={{fontSize:32,lineHeight:1}}>{EM[item.icon]||""}</span>
+          <div>{item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}{item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}</div>
+        </div>
+        <h3 style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontWeight:700}}>{item.name}</h3>
+        <p style={{fontSize:12,color:"#8a8078",lineHeight:1.5,flex:1}}>{item.desc}</p>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:15,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span>
+          {item.stock>0&&(cart[item.id]?<div style={{display:"flex",alignItems:"center",gap:8,background:"#f7f3ee",borderRadius:50,padding:"3px 12px",border:"1px solid #ede8de"}}><button onClick={()=>rem(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>-</button><span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{cart[item.id]}</span><button onClick={()=>add(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>+</button></div>:<button onClick={()=>add(item.id)} style={{background:"#1a1208",color:"#fff",borderRadius:"50%",width:32,height:32,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background="#bf4626"} onMouseLeave={e=>e.currentTarget.style.background="#1a1208"}>+</button>)}
+        </div>
+      </div>)}
+    </div>
+    {count>0&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:300}}>
+      <button className="btn btn-d" onClick={()=>setStep("checkout")} style={{padding:"12px 24px",borderRadius:50,fontSize:13,boxShadow:"0 8px 28px rgba(0,0,0,.3)",gap:8,minWidth:190}}>
+        <span style={{background:"#bf4626",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{count}</span>
+        <span style={{flex:1,textAlign:"center"}}>View Cart</span>
+        <span style={{color:"#d4952a",fontWeight:700}}>{fmt(total)}</span>
+      </button>
+    </div>}
+  </div>;
+}
+
+function TrackV({orders,branches}){
+  var [q,setQ]=useState(""),[found,setFound]=useState(null),[tried,setTried]=useState(false);
+  var search=()=>{setFound(orders.find(o=>o.id.toLowerCase()===q.trim().toLowerCase())||null);setTried(true);};
+  var fb=found?branches.find(b=>b.id===found.branchId):null;
+  var stepsN=["pending","preparing","ready","delivered"],stepsC=["pending","preparing","ready","collected"];
+  var steps=found?.type==="collection"?stepsC:stepsN,si=found?steps.indexOf(found.status):-1;
+  var pct=si<0?0:Math.round((si/(steps.length-1))*100);
+  return <div className="page" style={{maxWidth:500}}>
+    <h2 style={{fontSize:24,marginBottom:4}}>Track Your Order</h2>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:16}}>Enter your order ID</p>
+    <div style={{display:"flex",gap:8,marginBottom:18}}><input className="field" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()} placeholder="e.g. ORD-12345" style={{flex:1}}/><button className="btn btn-r" onClick={search}>Search</button></div>
+    {tried&&!found&&<div className="card" style={{textAlign:"center",padding:20}}><p style={{fontWeight:700}}>Order not found</p></div>}
+    {found&&<div className="card fadeup" style={{marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div><p style={{fontWeight:700,fontSize:15}}>{found.id}</p><p style={{color:"#8a8078",fontSize:12}}>{found.customer} - {found.time} - {found.type}</p></div>
+        <div style={{textAlign:"right"}}><span className="bdg" style={{background:SB[found.status],color:SC[found.status]}}>{SL[found.status]}</span>{found.slot&&<div style={{background:"#f5f0ff",borderRadius:7,padding:"5px 10px",marginTop:4}}><p style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>COLLECT AT</p><p style={{fontSize:18,fontWeight:700,color:"#7c3aed"}}>{found.slot}</p></div>}</div>
+      </div>
+      <div style={{background:"#1a1208",borderRadius:10,padding:14,marginBottom:12,color:"#fff"}}>
+        <div style={{height:3,background:"rgba(255,255,255,.1)",borderRadius:2,overflow:"hidden",marginBottom:10}}><div style={{height:"100%",background:"#4ade80",width:pct+"%",borderRadius:2,transition:"width .8s"}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}>{steps.map((s,i)=><div key={s} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flex:1}}><div style={{width:18,height:18,borderRadius:"50%",background:i<=si?"#4ade80":"rgba(255,255,255,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>{i<=si?"v":""}</div><span style={{fontSize:8,color:i<=si?"#4ade80":"#555",textAlign:"center",fontWeight:600}}>{SL[s]}</span></div>)}</div>
+      </div>
+      {found.items.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ede8de",fontSize:13}}><span>{it.name} x{it.qty}</span><span style={{fontWeight:600}}>{fmt(it.price*it.qty)}</span></div>)}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontWeight:700,fontSize:15}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(found.total)}</span></div>
+      <button onClick={()=>printR(found,fb)} className="btn btn-o" style={{width:"100%",marginTop:9,padding:"8px",fontSize:13}}>Print Receipt</button>
+    </div>}
+    <h3 style={{fontSize:16,marginBottom:9}}>Active Orders</h3>
+    {orders.filter(o=>["pending","preparing","ready"].includes(o.status)).map(o=><button key={o.id} onClick={()=>{setQ(o.id);setFound(o);setTried(true);}} style={{width:"100%",textAlign:"left",background:"#fff",borderRadius:9,padding:"10px 12px",marginBottom:6,boxShadow:"0 2px 8px rgba(0,0,0,.06)",border:"1px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",transition:"transform .15s"}} onMouseEnter={e=>e.currentTarget.style.transform="translateX(4px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateX(0)"}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{color:"#8a8078",fontSize:11}}>{o.customer} - {o.time}</p></div><span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{SL[o.status]}</span></button>)}
+  </div>;
+}
+
+function BookV({reservations,setReservations,user,onAuth,branches}){
+  var [step,setStep]=useState("form"),[form,setF]=useState({name:user?.name||"",email:"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""}),[conf,setConf]=useState(null);
+  var times=["12:00","12:30","13:00","13:30","14:00","18:00","18:30","19:00","19:30","20:00","20:30","21:00"],today=new Date().toISOString().split("T")[0];
+  var submit=()=>{if(!form.name||!form.email||!form.date||!form.time)return;var r={...form,id:rid(),guests:+form.guests,status:"confirmed",userId:user?.id||null};setReservations(rs=>[r,...rs]);setConf(r);setStep("done");};
+  if(step==="done"&&conf) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
+    <p style={{fontSize:48,marginBottom:10}}>{EM.party}</p>
+    <h2 style={{fontSize:24,marginBottom:5}}>Reservation Confirmed!</h2>
+    <div className="card" style={{textAlign:"left",marginBottom:14}}>{[["Branch",(branches.find(b=>b.id===conf.branchId)||{}).name],["Date",conf.date],["Time",conf.time],["Guests",conf.guests+" people"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ede8de",fontSize:13}}><span style={{color:"#8a8078"}}>{k}</span><span style={{fontWeight:700}}>{v}</span></div>)}</div>
+    <button className="btn btn-r" onClick={()=>{setStep("form");setConf(null);setF({name:user?.name||"",email:"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""});}}>Book Again</button>
+  </div>;
+  return <div className="page" style={{maxWidth:520}}>
+    <h2 style={{fontSize:24,marginBottom:4}}>Book a Table</h2>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:18}}>Reserve your spot at La Tavola</p>
+    <div className="card" style={{marginBottom:10}}><p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Choose Branch</p>{branches.map(b=><button key={b.id} onClick={()=>setF(f=>({...f,branchId:b.id}))} style={{width:"100%",textAlign:"left",padding:"9px 11px",borderRadius:8,border:"2px solid "+(form.branchId===b.id?"#bf4626":"#ede8de"),background:form.branchId===b.id?"#fff5f3":"#fff",marginBottom:5,cursor:"pointer"}}><p style={{fontWeight:700,fontSize:13}}>{b.name}</p><p style={{color:"#8a8078",fontSize:11}}>{b.addr}</p></button>)}</div>
+    <div className="card" style={{marginBottom:10}}>
+      <div className="g2" style={{marginBottom:9}}><div><label className="lbl">Date</label><input type="date" className="field" value={form.date} min={today} onChange={e=>setF(f=>({...f,date:e.target.value}))}/></div><div><label className="lbl">Guests</label><select className="field" value={form.guests} onChange={e=>setF(f=>({...f,guests:e.target.value}))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></div></div>
+      <label className="lbl">Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:9}}>{times.map(tm=><button key={tm} onClick={()=>setF(f=>({...f,time:tm}))} style={{padding:"7px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(form.time===tm?"#bf4626":"#ede8de"),background:form.time===tm?"#fff5f3":"#fff",color:form.time===tm?"#bf4626":"#1a1208",cursor:"pointer"}}>{tm}</button>)}</div>
+      <div style={{marginBottom:7}}><label className="lbl">Name</label><input className="field" value={form.name} onChange={e=>setF(f=>({...f,name:e.target.value}))} placeholder="Alex Johnson"/></div>
+      <div style={{marginBottom:7}}><label className="lbl">Email</label><input className="field" value={form.email} onChange={e=>setF(f=>({...f,email:e.target.value}))} placeholder="alex@example.com"/></div>
+      <div><label className="lbl">Special Requests</label><textarea className="field" value={form.notes} onChange={e=>setF(f=>({...f,notes:e.target.value}))} rows={2} style={{resize:"vertical"}} placeholder="Window table, birthday..."/></div>
+    </div>
+    <button className="btn btn-r" disabled={!form.name||!form.email||!form.date||!form.time} onClick={submit} style={{width:"100%",padding:"12px"}}>Confirm Reservation</button>
+  </div>;
+}
+
+function ReviewsV({reviews,setReviews,user,onAuth}){
+  var [show,setShow]=useState(false),[rat,setRat]=useState(5),[com,setCom]=useState("");
+  var avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):"N/A";
+  var stars=(n,sz=14)=>Array.from({length:5}).map((_,i)=><span key={i} style={{color:i<n?"#d4952a":"#ddd",fontSize:sz}}>*</span>);
+  var submit=()=>{if(!com.trim())return;setReviews(rs=>[{id:"r"+Date.now(),userId:user?.id,name:user?.name||"Guest",rating:rat,comment:com,date:"Just now",helpful:0},...rs]);setShow(false);setCom("");setRat(5);};
+  return <div className="page" style={{maxWidth:600}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:8}}>
+      <div><h2 style={{fontSize:24,marginBottom:4}}>Reviews</h2><div style={{display:"flex",alignItems:"center",gap:7}}>{stars(Math.round(parseFloat(avg)||0))}<span style={{fontWeight:700,fontSize:17}}>{avg}</span><span style={{color:"#8a8078",fontSize:13}}>({reviews.length})</span></div></div>
+      {user?<button className="btn btn-r" onClick={()=>setShow(s=>!s)} style={{padding:"8px 16px"}}>Write a Review</button>:<button className="btn btn-o" onClick={onAuth} style={{padding:"8px 16px"}}>Sign in to review</button>}
+    </div>
+    {show&&<div className="card fadeup" style={{marginBottom:12,border:"2px solid #bf4626"}}>
+      <h3 style={{fontSize:16,marginBottom:10}}>Your Review</h3>
+      <div style={{marginBottom:9}}><label className="lbl">Rating</label><div style={{display:"flex",gap:3}}>{[1,2,3,4,5].map(i=><button key={i} onClick={()=>setRat(i)} style={{fontSize:26,color:i<=rat?"#d4952a":"#ddd",border:"none",background:"none",cursor:"pointer"}}>*</button>)}</div></div>
+      <div style={{marginBottom:10}}><label className="lbl">Comment</label><textarea className="field" value={com} onChange={e=>setCom(e.target.value)} rows={3} style={{resize:"vertical"}} placeholder="Tell us about your experience..."/></div>
+      <div style={{display:"flex",gap:8}}><button className="btn btn-r" onClick={submit} style={{flex:1}}>Submit</button><button className="btn btn-o" onClick={()=>setShow(false)} style={{flex:1}}>Cancel</button></div>
+    </div>}
+    {reviews.map(r=><div key={r.id} className="card fadeup" style={{marginBottom:9}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:7}}><div style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:11}}>{r.name.slice(0,2).toUpperCase()}</div><div><p style={{fontWeight:700,fontSize:13}}>{r.name}</p><p style={{color:"#8a8078",fontSize:11}}>{r.date}</p></div></div><div>{stars(r.rating)}</div></div>
+      <p style={{fontSize:13,lineHeight:1.6,marginBottom:6}}>{r.comment}</p>
+      <button onClick={()=>setReviews(rs=>rs.map(x=>x.id===r.id?{...x,helpful:x.helpful+1}:x))} style={{fontSize:11,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>Helpful ({r.helpful})</button>
+    </div>)}
+  </div>;
+}
+
+function AccountV({user,orders,reviews,reservations,onAuth,branches}){
+  var [tab,setTab]=useState("orders");
+  if(!user) return <div className="page" style={{maxWidth:360,textAlign:"center",paddingTop:50}}>
+    <p style={{fontSize:48,marginBottom:10}}>{EM.person}</p>
+    <h2 style={{fontSize:24,marginBottom:6}}>Your Account</h2>
+    <p style={{color:"#8a8078",marginBottom:18,fontSize:13}}>Sign in to view orders and loyalty points.</p>
+    <button className="btn btn-r" onClick={onAuth} style={{padding:"11px 28px"}}>Sign In</button>
+  </div>;
+  var mine=orders.filter(o=>o.userId===user.id),spent=mine.filter(o=>o.paid).reduce((s,o)=>s+o.total,0),pts=Math.floor(spent*10),tier=getTier(pts),next=TIERS.find(t=>t.min>pts),prog=next?Math.round(((pts-tier.min)/(next.min-tier.min))*100):100;
+  return <div className="page" style={{maxWidth:600}}>
+    <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",borderRadius:16,padding:"18px 20px",marginBottom:14,display:"flex",gap:12,alignItems:"center"}}>
+      <div className="av" style={{width:50,height:50,fontSize:18}}>{user.avatar}</div>
+      <div style={{flex:1}}><h2 style={{fontSize:18,color:"#fff",marginBottom:1}}>{user.name}</h2><p style={{color:"rgba(255,255,255,.5)",fontSize:12}}>{user.email}</p></div>
+      <div style={{textAlign:"center"}}><span className="bdg" style={{background:tier.bg,color:tier.color,fontSize:12}}>{tier.name}</span><p style={{color:"#d4952a",fontSize:17,fontWeight:700,marginTop:3}}>{pts.toLocaleString()} pts</p></div>
+    </div>
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><p style={{fontWeight:700,fontSize:14}}>Loyalty Points</p><span className="bdg" style={{background:tier.bg,color:tier.color}}>{tier.name}</span></div>
+      {next&&<><div className="lbar" style={{marginBottom:5}}><div className="lfill" style={{width:prog+"%",background:tier.color}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#8a8078"}}><span>{pts} pts</span><span>{next.min-pts} pts to {next.name}</span></div></>}
+    </div>
+    <div className="g3" style={{marginBottom:12}}>{[["Orders",mine.length,"#bf4626"],["Spent",fmt(spent),"#059669"],["Points",pts.toLocaleString(),"#d4952a"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:12,padding:"12px 8px",textAlign:"center",border:"1px solid #ede8de"}}><div style={{fontWeight:700,fontSize:17,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600,textTransform:"uppercase"}}>{l}</div></div>)}</div>
+    <div style={{display:"flex",gap:5,marginBottom:12,overflowX:"auto",paddingBottom:2}}>{[["orders","Orders"],["reviews","Reviews"],["book","Bookings"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"6px 14px",borderRadius:8,fontWeight:600,fontSize:12,border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+    {tab==="orders"&&<>{mine.length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No orders yet!</div>}{mine.map(o=><div key={o.id} className="card fadeup" style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{color:"#8a8078",fontSize:11}}>{o.time} - {o.type}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626"}}>{fmt(o.total)}</p><span className="bdg" style={{background:SB[o.status],color:SC[o.status],marginTop:2}}>{SL[o.status]}</span></div></div><p style={{fontSize:11,color:"#8a8078"}}>{o.items.map(i=>i.name+" x"+i.qty).join(", ")}</p></div>)}</>}
+    {tab==="reviews"&&<>{reviews.filter(r=>r.userId===user.id).length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No reviews yet</div>}{reviews.filter(r=>r.userId===user.id).map(r=><div key={r.id} className="card fadeup" style={{marginBottom:9}}><p style={{fontSize:13}}>{r.comment}</p><p style={{fontSize:11,color:"#8a8078",marginTop:3}}>{r.date}</p></div>)}</>}
+    {tab==="book"&&<>{reservations.filter(r=>r.userId===user.id).length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No reservations yet</div>}{reservations.filter(r=>r.userId===user.id).map(r=><div key={r.id} className="card fadeup" style={{marginBottom:9,borderLeft:"4px solid #059669"}}><p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{(branches.find(b=>b.id===r.branchId)||{}).name}</p><p style={{color:"#8a8078",fontSize:12}}>{r.date} at {r.time} - {r.guests} guests</p></div>)}</>}
+  </div>;
+}
+
+function ChatV({messages,setMessages,user,onAuth}){
+  var [text,setText]=useState(""),bottom=useRef(null);
+  useEffect(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),[messages]);
+  var send=()=>{if(!text.trim())return;setMessages(ms=>[...ms,{id:"m"+Date.now(),userId:user?.id||"guest",name:user?.name||"Guest",text:text.trim(),time:nowT(),role:user?.role||"customer"}]);setText("");};
+  var rc={owner:"#bf4626",kitchen:"#059669",customer:"#6b7280"};
+  return <div style={{maxWidth:560,margin:"0 auto",height:"calc(100vh - 130px)",display:"flex",flexDirection:"column",padding:"0 14px"}}>
+    <div style={{padding:"12px 0 8px",borderBottom:"1px solid #ede8de",display:"flex",alignItems:"center",gap:7}}><h2 style={{fontSize:20}}>Live Chat</h2><span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/><span style={{color:"#8a8078",fontSize:12}}>Live</span></div>
+    <div style={{flex:1,overflowY:"auto",padding:"12px 0",display:"flex",flexDirection:"column",gap:7}}>
+      {messages.map(m=>{var isMe=m.userId===user?.id;return <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",gap:2}}>{!isMe&&<span style={{fontSize:11,fontWeight:700,color:rc[m.role]||"#999",paddingLeft:10}}>{m.name}</span>}<div style={{padding:"8px 13px",maxWidth:"76%",fontSize:14,lineHeight:1.4,borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isMe?"#bf4626":"#fff",color:isMe?"#fff":"#1a1208",border:isMe?"none":"1px solid #ede8de"}}>{m.text}</div><span style={{fontSize:10,color:"#bbb",paddingLeft:isMe?0:10,paddingRight:isMe?10:0}}>{m.time}</span></div>;})}
+      <div ref={bottom}/>
+    </div>
+    {user?<div style={{padding:"9px 0",borderTop:"1px solid #ede8de",display:"flex",gap:7}}><input className="field" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Type a message..." style={{flex:1,borderRadius:50,padding:"9px 15px"}}/><button className="btn btn-r" onClick={send} style={{borderRadius:50,padding:"9px 16px",flexShrink:0}}>Send</button></div>:<div style={{padding:"10px 0",borderTop:"1px solid #ede8de",textAlign:"center"}}><button className="btn btn-o" onClick={onAuth} style={{padding:"9px 22px"}}>Sign in to chat</button></div>}
+  </div>;
+}
+
+function KitchenV({orders,setOrders,push}){
+  var active=orders.filter(o=>o.status==="pending"||o.status==="preparing");
+  var adv=id=>setOrders(os=>os.map(o=>{if(o.id!==id)return o;var next=o.status==="pending"?"preparing":"ready";push({title:id,body:"-> "+next,color:next==="ready"?"#059669":"#2563eb"});return{...o,status:next};}));
+  return <div className="kbg"><div style={{maxWidth:940,margin:"0 auto"}}>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><h2 style={{color:"#fff",fontSize:18,fontFamily:"'Inter',sans-serif"}}>Kitchen Display</h2><span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/><span style={{color:"#666",fontSize:11}}>{active.length} tickets</span></div>
+    {active.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><p style={{fontSize:32,marginBottom:7}}>OK</p><p style={{fontSize:14}}>All caught up!</p></div>}
+    <div className="ag">{active.map(o=><div key={o.id} style={{background:o.status==="pending"?"#1a0a06":"#06101a",border:"2px solid "+(o.status==="pending"?"#d97706":"#2563eb"),borderRadius:12,padding:13}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div><p style={{color:"#fff",fontWeight:700,fontSize:14}}>{o.id}</p><p style={{color:"#666",fontSize:10}}>{o.customer} - {o.time}{o.slot?" | Collect "+o.slot:""}</p></div><span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{SL[o.status]}</span></div>
+      {o.items.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,.07)",fontSize:13}}><span style={{color:"#fff",fontWeight:600}}>{it.name}</span><span style={{color:"#f59e0b",fontWeight:700,fontSize:15}}>x{it.qty}</span></div>)}
+      <div style={{display:"flex",gap:5,marginTop:10}}><button onClick={()=>adv(o.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:o.status==="pending"?"#2563eb":"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{o.status==="pending"?"Start":"Mark Ready"}</button><button onClick={()=>setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled"}:x))} style={{padding:"7px 9px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>X</button></div>
+    </div>)}</div>
+  </div></div>;
+}
+
+function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches}){
+  var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
+  var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
+  var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
+  var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
+  var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
+  return <div className="page">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
+    <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0}}>{l}</button>)}</div>
+    {tab==="orders"&&allSt.map(st=>{var grp=fil.filter(o=>o.status===st);if(!grp.length)return null;return <div key={st} style={{marginBottom:14}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span className="bdg" style={{background:SB[st],color:SC[st]}}>{SL[st]}</span><span style={{color:"#8a8078",fontSize:11}}>{grp.length}</span></div><div className="ag">{grp.map(o=><div key={o.id} className="card" style={{padding:"11px 13px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p><span style={{fontSize:10,color:o.paid?"#059669":"#dc2626",fontWeight:600}}>{o.paid?"Paid":"Unpaid"}</span></div></div><p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{o.items.map(i=>i.name+"x"+i.qty).join(", ")}</p><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}</div><button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button></div>)}</div></div>;})}
+    {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(del.length?rev/del.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
+    {tab==="menu"&&<div className="ag">{menu.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div><p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{item.name}</p><p style={{fontSize:10,color:"#8a8078",marginBottom:8}}>{item.cat}</p><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,avail:!m.avail}:m))} style={{width:"100%",padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:item.avail?"#059669":"#ede8de",background:item.avail?"#d1fae5":"#f7f3ee",color:item.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{item.avail?"Available":"86 it - Restore"}</button></div>)}</div>}
+    {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
+    {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
+    {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
+  </div>;
+}
+
+function ReportV({orders}){
+  var data=Array.from({length:56}).map((_,i)=>{var d=new Date();d.setDate(d.getDate()-i);var we=d.getDay()===0||d.getDay()===6;return{day:d.toLocaleDateString("en-GB",{month:"short",day:"numeric"}),rev:Math.round((we?420:280)+Math.random()*180)};}).reverse();
+  var last7=data.slice(-7),last30=data.slice(-30),tr=last30.reduce((s,d)=>s+d.rev,0),mx=Math.max(...last7.map(d=>d.rev),1);
+  return <div className="page">
+    <h2 style={{fontSize:24,marginBottom:4}}>Sales Reports</h2>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:18}}>Last 30 days overview</p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:9,marginBottom:18}}>{[["30-Day Revenue",fmt(tr),"#bf4626"],["30-Day Orders",last30.length,"#2563eb"],["Avg Order",fmt(tr/Math.max(last30.length,1)),"#4a7155"]].map(([l,v,c])=><div key={l} className="card"><div style={{fontSize:20,fontWeight:700,color:c,marginBottom:2}}>{v}</div><div style={{fontSize:11,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
+    <div className="card" style={{marginBottom:14}}>
+      <h3 style={{fontSize:16,marginBottom:12}}>Revenue - Last 7 Days</h3>
+      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>{last7.map((d,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:"100%",background:"#bf4626",borderRadius:"3px 3px 0 0",height:Math.round((d.rev/mx)*64)+"px",opacity:.7+.3*(d.rev/mx),minHeight:4}}/><span style={{fontSize:9,color:"#8a8078",textAlign:"center"}}>{d.day}</span></div>)}</div>
+    </div>
+  </div>;
+}
+
+// -- TABLES / FLOOR PLAN ---------------------------------------------------
+var TABLES0=[
+  {id:1,seats:2,x:10,y:10,status:"free"},
+  {id:2,seats:2,x:10,y:30,status:"occupied",since:"12:15",guests:2,orderId:"ORD-1001"},
+  {id:3,seats:4,x:10,y:50,status:"free"},
+  {id:4,seats:4,x:35,y:10,status:"reserved",resTime:"19:00",resName:"Johnson"},
+  {id:5,seats:4,x:35,y:30,status:"occupied",since:"12:30",guests:3},
+  {id:6,seats:6,x:35,y:50,status:"free"},
+  {id:7,seats:2,x:60,y:10,status:"free"},
+  {id:8,seats:4,x:60,y:30,status:"occupied",since:"12:45",guests:4,orderId:"ORD-1002"},
+  {id:9,seats:6,x:60,y:50,status:"free"},
+  {id:10,seats:8,x:85,y:30,status:"reserved",resTime:"20:00",resName:"Smith party"},
+];
+
+function TablesV({tables,setTables,push}){
+  var [selected,setSelected]=useState(null);
+  var [guestCount,setGuestCount]=useState(2);
+  var t=tables.find(t=>t.id===selected);
+
+  var seat=(guests)=>{
+    setTables(ts=>ts.map(x=>x.id===selected?{...x,status:"occupied",since:nowT(),guests:guests,orderId:null,resTime:null,resName:null}:x));
+    push({title:"Table "+selected+" seated",body:guests+" guests",color:"#2563eb"});
+    setSelected(null);
+  };
+  var clearT=()=>{
+    setTables(ts=>ts.map(x=>x.id===selected?{id:x.id,seats:x.seats,x:x.x,y:x.y,status:"free"}:x));
+    push({title:"Table "+selected+" cleared",body:"Ready for next guests",color:"#059669"});
+    setSelected(null);
+  };
+  var reserve=()=>{
+    var nm=prompt("Reservation name:");if(!nm)return;
+    var tm=prompt("Time (HH:MM):","19:00");if(!tm)return;
+    setTables(ts=>ts.map(x=>x.id===selected?{...x,status:"reserved",resName:nm,resTime:tm,guests:null,since:null,orderId:null}:x));
+    setSelected(null);
+  };
+
+  var stats={
+    free:tables.filter(t=>t.status==="free").length,
+    occupied:tables.filter(t=>t.status==="occupied").length,
+    reserved:tables.filter(t=>t.status==="reserved").length,
+    total:tables.length,
+    guests:tables.filter(t=>t.status==="occupied").reduce((s,t)=>s+(t.guests||0),0),
+    capacity:tables.reduce((s,t)=>s+t.seats,0),
+  };
+  var utilization=Math.round((stats.guests/stats.capacity)*100);
+  var colors={free:"#10b981",occupied:"#dc2626",reserved:"#d4952a"};
+  var bgs={free:"#d1fae5",occupied:"#fee2e2",reserved:"#fef3c7"};
+
+  return <div className="page">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div><h2 style={{fontSize:22,marginBottom:2}}>Floor Plan</h2><p style={{color:"#8a8078",fontSize:12}}>Tap a table to manage</p></div>
+      <div style={{background:"#1a1208",color:"#d4952a",borderRadius:9,padding:"8px 14px",fontWeight:700,fontSize:13}}>{utilization}% full - {stats.guests}/{stats.capacity}</div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:16}}>
+      {[["Free",stats.free,"#10b981"],["Occupied",stats.occupied,"#dc2626"],["Reserved",stats.reserved,"#d4952a"],["Total",stats.total,"#1a1208"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
+    </div>
+    <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,border:"1px solid #ede8de"}}>
+      <div style={{position:"relative",width:"100%",height:380,background:"repeating-linear-gradient(45deg,#fafaf5,#fafaf5 10px,#f5f0e8 10px,#f5f0e8 20px)",borderRadius:10,border:"2px dashed #d4c9b8"}}>
+        <div style={{position:"absolute",top:4,left:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>MAIN DINING</div>
+        <div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>KITCHEN</div>
+        {tables.map(tb=>{
+          var isSel=selected===tb.id,c=colors[tb.status],bg=bgs[tb.status];
+          var size=tb.seats<=2?44:tb.seats<=4?54:tb.seats<=6?64:74;
+          return <button key={tb.id} onClick={()=>setSelected(tb.id)} style={{position:"absolute",left:tb.x+"%",top:tb.y+"%",width:size,height:size,borderRadius:tb.seats<=2?"50%":12,background:bg,border:"3px solid "+c,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",transition:"all .2s",transform:isSel?"scale(1.15)":"scale(1)",boxShadow:isSel?"0 4px 20px "+c+"88":"0 2px 6px rgba(0,0,0,.1)",zIndex:isSel?10:1,padding:0}}>
+            <span style={{fontSize:14,fontWeight:700,color:c,lineHeight:1}}>T{tb.id}</span>
+            <span style={{fontSize:9,color:c,fontWeight:600}}>{tb.seats} seats</span>
+            {tb.status==="occupied"&&tb.guests&&<span style={{fontSize:9,color:c,fontWeight:700,marginTop:1}}>{tb.guests} in</span>}
+          </button>;
+        })}
+      </div>
+      <div style={{display:"flex",gap:14,marginTop:12,justifyContent:"center",flexWrap:"wrap"}}>
+        {[["Free","#10b981","#d1fae5"],["Occupied","#dc2626","#fee2e2"],["Reserved","#d4952a","#fef3c7"]].map(([l,c,bg])=><div key={l} style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,borderRadius:"50%",background:bg,border:"2px solid "+c,display:"inline-block"}}/><span style={{fontSize:11,color:"#8a8078",fontWeight:600}}>{l}</span></div>)}
+      </div>
+    </div>
+    {t&&<div className="card fadeup" style={{borderLeft:"4px solid "+colors[t.status]}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+        <div>
+          <h3 style={{fontSize:22,marginBottom:2}}>Table {t.id}</h3>
+          <p style={{color:"#8a8078",fontSize:12}}>{t.seats} seats - currently <strong style={{color:colors[t.status],textTransform:"capitalize"}}>{t.status}</strong></p>
+          {t.status==="occupied"&&<>
+            <p style={{fontSize:12,color:"#8a8078",marginTop:3}}>Seated since {t.since} with {t.guests} guest{t.guests!==1?"s":""}</p>
+            {t.orderId&&<p style={{fontSize:12,color:"#bf4626",fontWeight:700,marginTop:2}}>Order: {t.orderId}</p>}
+          </>}
+          {t.status==="reserved"&&<p style={{fontSize:12,color:"#8a8078",marginTop:3}}>Reserved for <strong>{t.resName}</strong> at <strong>{t.resTime}</strong></p>}
+        </div>
+        <button onClick={()=>setSelected(null)} style={{color:"#ccc",fontSize:18,border:"none",background:"none",cursor:"pointer",padding:4}}>x</button>
+      </div>
+      {t.status==="free"&&<div>
+        <p style={{fontSize:11,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:6}}>SEAT GUESTS</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat("+t.seats+",1fr)",gap:5,marginBottom:10}}>
+          {Array.from({length:t.seats}).map((_,i)=><button key={i} onClick={()=>setGuestCount(i+1)} style={{padding:"10px 4px",borderRadius:8,fontWeight:700,fontSize:14,background:guestCount===i+1?"#1a1208":"#f7f3ee",color:guestCount===i+1?"#fff":"#1a1208",border:"none",cursor:"pointer"}}>{i+1}</button>)}
+        </div>
+        <div style={{display:"flex",gap:7}}>
+          <button className="btn btn-r" onClick={()=>seat(guestCount)} style={{flex:2,padding:"12px"}}>Seat {guestCount} guest{guestCount>1?"s":""}</button>
+          <button className="btn btn-o" onClick={reserve} style={{flex:1,padding:"12px"}}>Reserve</button>
+        </div>
+      </div>}
+      {t.status==="occupied"&&<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+        <button className="btn btn-p" onClick={()=>alert("Switch to POS tab and enter table "+t.id)} style={{flex:1,padding:"12px"}}>Take Order</button>
+        <button className="btn btn-o" onClick={()=>alert("Bill printed for table "+t.id)} style={{flex:1,padding:"12px"}}>Print Bill</button>
+        <button className="btn btn-d" onClick={clearT} style={{flex:1,padding:"12px"}}>Clear Table</button>
+      </div>}
+      {t.status==="reserved"&&<div style={{display:"flex",gap:7}}>
+        <button className="btn btn-r" onClick={()=>seat(2)} style={{flex:2,padding:"12px"}}>Check in guests</button>
+        <button className="btn btn-o" onClick={clearT} style={{flex:1,padding:"12px"}}>Cancel reservation</button>
+      </div>}
+    </div>}
+  </div>;
+}
+
+// -- POS (EPOS for Staff) -----------------------------------------------------
+function PosV({menu,onOrder,push,user,branch}){
+  var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
+  var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(""),[type,setType]=useState("dine-in");
+  var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
+  var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
+  var [splitN,setSplitN]=useState(1),[showSplit,setShowSplit]=useState(false);
+  var [lastOrder,setLastOrder]=useState(null);
+  var rawSub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  var discAmt=rawSub*(discPct/100);
+  var afterDisc=rawSub-discAmt;
+  var vat=afterDisc-afterDisc/1.2;
+  var total=afterDisc+tip;
+  var perSplit=total/Math.max(splitN,1);
+  var count=cart.reduce((s,i)=>s+i.qty,0);
+  var add=it=>setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+  var dec=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
+  var del=id=>setCart(c=>c.filter(x=>x.id!==id));
+  var clear=()=>{setCart([]);setTbl("");setTip(0);setDiscPct(0);setDiscReason("");setSplitN(1);};
+  var send=(paid,method)=>{
+    if(!cart.length)return;
+    var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
+    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN};
+    onOrder(o);setLastOrder(o);push({title:paid?"Paid by "+method:"Sent to kitchen",body:o.id+" - "+fmt(o.total),color:paid?"#059669":"#2563eb"});
+    clear();setPayStep(paid?"done":null);setCashGiven("");
+  };
+  var change=parseFloat(cashGiven)-total;
+
+  // Payment success with receipt option
+  if(payStep==="done"&&lastOrder) return <div style={{minHeight:"100vh",background:"#1a1208",display:"flex",flexDirection:"column",padding:20,justifyContent:"center",alignItems:"center"}}>
+    <div style={{fontSize:72,marginBottom:16,color:"#10b981"}}>{EM.check}</div>
+    <h2 style={{color:"#fff",fontSize:30,marginBottom:6,fontFamily:"'Playfair Display',serif"}}>Payment Complete</h2>
+    <p style={{color:"#d4952a",fontSize:36,fontWeight:700,marginBottom:4}}>{fmt(lastOrder.total)}</p>
+    <p style={{color:"#888",fontSize:13,marginBottom:6}}>Paid by {lastOrder.payMethod} - {lastOrder.id}</p>
+    {lastOrder.splitN>1&&<p style={{color:"#888",fontSize:12,marginBottom:6}}>Split {lastOrder.splitN} ways - {fmt(lastOrder.total/lastOrder.splitN)} each</p>}
+    {lastOrder.tip>0&&<p style={{color:"#888",fontSize:12,marginBottom:30}}>Includes {fmt(lastOrder.tip)} tip</p>}
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+      <button className="btn btn-o" onClick={()=>printR(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14}}>Print Receipt</button>
+      <button className="btn btn-o" onClick={()=>{alert("Email receipt sent (simulated)");}} style={{padding:"14px 24px",fontSize:14}}>Email Receipt</button>
+      <button className="btn btn-r" onClick={()=>{setLastOrder(null);setPayStep(null);}} style={{padding:"14px 24px",fontSize:14}}>New Order</button>
+    </div>
+  </div>;
+
+  // Cash payment screen
+  if(payStep==="cash") return <div style={{minHeight:"100vh",background:"#1a1208",display:"flex",flexDirection:"column",padding:20}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <button onClick={()=>setPayStep(null)} style={{color:"#d4952a",fontSize:16,fontWeight:700,border:"none",background:"none",cursor:"pointer"}}>{"< Back"}</button>
+      <p style={{color:"#fff",fontSize:22,fontWeight:700}}>Cash Payment</p>
+      <div style={{width:60}}/>
+    </div>
+    <div style={{background:"#2e1f10",borderRadius:14,padding:20,marginBottom:16,textAlign:"center"}}>
+      <p style={{color:"#d4952a",fontSize:12,letterSpacing:2,fontWeight:700,marginBottom:6}}>TOTAL DUE</p>
+      <p style={{color:"#fff",fontSize:42,fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{fmt(total)}</p>
+    </div>
+    <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14}}>
+      <label className="lbl">Cash Given</label>
+      <input type="number" step="0.01" className="field" value={cashGiven} onChange={e=>setCashGiven(e.target.value)} placeholder="0.00" style={{fontSize:26,padding:"14px 16px",textAlign:"right",fontWeight:700}} autoFocus/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:10}}>
+        {[5,10,20,50,100,total].map((v,i)=><button key={i} onClick={()=>setCashGiven(String(v))} style={{padding:"12px 4px",borderRadius:9,background:"#f7f3ee",fontWeight:700,fontSize:14,border:"2px solid #ede8de",cursor:"pointer"}}>{fmt(v)}</button>)}
+      </div>
+    </div>
+    {cashGiven&&<div style={{background:change>=0?"#d1fae5":"#fee2e2",borderRadius:14,padding:16,marginBottom:16,textAlign:"center"}}>
+      <p style={{fontSize:11,color:change>=0?"#059669":"#dc2626",fontWeight:700,letterSpacing:2,marginBottom:4}}>{change>=0?"CHANGE DUE":"INSUFFICIENT"}</p>
+      <p style={{fontSize:32,fontWeight:700,color:change>=0?"#059669":"#dc2626"}}>{fmt(Math.abs(change))}</p>
+    </div>}
+    <button className="btn btn-r" disabled={change<0||!cashGiven} onClick={()=>send(true,"Cash")} style={{padding:"18px",fontSize:18,marginTop:"auto"}}>Confirm Cash Payment</button>
+  </div>;
+
+  // Card payment screen
+  if(payStep==="card") return <div style={{minHeight:"100vh",background:"#1a1208",display:"flex",flexDirection:"column",padding:20}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <button onClick={()=>setPayStep(null)} style={{color:"#d4952a",fontSize:16,fontWeight:700,border:"none",background:"none",cursor:"pointer"}}>{"< Back"}</button>
+      <p style={{color:"#fff",fontSize:22,fontWeight:700}}>Card Payment</p>
+      <div style={{width:60}}/>
+    </div>
+    <div style={{background:"#2e1f10",borderRadius:14,padding:20,marginBottom:20,textAlign:"center"}}>
+      <p style={{color:"#d4952a",fontSize:12,letterSpacing:2,fontWeight:700,marginBottom:6}}>INSERT / TAP CARD</p>
+      <p style={{color:"#fff",fontSize:42,fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{fmt(total)}</p>
+    </div>
+    <div style={{background:"#fff",borderRadius:14,padding:30,marginBottom:14,textAlign:"center",flex:1,display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",gap:14}}>
+      <div style={{width:80,height:80,borderRadius:"50%",background:"#f7f3ee",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,animation:"pulse 1.5s infinite"}}>"CARD"</div>
+      <p style={{fontSize:16,fontWeight:700}}>Waiting for terminal...</p>
+      <p style={{fontSize:13,color:"#8a8078"}}>Insert chip, swipe, or tap card</p>
+    </div>
+    <div style={{display:"flex",gap:8}}>
+      <button className="btn btn-o" onClick={()=>setPayStep(null)} style={{flex:1,padding:"14px"}}>Cancel</button>
+      <button className="btn btn-r" onClick={()=>send(true,"Card")} style={{flex:2,padding:"14px",fontSize:16}}>Approve Payment</button>
+    </div>
+  </div>;
+
+  return <div className="pos-wrap">
+    
+    <div style={{background:"#1a1208",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <p style={{color:"#d4952a",fontWeight:700,fontSize:14}}>POS</p>
+      <div style={{display:"flex",gap:4}}>
+        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>setType(tp)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+      </div>
+      {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"5px 8px",border:"none",borderRadius:6,fontSize:13,fontWeight:700,textAlign:"center"}}/>}
+      <span style={{color:"#888",fontSize:11,marginLeft:"auto"}}>{user?.name||"Staff"}</span>
+    </div>
+
+    <div className="pos-body">
+      
+      <div className="pos-menu">
+        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:8}}>
+          {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"10px 16px",borderRadius:8,fontWeight:700,fontSize:13,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",flexShrink:0,cursor:"pointer",boxShadow:cat===c?"0 3px 10px rgba(0,0,0,.2)":"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
+        </div>
+        <div className="pos-grid">
+          {menu.filter(i=>i.cat===cat&&i.avail).map(item=><button key={item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{background:"#fff",border:"none",borderRadius:10,padding:10,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:115,transition:"transform .1s"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.95)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+            <span style={{fontSize:28}}>{EM[item.icon]||""}</span>
+            <p style={{fontSize:11,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
+            <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
+          </button>)}
+        </div>
+      </div>
+
+      
+      <div className="pos-cart">
+        <div style={{padding:"12px 14px",borderBottom:"1px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{fontWeight:700,fontSize:14}}>{type==="dine-in"?"Table "+(tbl||"?"):"Takeaway"}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{count} item{count!==1?"s":""}</p>
+          </div>
+          {cart.length>0&&<button onClick={clear} style={{color:"#dc2626",fontSize:12,fontWeight:700,border:"none",background:"none",cursor:"pointer"}}>Clear</button>}
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
+          {cart.length===0&&<p style={{textAlign:"center",color:"#8a8078",padding:20,fontSize:13}}>Tap menu items to add</p>}
+          {cart.map(it=><div key={it.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f7f3ee"}}>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:13}}>{it.name}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{fmt(it.price)} each</p>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:"#f7f3ee",borderRadius:50,padding:"3px 10px"}}>
+              <button onClick={()=>dec(it.id)} style={{fontSize:18,color:"#bf4626",fontWeight:700,border:"none",background:"none",cursor:"pointer",width:20}}>-</button>
+              <span style={{fontWeight:700,minWidth:18,textAlign:"center",fontSize:14}}>{it.qty}</span>
+              <button onClick={()=>add(it)} style={{fontSize:18,color:"#bf4626",fontWeight:700,border:"none",background:"none",cursor:"pointer",width:20}}>+</button>
+            </div>
+            <p style={{fontWeight:700,minWidth:55,textAlign:"right",fontSize:13,color:"#bf4626"}}>{fmt(it.price*it.qty)}</p>
+            <button onClick={()=>del(it.id)} style={{color:"#ccc",fontSize:16,border:"none",background:"none",cursor:"pointer"}}>x</button>
+          </div>)}
+        </div>
+        <div style={{padding:12,borderTop:"1px solid #ede8de",background:"#f7f3ee"}}>
+          {/* Tip selector */}
+          {cart.length>0&&<div style={{marginBottom:8}}>
+            <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:4}}>TIP</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
+              {[0,0.05,0.10,0.125,0.15].map(p=><button key={p} onClick={()=>setTip(rawSub*p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#fff",color:Math.abs(tip-rawSub*p)<0.01?"#fff":"#1a1208",border:"2px solid "+(Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#ede8de"),cursor:"pointer"}}>{p===0?"None":(p*100)+"%"}</button>)}
+            </div>
+          </div>}
+
+          {/* Discount selector */}
+          {cart.length>0&&<div style={{marginBottom:8}}>
+            <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:4}}>DISCOUNT</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
+              {[[0,"None"],[10,"10%"],[20,"20%"],[50,"50%"]].map(([p,lb])=><button key={p} onClick={()=>setDiscPct(p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:discPct===p?"#dc2626":"#fff",color:discPct===p?"#fff":"#1a1208",border:"2px solid "+(discPct===p?"#dc2626":"#ede8de"),cursor:"pointer"}}>{lb}</button>)}
+            </div>
+            {discPct>0&&<input value={discReason} onChange={e=>setDiscReason(e.target.value)} placeholder="Reason (staff, loyalty, complaint...)" style={{width:"100%",padding:"6px 8px",border:"1px solid #ede8de",borderRadius:6,fontSize:11,marginTop:4}}/>}
+          </div>}
+
+          {/* Split bill */}
+          {cart.length>0&&<div style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1}}>SPLIT BILL</p>
+              {splitN>1&&<button onClick={()=>setSplitN(1)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>Reset</button>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4}}>
+              {[1,2,3,4,5,6].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:splitN===n?"#7c3aed":"#fff",color:splitN===n?"#fff":"#1a1208",border:"2px solid "+(splitN===n?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{n===1?"No":n+"x"}</button>)}
+            </div>
+          </div>}
+
+          {/* Totals */}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:2}}><span>Subtotal</span><span>{fmt(rawSub)}</span></div>
+          {discAmt>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#dc2626",marginBottom:2,fontWeight:700}}><span>Discount ({discPct}%)</span><span>- {fmt(discAmt)}</span></div>}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#8a8078",marginBottom:2}}><span>VAT incl. 20%</span><span>{fmt(vat)}</span></div>
+          {tip>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#d4952a",marginBottom:2,fontWeight:700}}><span>Tip</span><span>+ {fmt(tip)}</span></div>}
+          <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:18,marginBottom:6,paddingTop:6,borderTop:"1px solid #ede8de"}}><span>TOTAL</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
+          {splitN>1&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#7c3aed",marginBottom:8,fontWeight:700,background:"#f5f3ff",padding:"6px 10px",borderRadius:7}}><span>Per person ({splitN})</span><span>{fmt(perSplit)}</span></div>}
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
+            <button className="btn btn-d" disabled={!cart.length} onClick={()=>setPayStep("cash")} style={{padding:"14px",fontSize:14}}>Cash</button>
+            <button className="btn btn-p" disabled={!cart.length} onClick={()=>setPayStep("card")} style={{padding:"14px",fontSize:14}}>Card</button>
+          </div>
+          <button className="btn btn-o" disabled={!cart.length} onClick={()=>send(false,null)} style={{width:"100%",padding:"10px",fontSize:13}}>Send to kitchen (pay later)</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+
+export default function App(){
+  var [view,setView]=useState("menu"),[orders,setOrders]=useState(ORDERS0),[menu,setMenu]=useState(MENU);
+  var [discs,setDiscs]=useState(DISCOUNTS),[users,setUsers]=useState(USERS);
+  var [reviews,setReviews]=useState([{id:"r1",userId:"u1",name:"Alex J",rating:5,comment:"Amazing food! The tiramisu was divine.",date:"Today",helpful:3},{id:"r2",userId:"u2",name:"Sarah L",rating:4,comment:"Great burger, came quickly.",date:"Yesterday",helpful:1}]);
+  var [reservations,setRes]=useState([{id:"RES-001",branchId:"b1",userId:"u1",name:"Alex Johnson",email:"alex@example.com",phone:"07700",date:"2026-04-22",time:"19:00",guests:2,notes:"Window table",status:"confirmed"}]);
+  var [messages,setMessages]=useState([{id:"m1",userId:"s2",name:"Chef Paolo",text:"Kitchen ready!",time:"12:30",role:"kitchen"},{id:"m2",userId:"u1",name:"Alex J",text:"Table 5 asking about wait time",time:"12:46",role:"customer"}]);
+  var [tables,setTables]=useState(TABLES0);
+  var [user,setUser]=useState(null),[branch,setBranch]=useState(null),[showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
+  var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
+  var nid=useRef(0);
+
+  // Monitor network status
+  useEffect(()=>{
+    var goOnline=()=>{setOnline(true);syncQueue();};
+    var goOffline=()=>setOnline(false);
+    if(typeof window!=="undefined"){
+      window.addEventListener("online",goOnline);
+      window.addEventListener("offline",goOffline);
+      return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
+    }
+  },[]);
+
+  // Sync queued orders when back online
+  var syncQueue=useCallback(()=>{
+    var q=getQueue();
+    if(!q.length)return;
+    setOrders(os=>[...q,...os]);
+    clearQueue();
+    setPendingCount(0);
+    setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Synced!",body:q.length+" offline order"+(q.length>1?"s":"")+" uploaded",color:"#059669"}]);
+  },[]);
+  useEffect(()=>{var s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);return()=>document.head.removeChild(s);},[]);
+  var push=useCallback(n=>{var id=++nid.current;setNotifs(ns=>[...ns.slice(-3),{...n,id}]);setTimeout(()=>setNotifs(ns=>ns.filter(x=>x.id!==id)),5000);},[]);
+  var addOrder=o=>{
+    if(!online){
+      var count=queueOffline(o);
+      setPendingCount(count);
+      push({title:"Saved offline",body:"Will sync when online ("+count+" pending)",color:"#d97706"});
+      setOrders(os=>[{...o,offline:true},...os]);
+    }else{
+      setOrders(os=>[o,...os]);
+    }
+    setMenu(ms=>ms.map(m=>{var f=o.items.find(i=>i.id===m.id);if(!f)return m;var ns=Math.max(0,m.stock-f.qty);if(ns===0)push({title:"Out of stock!",body:m.name,color:"#dc2626"});else if(ns<=5)push({title:"Low stock",body:m.name+" - "+ns+" left",color:"#d97706"});return{...m,stock:ns};}));
+    if(o.discCode)setDiscs(ds=>ds.map(d=>d.code===o.discCode?{...d,uses:d.uses+1}:d));
+  };
+  useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
+  var isStaff=user&&user.role!=="customer";
+  var tabs=isStaff?["pos","tables","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables"};
+  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin"};
+
+  if(!branch) return <>
+    <style>{CSS}</style>
+    <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
+      <div style={{background:"#1a1208",height:56,display:"flex",alignItems:"center",padding:"0 16px",justifyContent:"space-between"}}>
+        <span className="nlogo">La Tavola</span>
+        {!user?<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>:<div style={{display:"flex",alignItems:"center",gap:7}}><div className="av">{user.avatar}</div><button onClick={()=>setUser(null)} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></div>}
+      </div>
+      {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
+      <BranchSel onSelect={setBranch}/>
+    </div>
+  </>;
+
+  return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
+    <nav className="nav">
+      <span className="nlogo">La Tavola</span>
+      <button className="hmob" onClick={()=>setBranch(null)} style={{background:"rgba(255,255,255,.07)",color:"#bbb",borderRadius:7,padding:"3px 9px",fontSize:10,border:"1px solid rgba(255,255,255,.12)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name}</button>
+      <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
+      <div className="nright">
+        {notifs.length>0&&<span style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>{notifs.length}</span>}
+        {user?<><div className="av">{user.avatar}</div><button onClick={()=>{setUser(null);setView("menu");}} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></>:<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>}
+      </div>
+    </nav>
+    <div className="mnav">
+      {tabs.map(k=><button key={k} className={"mbtn"+(view===k?" on":"")} onClick={()=>setView(k)}>
+        <span className="mico">{EM[ti[k]]||""}</span>
+        <span>{tl[k]||k}</span>
+      </button>)}
+    </div>
+    <Toasts list={notifs} dismiss={id=>setNotifs(ns=>ns.filter(n=>n.id!==id))}/>
+    {!online&&<div style={{background:"#dc2626",color:"#fff",padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:12,fontWeight:700,position:"sticky",top:58,zIndex:450}}>
+      <span style={{width:8,height:8,borderRadius:"50%",background:"#fff",display:"inline-block",animation:"pulse 1s infinite"}}/>
+      OFFLINE MODE - Orders saved locally{pendingCount>0?" ("+pendingCount+" pending sync)":""}
+    </div>}
+    {online&&pendingCount>0&&<div style={{background:"#059669",color:"#fff",padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:12,fontWeight:700}}>
+      Back online - syncing {pendingCount} order{pendingCount>1?"s":""}...
+    </div>}
+    {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
+    <main style={{paddingBottom:20}}>
+      {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch}/>}
+      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push}/>}
+      {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
+      {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
+      {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
+      {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
+      {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
+      {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES}/>}
+      {view==="report"  &&<ReportV  orders={orders}/>}
+    </main>
+  </div>;
+}
