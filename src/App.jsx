@@ -1,5 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
-import{supabase,saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,findCustomerByPhone as dbFindCustomer,saveCustomer as dbSaveCustomer}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
