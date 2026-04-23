@@ -1192,6 +1192,7 @@ var CUSTOMERS0=[
 function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,orders}){
   var [phone,setPhone]=useState("");
   var [found,setFound]=useState(null);
+  // eslint-disable-next-line no-unused-vars
   var [searched,setSearched]=useState(false);
   var [step,setStep]=useState("search");
   var [newCust,setNewCust]=useState({name:"",line1:"",postcode:"",notes:"",distance:0});
@@ -1202,7 +1203,8 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   var [lookingUp,setLookingUp]=useState(false);
   var [lookupResult,setLookupResult]=useState(null);
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
-  useEffect(()=>{if(!cat&&cats.length)setCat(cats[0]);},[cat,cats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(!cat&&cats.length)setCat(cats[0]);},[cat]);
 
   var doLookup=()=>{
     if(!newCust.postcode.trim())return;
