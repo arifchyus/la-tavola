@@ -798,6 +798,169 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories}){
   </div>;
 }
 
+// -- AI MENU IMPORT MODAL -----------------------------------------------------
+function MenuImportModal({onClose,onImport,categories}){
+  var [file,setFile]=useState(null);
+  var [preview,setPreview]=useState(null);
+  var [parsedMenu,setParsedMenu]=useState(null);
+  var [loading,setLoading]=useState(false);
+  var [error,setError]=useState("");
+  var [selectedItems,setSelectedItems]=useState({});
+
+  var fileChange=e=>{
+    var f=e.target.files[0];
+    if(!f)return;
+    if(f.size>10*1024*1024){setError("File too big - max 10MB");return;}
+    setFile(f);setError("");setParsedMenu(null);
+    // Preview image files
+    if(f.type.startsWith("image/")){
+      var reader=new FileReader();
+      reader.onload=ev=>setPreview(ev.target.result);
+      reader.readAsDataURL(f);
+    }else{
+      setPreview(null);
+    }
+  };
+
+  var parseFile=async()=>{
+    if(!file)return;
+    setLoading(true);setError("");
+    try{
+      // Convert file to base64
+      var reader=new FileReader();
+      reader.onload=async ev=>{
+        var base64=ev.target.result.split(",")[1];
+        try{
+          var res=await fetch("/api/parse-menu",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({fileBase64:base64,fileType:file.type,fileName:file.name}),
+          });
+          var data=await res.json();
+          if(!res.ok){setError(data.error||"Failed to parse");setLoading(false);return;}
+          setParsedMenu(data.menu);
+          // Select all items by default
+          var sel={};
+          (data.menu.categories||[]).forEach((c,ci)=>(c.items||[]).forEach((it,ii)=>sel[ci+"-"+ii]=true));
+          setSelectedItems(sel);
+        }catch(err){setError("Network error: "+err.message);}
+        setLoading(false);
+      };
+      reader.onerror=()=>{setError("Failed to read file");setLoading(false);};
+      reader.readAsDataURL(file);
+    }catch(err){setError(err.message);setLoading(false);}
+  };
+
+  var toggleItem=(ci,ii)=>{var k=ci+"-"+ii;setSelectedItems(s=>({...s,[k]:!s[k]}));};
+  var toggleCategory=ci=>{
+    if(!parsedMenu)return;
+    var items=parsedMenu.categories[ci].items||[];
+    var allSelected=items.every((_,ii)=>selectedItems[ci+"-"+ii]);
+    setSelectedItems(s=>{var ns={...s};items.forEach((_,ii)=>ns[ci+"-"+ii]=!allSelected);return ns;});
+  };
+
+  var importAll=()=>{
+    var newCats=[],newItems=[];
+    (parsedMenu.categories||[]).forEach((c,ci)=>{
+      var cat={id:"cat"+Date.now()+ci,name:c.name,icon:c.icon||"star",order:c.order||ci+1};
+      var hasItems=false;
+      (c.items||[]).forEach((it,ii)=>{
+        if(!selectedItems[ci+"-"+ii])return;
+        hasItems=true;
+        newItems.push({id:Date.now()+ci*1000+ii,name:it.name,desc:it.description||"",price:parseFloat(it.price)||0,cat:c.name,icon:it.icon||"cart",stock:20,avail:true,allergens:it.allergens||[],sizes:[],extras:[],cookingOpts:[]});
+      });
+      if(hasItems){
+        // Only add category if it's not already in database
+        var exists=categories.find(ec=>ec.name.toLowerCase()===c.name.toLowerCase());
+        if(!exists)newCats.push(cat);
+      }
+    });
+    onImport(newCats,newItems);
+    onClose();
+  };
+
+  var selectedCount=Object.values(selectedItems).filter(v=>v).length;
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:8500,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:650,padding:22,marginTop:20,marginBottom:40}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div>
+          <h2 style={{fontSize:22,display:"flex",alignItems:"center",gap:8}}>{EM.party} AI Menu Import</h2>
+          <p style={{fontSize:12,color:"#8a8078",marginTop:3}}>Upload any menu (PDF, image, photo) - AI extracts everything</p>
+        </div>
+        <button onClick={onClose} style={{color:"#999",fontSize:24,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+
+      {!parsedMenu&&<>
+        {/* Upload Zone */}
+        <label style={{display:"block",border:"3px dashed "+(file?"#059669":"#ede8de"),borderRadius:12,padding:"30px 20px",textAlign:"center",cursor:"pointer",background:file?"#f0fdf4":"#fafaf8",transition:"all .2s"}}>
+          <input type="file" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.webp,.heic" onChange={fileChange} style={{display:"none"}}/>
+          {!file&&<>
+            <p style={{fontSize:40,marginBottom:8}}>{EM.cart}</p>
+            <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>Tap to select menu file</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>PDF, JPG, PNG, HEIC - max 10MB</p>
+          </>}
+          {file&&<>
+            <p style={{fontSize:30,marginBottom:6}}>{EM.check}</p>
+            <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{file.name}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{(file.size/1024).toFixed(0)} KB - Tap to change</p>
+          </>}
+        </label>
+
+        {preview&&<img src={preview} alt="Preview" style={{width:"100%",maxHeight:200,objectFit:"contain",marginTop:12,borderRadius:8,background:"#f7f3ee"}}/>}
+
+        {error&&<div style={{padding:"10px 12px",background:"#fee2e2",borderRadius:8,marginTop:12,fontSize:13,color:"#991b1b"}}>{EM.cross} {error}</div>}
+
+        <button className="btn btn-r" onClick={parseFile} disabled={!file||loading} style={{width:"100%",padding:"13px",fontSize:15,marginTop:14}}>
+          {loading?"AI is reading your menu... (10-30 seconds)":"Parse Menu with AI"}
+        </button>
+
+        <div style={{marginTop:14,padding:"10px 12px",background:"#fffbeb",borderRadius:8,fontSize:11,color:"#92400e"}}>
+          <strong>Tip:</strong> Clear photos work best. Make sure text is readable and the whole menu is visible.
+        </div>
+      </>}
+
+      {parsedMenu&&<>
+        <div style={{padding:"12px 14px",background:"#d1fae5",borderRadius:9,marginBottom:14,border:"2px solid #059669"}}>
+          <p style={{fontSize:14,fontWeight:700,color:"#065f46"}}>{EM.check} Parsed Successfully!</p>
+          <p style={{fontSize:12,color:"#065f46",marginTop:3}}>Found {parsedMenu.categories?.length||0} categories, {selectedCount} items selected</p>
+        </div>
+
+        <div style={{maxHeight:"50vh",overflowY:"auto",border:"1px solid #ede8de",borderRadius:10,padding:10}}>
+          {parsedMenu.categories?.map((c,ci)=>{
+            var items=c.items||[];
+            var allChecked=items.every((_,ii)=>selectedItems[ci+"-"+ii]);
+            var someChecked=items.some((_,ii)=>selectedItems[ci+"-"+ii]);
+            return <div key={ci} style={{marginBottom:14,padding:10,background:"#fafaf8",borderRadius:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,paddingBottom:6,borderBottom:"2px solid #ede8de"}}>
+                <input type="checkbox" checked={allChecked} ref={el=>{if(el)el.indeterminate=someChecked&&!allChecked;}} onChange={()=>toggleCategory(ci)} style={{width:18,height:18,cursor:"pointer"}}/>
+                <span style={{fontSize:22}}>{EM[c.icon]||EM.star}</span>
+                <p style={{fontWeight:700,fontSize:15,flex:1}}>{c.name}</p>
+                <p style={{fontSize:11,color:"#8a8078"}}>{items.length} items</p>
+              </div>
+              {items.map((it,ii)=><label key={ii} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 4px",cursor:"pointer",borderRadius:6}} onMouseEnter={e=>e.currentTarget.style.background="#fff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <input type="checkbox" checked={selectedItems[ci+"-"+ii]||false} onChange={()=>toggleItem(ci,ii)} style={{width:16,height:16,cursor:"pointer"}}/>
+                <span style={{fontSize:18}}>{EM[it.icon]||EM.cart}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:600}}>{it.name}</p>
+                  {it.description&&<p style={{fontSize:11,color:"#8a8078",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.description}</p>}
+                  {it.allergens&&it.allergens.length>0&&<div style={{display:"flex",gap:3,marginTop:2,flexWrap:"wrap"}}>{it.allergens.map((a,i)=><span key={i} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#f5f0ff",color:"#7c3aed",fontWeight:700}}>{a}</span>)}</div>}
+                </div>
+                <p style={{fontSize:14,fontWeight:700,color:"#bf4626"}}>{fmt(it.price)}</p>
+              </label>)}
+            </div>;
+          })}
+        </div>
+
+        <div style={{display:"flex",gap:8,marginTop:14}}>
+          <button className="btn btn-o" onClick={()=>{setParsedMenu(null);setFile(null);setPreview(null);}} style={{flex:1,padding:"12px"}}>Start Over</button>
+          <button className="btn btn-r" onClick={importAll} disabled={selectedCount===0} style={{flex:2,padding:"12px"}}>Import {selectedCount} Items</button>
+        </div>
+      </>}
+    </div>
+  </div>;
+}
+
 // -- SET MEAL EDITOR MODAL -----------------------------------------------------
 function SetMealEditor({meal,menu,onSave,onClose,onDelete}){
   var isNew=!meal||!meal.id;
@@ -942,7 +1105,7 @@ function CategoryEditor({cat,onSave,onClose,onDelete,menu}){
 
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
-  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null);
+  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
@@ -1018,6 +1181,23 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }else{push({title:"Deleted",body:"Category removed",color:"#dc2626"});}
   };
+  var bulkImport=(newCats,newItems)=>{
+    // Save each category to DB
+    newCats.forEach(cat=>{
+      setCategories(cs=>[...cs,cat]);
+      dbSaveCategory(cat).then(r=>{
+        if(r.data&&r.data.id){setCategories(cs=>cs.map(c=>c.id===cat.id?{...c,dbId:r.data.id,id:r.data.id}:c));}
+      });
+    });
+    // Save each item to DB
+    newItems.forEach(item=>{
+      setMenu(ms=>[...ms,item]);
+      dbSaveMenuItem(item).then(r=>{
+        if(r.data&&r.data.id){setMenu(ms=>ms.map(m=>m.id===item.id?{...m,dbId:r.data.id,id:r.data.id}:m));}
+      });
+    });
+    push({title:"Imported!",body:newItems.length+" items, "+newCats.length+" categories",color:"#059669"});
+  };
   var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
@@ -1028,7 +1208,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {tab==="menu"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
         <div><h3 style={{fontSize:16}}>Menu Items ({menu.length})</h3><p style={{fontSize:11,color:"#8a8078"}}>Tap a card to edit, or add new items</p></div>
-        <button className="btn btn-r" onClick={()=>setEditItem({})} style={{padding:"8px 16px",fontSize:13}}>+ Add New Item</button>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <button onClick={()=>setShowImport(true)} style={{padding:"8px 14px",fontSize:13,fontWeight:700,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,cursor:"pointer"}}>{EM.party} Import with AI</button>
+          <button className="btn btn-r" onClick={()=>setEditItem({})} style={{padding:"8px 16px",fontSize:13}}>+ Add New Item</button>
+        </div>
       </div>
       <div className="ag">{menu.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5,cursor:"pointer",transition:"transform .15s"}} onClick={()=>setEditItem(item)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div>
@@ -1089,6 +1272,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {editItem&&<MenuEditor item={editItem} onSave={saveItem} onClose={()=>setEditItem(null)} onDelete={deleteItem} modifiers={MODIFIERS0} categories={categories}/>}
     {editMeal&&<SetMealEditor meal={editMeal} menu={menu} onSave={saveMeal} onClose={()=>setEditMeal(null)} onDelete={deleteMeal}/>}
     {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
+    {showImport&&<MenuImportModal onClose={()=>setShowImport(false)} onImport={bulkImport} categories={categories}/>}
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
     {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
