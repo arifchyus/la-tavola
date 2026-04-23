@@ -1,5 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -947,16 +947,76 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
-  var saveItem=item=>{setMenu(ms=>{var ex=ms.find(m=>m.id===item.id);return ex?ms.map(m=>m.id===item.id?item:m):[...ms,item];});push({title:"Saved",body:item.name,color:"#059669"});};
-  var deleteItem=id=>{setMenu(ms=>ms.filter(m=>m.id!==id));push({title:"Deleted",body:"Menu item removed",color:"#dc2626"});};
-  var saveMeal=meal=>{setSetMeals(ms=>{var ex=ms.find(m=>m.id===meal.id);return ex?ms.map(m=>m.id===meal.id?meal:m):[...ms,meal];});push({title:"Saved",body:meal.name,color:"#059669"});};
-  var deleteMeal=id=>{setSetMeals(ms=>ms.filter(m=>m.id!==id));push({title:"Deleted",body:"Combo removed",color:"#dc2626"});};
-  var saveCat=cat=>{setCategories(cs=>{var ex=cs.find(c=>c.id===cat.id);return ex?cs.map(c=>c.id===cat.id?cat:c):[...cs,cat];});push({title:"Saved",body:cat.name,color:"#059669"});};
+  var saveItem=item=>{
+    // Save to local state immediately (for instant UI)
+    setMenu(ms=>{var ex=ms.find(m=>m.id===item.id);return ex?ms.map(m=>m.id===item.id?item:m):[...ms,item];});
+    // Save to database
+    dbSaveMenuItem(item).then(result=>{
+      if(result.error){push({title:"DB save failed",body:result.error.message||"Try again",color:"#dc2626"});}
+      else{
+        push({title:"Saved",body:item.name,color:"#059669"});
+        // Update the local state with the database ID
+        if(result.data&&result.data.id){
+          setMenu(ms=>ms.map(m=>m.id===item.id?{...m,dbId:result.data.id,id:result.data.id}:m));
+        }
+      }
+    }).catch(e=>{console.error(e);push({title:"Error",body:"Could not save",color:"#dc2626"});});
+  };
+  var deleteItem=id=>{
+    var item=menu.find(m=>m.id===id);
+    setMenu(ms=>ms.filter(m=>m.id!==id));
+    if(item?.dbId){
+      dbDeleteMenuItem(item.dbId).then(result=>{
+        if(result.error){push({title:"Delete failed",body:result.error.message,color:"#dc2626"});}
+        else{push({title:"Deleted",body:"Menu item removed",color:"#dc2626"});}
+      });
+    }else{push({title:"Deleted",body:"Menu item removed",color:"#dc2626"});}
+  };
+  var saveMeal=meal=>{
+    setSetMeals(ms=>{var ex=ms.find(m=>m.id===meal.id);return ex?ms.map(m=>m.id===meal.id?meal:m):[...ms,meal];});
+    dbSaveSetMeal(meal).then(result=>{
+      if(result.error){push({title:"DB save failed",body:result.error.message||"Try again",color:"#dc2626"});}
+      else{
+        push({title:"Saved",body:meal.name,color:"#059669"});
+        if(result.data&&result.data.id){
+          setSetMeals(ms=>ms.map(m=>m.id===meal.id?{...m,dbId:result.data.id,id:result.data.id}:m));
+        }
+      }
+    }).catch(e=>{console.error(e);push({title:"Error",body:"Could not save",color:"#dc2626"});});
+  };
+  var deleteMeal=id=>{
+    var meal=setMeals.find(m=>m.id===id);
+    setSetMeals(ms=>ms.filter(m=>m.id!==id));
+    if(meal?.dbId){
+      dbDeleteSetMeal(meal.dbId).then(result=>{
+        if(result.error){push({title:"Delete failed",body:result.error.message,color:"#dc2626"});}
+        else{push({title:"Deleted",body:"Combo removed",color:"#dc2626"});}
+      });
+    }else{push({title:"Deleted",body:"Combo removed",color:"#dc2626"});}
+  };
+  var saveCat=cat=>{
+    setCategories(cs=>{var ex=cs.find(c=>c.id===cat.id);return ex?cs.map(c=>c.id===cat.id?cat:c):[...cs,cat];});
+    dbSaveCategory(cat).then(result=>{
+      if(result.error){push({title:"DB save failed",body:result.error.message||"Try again",color:"#dc2626"});}
+      else{
+        push({title:"Saved",body:cat.name,color:"#059669"});
+        if(result.data&&result.data.id){
+          setCategories(cs=>cs.map(c=>c.id===cat.id?{...c,dbId:result.data.id,id:result.data.id}:c));
+        }
+      }
+    }).catch(e=>{console.error(e);push({title:"Error",body:"Could not save",color:"#dc2626"});});
+  };
   var deleteCat=id=>{
     var cat=categories.find(c=>c.id===id);
     var used=menu.filter(m=>m.cat===cat?.name).length;
     if(used>0){alert("Cannot delete - "+used+" menu item(s) use this category. Move them first.");return;}
-    setCategories(cs=>cs.filter(c=>c.id!==id));push({title:"Deleted",body:"Category removed",color:"#dc2626"});
+    setCategories(cs=>cs.filter(c=>c.id!==id));
+    if(cat?.dbId){
+      dbDeleteCategory(cat.dbId).then(result=>{
+        if(result.error){push({title:"Delete failed",body:result.error.message,color:"#dc2626"});}
+        else{push({title:"Deleted",body:"Category removed",color:"#dc2626"});}
+      });
+    }else{push({title:"Deleted",body:"Category removed",color:"#dc2626"});}
   };
   var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
   return <div className="page">
@@ -1671,6 +1731,59 @@ export default function App(){
         setOrders(formatted);
       }
     }).catch(e=>console.log("Orders load failed (using demo data):",e));
+
+    // Load menu items from the database
+    dbFetchMenu().then(dbMenu=>{
+      if(dbMenu&&dbMenu.length){
+        var formatted=dbMenu.map(m=>({
+          id:m.id,
+          dbId:m.id,
+          name:m.name,
+          desc:m.description||"",
+          price:parseFloat(m.price),
+          cat:m.category_name||"Mains",
+          icon:m.icon,
+          stock:m.stock,
+          avail:m.available,
+          allergens:m.allergens||[],
+          sizes:m.sizes||[],
+          extras:m.extras||[],
+          cookingOpts:m.cooking_opts||[],
+        }));
+        setMenu(formatted);
+      }
+    }).catch(e=>console.log("Menu load failed:",e));
+
+    // Load categories from the database
+    dbFetchCategories().then(dbCats=>{
+      if(dbCats&&dbCats.length){
+        var formatted=dbCats.map(c=>({
+          id:c.id,
+          dbId:c.id,
+          name:c.name,
+          icon:c.icon,
+          order:c.display_order,
+        }));
+        setCategories(formatted);
+      }
+    }).catch(e=>console.log("Categories load failed:",e));
+
+    // Load set meals from the database
+    dbFetchSetMeals().then(dbMeals=>{
+      if(dbMeals&&dbMeals.length){
+        var formatted=dbMeals.map(m=>({
+          id:m.id,
+          dbId:m.id,
+          name:m.name,
+          desc:m.description||"",
+          price:parseFloat(m.price),
+          itemIds:m.item_ids||[],
+          icon:m.icon,
+          avail:m.available,
+        }));
+        setSetMeals(formatted);
+      }
+    }).catch(e=>console.log("Set meals load failed:",e));
 
     // Load reviews from the database
     dbFetchReviews().then(dbReviews=>{

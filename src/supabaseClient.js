@@ -76,6 +76,16 @@ export async function findCustomerByPhone(phone) {
   return data;
 }
 
+export async function fetchCustomers() {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('restaurant_id', RESTAURANT_ID)
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchCustomers error:', error);
+  return data || [];
+}
+
 export async function saveCustomer(customer) {
   const { data, error } = await supabase.from('customers').insert({
     restaurant_id: RESTAURANT_ID,
@@ -114,6 +124,47 @@ export async function fetchMenu() {
   return data || [];
 }
 
+export async function saveMenuItem(item) {
+  // Upsert: insert if new, update if exists
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    name: item.name,
+    description: item.desc || null,
+    price: parseFloat(item.price),
+    icon: item.icon || 'cart',
+    stock: parseInt(item.stock) || 20,
+    available: item.avail !== false,
+    allergens: item.allergens || [],
+    sizes: item.sizes || [],
+    extras: item.extras || [],
+    cooking_opts: item.cookingOpts || [],
+  };
+  
+  // If item has a UUID id (from database), update. Otherwise insert.
+  if (item.dbId) {
+    const { data, error } = await supabase.from('menu_items')
+      .update(payload)
+      .eq('id', item.dbId)
+      .select().single();
+    if (error) console.error('updateMenuItem error:', error);
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('menu_items')
+      .insert(payload)
+      .select().single();
+    if (error) console.error('insertMenuItem error:', error);
+    return { data, error };
+  }
+}
+
+export async function deleteMenuItem(dbId) {
+  const { error } = await supabase.from('menu_items').delete().eq('id', dbId);
+  if (error) console.error('deleteMenuItem error:', error);
+  return { error };
+}
+
+// ---- CATEGORY HELPERS -------------------------------------------------------
+
 export async function fetchCategories() {
   const { data, error } = await supabase
     .from('categories')
@@ -124,28 +175,78 @@ export async function fetchCategories() {
   return data || [];
 }
 
-export async function saveMenuItem(item) {
+export async function saveCategory(cat) {
   const payload = {
     restaurant_id: RESTAURANT_ID,
-    name: item.name,
-    description: item.desc || null,
-    price: item.price,
-    icon: item.icon || 'cart',
-    stock: item.stock || 20,
-    available: item.avail !== false,
-    allergens: item.allergens || [],
-    sizes: item.sizes || [],
-    extras: item.extras || [],
-    cooking_opts: item.cookingOpts || [],
+    name: cat.name,
+    icon: cat.icon || 'star',
+    display_order: parseInt(cat.order) || 99,
   };
-  const { data, error } = await supabase.from('menu_items').upsert(payload).select().single();
-  if (error) console.error('saveMenuItem error:', error);
-  return { data, error };
+  
+  if (cat.dbId) {
+    const { data, error } = await supabase.from('categories')
+      .update(payload)
+      .eq('id', cat.dbId)
+      .select().single();
+    if (error) console.error('updateCategory error:', error);
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('categories')
+      .insert(payload)
+      .select().single();
+    if (error) console.error('insertCategory error:', error);
+    return { data, error };
+  }
 }
 
-export async function deleteMenuItem(id) {
-  const { error } = await supabase.from('menu_items').delete().eq('id', id);
-  if (error) console.error('deleteMenuItem error:', error);
+export async function deleteCategory(dbId) {
+  const { error } = await supabase.from('categories').delete().eq('id', dbId);
+  if (error) console.error('deleteCategory error:', error);
+  return { error };
+}
+
+// ---- SET MEAL HELPERS -------------------------------------------------------
+
+export async function fetchSetMeals() {
+  const { data, error } = await supabase
+    .from('set_meals')
+    .select('*')
+    .eq('restaurant_id', RESTAURANT_ID);
+  if (error) console.error('fetchSetMeals error:', error);
+  return data || [];
+}
+
+export async function saveSetMeal(meal) {
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    name: meal.name,
+    description: meal.desc || null,
+    price: parseFloat(meal.price),
+    icon: meal.icon || 'party',
+    item_ids: meal.itemIds || [],
+    available: meal.avail !== false,
+  };
+  
+  if (meal.dbId) {
+    const { data, error } = await supabase.from('set_meals')
+      .update(payload)
+      .eq('id', meal.dbId)
+      .select().single();
+    if (error) console.error('updateSetMeal error:', error);
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('set_meals')
+      .insert(payload)
+      .select().single();
+    if (error) console.error('insertSetMeal error:', error);
+    return { data, error };
+  }
+}
+
+export async function deleteSetMeal(dbId) {
+  const { error } = await supabase.from('set_meals').delete().eq('id', dbId);
+  if (error) console.error('deleteSetMeal error:', error);
+  return { error };
 }
 
 // ---- REVIEW HELPERS ---------------------------------------------------------
