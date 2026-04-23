@@ -1,4 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
+import{supabase,saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,findCustomerByPhone as dbFindCustomer,saveCustomer as dbSaveCustomer}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -544,7 +545,7 @@ function ReviewsV({reviews,setReviews,user,onAuth}){
   var [show,setShow]=useState(false),[rat,setRat]=useState(5),[com,setCom]=useState("");
   var avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):"N/A";
   var stars=(n,sz=14)=>Array.from({length:5}).map((_,i)=><span key={i} style={{color:i<n?"#d4952a":"#ddd",fontSize:sz}}>*</span>);
-  var submit=()=>{if(!com.trim())return;setReviews(rs=>[{id:"r"+Date.now(),userId:user?.id,name:user?.name||"Guest",rating:rat,comment:com,date:"Just now",helpful:0},...rs]);setShow(false);setCom("");setRat(5);};
+  var submit=()=>{if(!com.trim())return;var newR={id:"r"+Date.now(),userId:user?.id,name:user?.name||"Guest",rating:rat,comment:com,date:"Just now",helpful:0};setReviews(rs=>[newR,...rs]);dbSubmitReview({customer:newR.name,rating:newR.rating,comment:newR.comment}).catch(e=>console.log("Review DB save:",e));setShow(false);setCom("");setRat(5);};
   return <div className="page" style={{maxWidth:600}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:8}}>
       <div><h2 style={{fontSize:24,marginBottom:4}}>Reviews</h2><div style={{display:"flex",alignItems:"center",gap:7}}>{stars(Math.round(parseFloat(avg)||0))}<span style={{fontWeight:700,fontSize:17}}>{avg}</span><span style={{color:"#8a8078",fontSize:13}}>({reviews.length})</span></div></div>
@@ -1642,6 +1643,52 @@ export default function App(){
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
 
+  // Load data from Supabase on app start
+  useEffect(()=>{
+    // Load orders from the database
+    fetchOrders().then(dbOrders=>{
+      if(dbOrders&&dbOrders.length){
+        var formatted=dbOrders.map(o=>({
+          id:o.order_number,
+          branchId:o.branch_id,
+          userId:o.customer_id,
+          customer:o.customer_name||"Guest",
+          phone:o.customer_phone,
+          items:o.items||[],
+          subtotal:parseFloat(o.subtotal||0),
+          deliveryFee:parseFloat(o.delivery_fee||0),
+          total:parseFloat(o.total||0),
+          status:o.status,
+          type:o.type,
+          paid:o.paid,
+          payMethod:o.pay_method,
+          address:o.address,
+          slot:o.slot,
+          takenBy:o.taken_by,
+          source:o.source,
+          time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
+        }));
+        setOrders(formatted);
+      }
+    }).catch(e=>console.log("Orders load failed (using demo data):",e));
+
+    // Load reviews from the database
+    dbFetchReviews().then(dbReviews=>{
+      if(dbReviews&&dbReviews.length){
+        var formatted=dbReviews.map(r=>({
+          id:r.id,
+          name:r.customer_name,
+          rating:r.rating,
+          comment:r.comment,
+          date:new Date(r.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),
+          helpful:0,
+        }));
+        setReviews(formatted);
+      }
+    }).catch(e=>console.log("Reviews load failed:",e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   // Monitor network status
   useEffect(()=>{
     var goOnline=()=>{setOnline(true);syncQueue();};
@@ -1673,6 +1720,14 @@ export default function App(){
       setOrders(os=>[{...o,offline:true},...os]);
     }else{
       setOrders(os=>[o,...os]);
+      // Save to Supabase database
+      saveOrderToDb(o).then(result=>{
+        if(result.error){
+          console.log("DB save failed, but order is in memory:",result.error);
+        }else{
+          console.log("Order saved to database:",o.id);
+        }
+      }).catch(e=>console.log("DB error:",e));
     }
     setMenu(ms=>ms.map(m=>{var f=o.items.find(i=>i.id===m.id);if(!f)return m;var ns=Math.max(0,m.stock-f.qty);if(ns===0)push({title:"Out of stock!",body:m.name,color:"#dc2626"});else if(ns<=5)push({title:"Low stock",body:m.name+" - "+ns+" left",color:"#d97706"});return{...m,stock:ns};}));
     if(o.discCode)setDiscs(ds=>ds.map(d=>d.code===o.discCode?{...d,uses:d.uses+1}:d));
