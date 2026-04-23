@@ -24,6 +24,7 @@ var clearQueue=()=>LS.del(OFFLINE_QUEUE_KEY);
 
 // String.fromCharCode with surrogate pairs - CONFIRMED WORKING in emoji-test.jsx
 var EM={
+  // Original
   squid:String.fromCharCode(0xD83E,0xDD91),tomato:String.fromCharCode(0xD83C,0xDF45),
   soup:String.fromCharCode(0xD83C,0xDF72),pizza:String.fromCharCode(0xD83C,0xDF55),
   burger:String.fromCharCode(0xD83C,0xDF54),fish:String.fromCharCode(0xD83D,0xDC1F),
@@ -37,6 +38,97 @@ var EM={
   gear:String.fromCharCode(0x2699),chart:String.fromCharCode(0xD83D,0xDCCA),
   party:String.fromCharCode(0xD83C,0xDF89),bag:String.fromCharCode(0xD83D,0xDECD),
   wave:String.fromCharCode(0xD83D,0xDC4B),pound:String.fromCharCode(0x00A3),
+  // Indian / South Asian food
+  curry:String.fromCharCode(0xD83C,0xDF5B),       // rice curry
+  rice:String.fromCharCode(0xD83C,0xDF5A),        // cooked rice
+  ricebowl:String.fromCharCode(0xD83C,0xDF5A),
+  naan:String.fromCharCode(0xD83E,0xDED3),        // flatbread
+  flatbread:String.fromCharCode(0xD83E,0xDED3),
+  samosa:String.fromCharCode(0xD83E,0xDD60),       // dumpling (closest)
+  dumpling:String.fromCharCode(0xD83E,0xDD5F),
+  falafel:String.fromCharCode(0xD83E,0xDDC6),
+  shawarma:String.fromCharCode(0xD83E,0xDD59),     // stuffed flatbread
+  kebab:String.fromCharCode(0xD83C,0xDF62),        // oden (skewer)
+  skewer:String.fromCharCode(0xD83C,0xDF62),
+  chicken:String.fromCharCode(0xD83C,0xDF57),      // chicken leg
+  chickenleg:String.fromCharCode(0xD83C,0xDF57),
+  meat:String.fromCharCode(0xD83E,0xDD69),         // cut of meat
+  bacon:String.fromCharCode(0xD83E,0xDD53),
+  egg:String.fromCharCode(0xD83E,0xDD5A),          // egg
+  friedegg:String.fromCharCode(0xD83C,0xDF73),     // cooking
+  cheese:String.fromCharCode(0xD83E,0xDDC0),
+  // Rice dishes
+  bento:String.fromCharCode(0xD83C,0xDF71),        // looks like thali
+  thali:String.fromCharCode(0xD83C,0xDF71),        // bento box - works for thali
+  // Breads / starters
+  bread:String.fromCharCode(0xD83C,0xDF5E),        // bread loaf
+  bagel:String.fromCharCode(0xD83E,0xDD6F),
+  croissant:String.fromCharCode(0xD83E,0xDD50),
+  pretzel:String.fromCharCode(0xD83E,0xDD68),
+  // Mains
+  sushi:String.fromCharCode(0xD83C,0xDF63),
+  noodles:String.fromCharCode(0xD83C,0xDF5C),
+  ramen:String.fromCharCode(0xD83C,0xDF5C),
+  steak:String.fromCharCode(0xD83E,0xDD69),
+  bowl:String.fromCharCode(0xD83E,0xDD58),         // shallow bowl with spoon
+  pot:String.fromCharCode(0xD83C,0xDF72),          // pot of food
+  // Sides
+  corn:String.fromCharCode(0xD83C,0xDF3D),
+  carrot:String.fromCharCode(0xD83E,0xDD55),
+  potato:String.fromCharCode(0xD83E,0xDD54),
+  broccoli:String.fromCharCode(0xD83E,0xDD66),
+  onion:String.fromCharCode(0xD83E,0xDDC5),
+  garlic:String.fromCharCode(0xD83E,0xDDC4),
+  chili:String.fromCharCode(0xD83C,0xDF36),        // hot pepper
+  pepper:String.fromCharCode(0xD83C,0xDF36),
+  // Desserts
+  cake:String.fromCharCode(0xD83C,0xDF70),
+  shortcake:String.fromCharCode(0xD83C,0xDF70),
+  cupcake:String.fromCharCode(0xD83E,0xDDC1),
+  donut:String.fromCharCode(0xD83C,0xDF69),
+  cookie:String.fromCharCode(0xD83C,0xDF6A),
+  icecream:String.fromCharCode(0xD83C,0xDF68),
+  sweet:String.fromCharCode(0xD83C,0xDF6C),        // candy
+  pudding:String.fromCharCode(0xD83C,0xDF6E),      // custard/flan
+  honey:String.fromCharCode(0xD83C,0xDF6F),
+  lolly:String.fromCharCode(0xD83C,0xDF6D),
+  // Drinks
+  tea:String.fromCharCode(0xD83C,0xDF75),          // teacup - perfect for chai
+  chai:String.fromCharCode(0xD83C,0xDF75),
+  milk:String.fromCharCode(0xD83E,0xDD5B),
+  beer:String.fromCharCode(0xD83C,0xDF7A),
+  wine:String.fromCharCode(0xD83C,0xDF77),
+  cocktail:String.fromCharCode(0xD83C,0xDF78),
+  tropical:String.fromCharCode(0xD83C,0xDF79),     // tropical drink
+  champagne:String.fromCharCode(0xD83C,0xDF7E),
+  bottle:String.fromCharCode(0xD83C,0xDF7E),
+  sake:String.fromCharCode(0xD83C,0xDF76),
+  juice:String.fromCharCode(0xD83E,0xDDC3),        // beverage box
+  bubbletea:String.fromCharCode(0xD83E,0xDDCB),
+  matcha:String.fromCharCode(0xD83C,0xDF75),
+  // Fruits
+  apple:String.fromCharCode(0xD83C,0xDF4E),
+  banana:String.fromCharCode(0xD83C,0xDF4C),
+  mango:String.fromCharCode(0xD83E,0xDD6D),        // mango
+  coconut:String.fromCharCode(0xD83E,0xDD65),
+  lemon:String.fromCharCode(0xD83C,0xDF4B),
+  orange:String.fromCharCode(0xD83C,0xDF4A),
+  grape:String.fromCharCode(0xD83C,0xDF47),
+  watermelon:String.fromCharCode(0xD83C,0xDF49),
+  strawberry:String.fromCharCode(0xD83C,0xDF53),
+  pineapple:String.fromCharCode(0xD83C,0xDF4D),
+  // Nuts & seeds
+  peanuts:String.fromCharCode(0xD83E,0xDD5C),
+  // Halal / dietary indicator icons
+  fire:String.fromCharCode(0xD83D,0xDD25),         // spicy
+  spicy:String.fromCharCode(0xD83C,0xDF36),        // hot pepper
+  leaf:String.fromCharCode(0xD83C,0xDF43),         // vegetarian
+  veg:String.fromCharCode(0xD83C,0xDF31),          // seedling
+  money:String.fromCharCode(0xD83D,0xDCB0),
+  phone:String.fromCharCode(0xD83D,0xDCDE),
+  clock:String.fromCharCode(0xD83D,0xDD52),        // 3 o'clock
+  check:String.fromCharCode(0x2705),
+  cross:String.fromCharCode(0x274C),
 };
 var fmt=n=>EM.pound+Number(n).toFixed(2);
 var nowT=()=>new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
@@ -59,10 +151,41 @@ var MENU=[
   {id:13,cat:"Drinks",name:"Sparkling Water",price:1.99,desc:"500ml bottle",icon:"water",avail:true,stock:40},
 ];
 var BRANCHES=[
-  {id:"b1",name:"City Centre",addr:"12 King Street, London EC2A",phone:"020 7123 4567"},
-  {id:"b2",name:"Canary Wharf",addr:"One Canada Square, London E14",phone:"020 7987 6543"},
-  {id:"b3",name:"Shoreditch",addr:"45 Brick Lane, London E1",phone:"020 3456 7890"},
+  {id:"b1",name:"City Centre",addr:"12 King Street, London EC2A",phone:"020 7123 4567",lat:51.5195,lng:-0.0876,
+    delivery:{enabled:true,method:"postcode",postcodes:["EC1","EC2","EC3","EC4","E1","E14","N1"],radius:0,zones:[],flatFee:2.50,freeOver:25,minOrder:15}},
+  {id:"b2",name:"Canary Wharf",addr:"One Canada Square, London E14",phone:"020 7987 6543",lat:51.5049,lng:-0.0195,
+    delivery:{enabled:true,method:"radius",postcodes:[],radius:3,zones:[],flatFee:0,freeOver:0,minOrder:10}},
+  {id:"b3",name:"Shoreditch",addr:"45 Brick Lane, London E1",phone:"020 3456 7890",lat:51.5209,lng:-0.0717,
+    delivery:{enabled:true,method:"zone",postcodes:[],radius:0,
+      zones:[{id:"z1",name:"Zone 1",maxMiles:3,fee:0},{id:"z2",name:"Zone 2",maxMiles:5,fee:2.50},{id:"z3",name:"Zone 3",maxMiles:7,fee:4.50}],
+      flatFee:0,freeOver:35,minOrder:20}},
 ];
+
+// Delivery helper - checks if an address is deliverable and returns fee
+function checkDelivery(branch,address,orderTotal){
+  var d=branch.delivery;
+  if(!d||!d.enabled)return{ok:false,reason:"No delivery from this branch"};
+  if(d.minOrder&&orderTotal<d.minOrder)return{ok:false,reason:"Min order "+fmt(d.minOrder)+" for delivery"};
+  var fee=d.flatFee||0,zone=null,distance=null;
+
+  if(d.method==="postcode"){
+    var pc=(address.postcode||"").toUpperCase().replace(/\s+/g,"");
+    var match=d.postcodes.find(p=>pc.startsWith(p.replace(/\s+/g,"").toUpperCase()));
+    if(!match)return{ok:false,reason:"Out of delivery area - postcode not covered"};
+  }else if(d.method==="radius"){
+    distance=address.distance||0;
+    if(distance>d.radius)return{ok:false,reason:"Too far - max "+d.radius+" miles"};
+  }else if(d.method==="zone"){
+    distance=address.distance||0;
+    zone=d.zones.find(z=>distance<=z.maxMiles);
+    if(!zone)return{ok:false,reason:"Out of all delivery zones"};
+    fee=zone.fee;
+  }
+
+  if(d.freeOver&&orderTotal>=d.freeOver)fee=0;
+  return{ok:true,fee,zone:zone?.name,distance};
+}
+
 var HOURS={
   b1:{Mon:[11,22],Tue:[11,22],Wed:[11,22],Thu:[11,23],Fri:[11,23],Sat:[10,23],Sun:[10,21]},
   b2:{Mon:[7,22],Tue:[7,22],Wed:[7,22],Thu:[7,22],Fri:[7,23],Sat:[9,23],Sun:[10,20]},
@@ -106,6 +229,8 @@ input,select,textarea{font-family:inherit;font-size:14px}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#d4c9b8;border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes flashGreen{0%{background:#d1fae5;transform:scale(1)}30%{background:#a7f3d0;transform:scale(1.03)}100%{background:transparent;transform:scale(1)}}
+.flash{animation:flashGreen .6s ease both}
 .fadeup{animation:fadeUp .3s ease both}
 .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);border:1px solid #ede8de}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .18s}
@@ -495,20 +620,414 @@ function KitchenV({orders,setOrders,push}){
   </div></div>;
 }
 
-function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches}){
+// -- CATEGORIES ----------------------------------------------------------------
+var CATEGORIES0=[
+  {id:"cat1",name:"Starters",icon:"soup",order:1},
+  {id:"cat2",name:"Mains",icon:"pizza",order:2},
+  {id:"cat3",name:"Sides",icon:"fries",order:3},
+  {id:"cat4",name:"Desserts",icon:"choc",order:4},
+  {id:"cat5",name:"Drinks",icon:"drink",order:5},
+];
+
+// -- SET MEALS / COMBOS --------------------------------------------------------
+var SETMEALS0=[
+  {id:"sm1",name:"Burger Combo",desc:"Any burger + fries + soft drink",price:19.99,itemIds:[5,8,12],avail:true,icon:"burger"},
+  {id:"sm2",name:"Pizza Night",desc:"Pizza + salad + drink",price:18.99,itemIds:[4,9,12],avail:true,icon:"pizza"},
+  {id:"sm3",name:"Italian Feast",desc:"Pasta + bruschetta + tiramisu",price:22.99,itemIds:[7,2,10],avail:true,icon:"pasta"},
+];
+
+// -- MODIFIERS (size/extras/allergens) -----------------------------------------
+var MODIFIERS0={
+  size:[
+    {id:"sz-reg",name:"Regular",priceAdj:0},
+    {id:"sz-lg",name:"Large",priceAdj:3.00},
+  ],
+  cooking:[
+    {id:"ck-rare",name:"Rare",priceAdj:0},
+    {id:"ck-med",name:"Medium",priceAdj:0},
+    {id:"ck-well",name:"Well Done",priceAdj:0},
+  ],
+  extras:[
+    {id:"ex-cheese",name:"Extra Cheese",priceAdj:1.50},
+    {id:"ex-bacon",name:"Add Bacon",priceAdj:2.00},
+    {id:"ex-egg",name:"Add Egg",priceAdj:1.00},
+    {id:"ex-mushroom",name:"Mushrooms",priceAdj:1.00},
+  ],
+  allergens:[
+    {id:"al-gluten",name:"Contains Gluten"},
+    {id:"al-dairy",name:"Contains Dairy"},
+    {id:"al-nuts",name:"Contains Nuts"},
+    {id:"al-shellfish",name:"Contains Shellfish"},
+    {id:"al-veggie",name:"Vegetarian"},
+    {id:"al-vegan",name:"Vegan"},
+    {id:"al-gf",name:"Gluten Free"},
+  ],
+};
+
+// Icon picker - organized by category for easy browsing
+var ICON_KEYS=[
+  // Indian / South Asian
+  "curry","rice","naan","samosa","kebab","chicken","tea","thali","bowl","pot",
+  // Meat & Protein
+  "chickenleg","meat","steak","fish","egg","cheese","bacon","squid","shawarma","falafel",
+  // Mains
+  "pizza","burger","pasta","noodles","ramen","sushi","dumpling","salad","bento",
+  // Sides & Veg
+  "fries","bread","bagel","croissant","corn","carrot","potato","broccoli","onion","garlic",
+  // Desserts & Sweets
+  "cake","cupcake","donut","cookie","icecream","choc","sweet","pudding","honey","lolly",
+  // Drinks
+  "coffee","drink","water","milk","juice","bubbletea","beer","wine","cocktail","tropical","champagne",
+  // Fruits
+  "apple","banana","mango","coconut","lemon","orange","grape","watermelon","strawberry","pineapple","tomato",
+  // Labels / Indicators
+  "fire","spicy","leaf","veg","star","party","cook","chili",
+  // Utility
+  "cart","pin","cal","person","chat","gear","chart","bag","wave","phone","clock","check","cross"
+];
+
+// -- MENU ITEM EDITOR MODAL ----------------------------------------------------
+function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories}){
+  var isNew=!item||!item.id;
+  var [f,setF]=useState({
+    id:item?.id||Date.now(),
+    name:item?.name||"",
+    price:item?.price||0,
+    desc:item?.desc||"",
+    cat:item?.cat||"Mains",
+    icon:item?.icon||"cart",
+    avail:item?.avail!==false,
+    stock:item?.stock??20,
+    allergens:item?.allergens||[],
+    sizes:item?.sizes||[],
+    extras:item?.extras||[],
+    cookingOpts:item?.cookingOpts||[],
+  });
+  var [confirmDel,setConfirmDel]=useState(false);
+  var update=(k,v)=>setF(x=>({...x,[k]:v}));
+  var toggleArr=(k,id)=>setF(x=>({...x,[k]:x[k].includes(id)?x[k].filter(i=>i!==id):[...x[k],id]}));
+  var save=()=>{
+    if(!f.name.trim()){alert("Name is required");return;}
+    if(!f.price||f.price<=0){alert("Valid price is required");return;}
+    onSave({...f,price:+f.price,stock:+f.stock});
+    onClose();
+  };
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:500,padding:22,marginTop:20,marginBottom:40}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <h2 style={{fontSize:22}}>{isNew?"Add Menu Item":"Edit Item"}</h2>
+        <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+
+      {/* Icon picker */}
+      <div style={{marginBottom:14}}>
+        <label className="lbl">Icon ({f.icon})</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(45px,1fr))",gap:4,maxHeight:200,overflowY:"auto",padding:8,background:"#f7f3ee",borderRadius:8,border:"1px solid #ede8de"}}>
+          {ICON_KEYS.map(k=><button key={k} onClick={()=>update("icon",k)} title={k} style={{padding:8,borderRadius:7,fontSize:22,background:f.icon===k?"#bf4626":"#fff",border:"2px solid "+(f.icon===k?"#bf4626":"#ede8de"),cursor:"pointer",aspectRatio:"1/1"}}>{EM[k]||""}</button>)}
+        </div>
+      </div>
+
+      <div className="g2" style={{marginBottom:12}}>
+        <div><label className="lbl">Name *</label><input className="field" value={f.name} onChange={e=>update("name",e.target.value)} placeholder="Margherita Pizza"/></div>
+        <div><label className="lbl">Price (GBP) *</label><input type="number" step="0.01" className="field" value={f.price} onChange={e=>update("price",e.target.value)} placeholder="9.99"/></div>
+      </div>
+
+      <div style={{marginBottom:12}}><label className="lbl">Description</label><textarea className="field" value={f.desc} onChange={e=>update("desc",e.target.value)} rows={2} style={{resize:"vertical"}} placeholder="San Marzano tomato, fior di latte, basil"/></div>
+
+      <div className="g2" style={{marginBottom:12}}>
+        <div><label className="lbl">Category</label>
+          <select className="field" value={f.cat} onChange={e=>update("cat",e.target.value)}>
+            {(categories||[{name:"Starters"},{name:"Mains"},{name:"Sides"},{name:"Desserts"},{name:"Drinks"}]).map(c=><option key={c.id||c.name}>{c.name}</option>)}
+          </select>
+        </div>
+        <div><label className="lbl">Stock</label><input type="number" className="field" value={f.stock} onChange={e=>update("stock",e.target.value)}/></div>
+      </div>
+
+      {/* Sizes */}
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Available Sizes</label>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {modifiers.size.map(s=><button key={s.id} onClick={()=>toggleArr("sizes",s.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.sizes.includes(s.id)?"#bf4626":"#fff",color:f.sizes.includes(s.id)?"#fff":"#1a1208",border:"2px solid "+(f.sizes.includes(s.id)?"#bf4626":"#ede8de"),cursor:"pointer"}}>{s.name}{s.priceAdj>0?" (+"+fmt(s.priceAdj)+")":""}</button>)}
+        </div>
+      </div>
+
+      {/* Cooking preferences */}
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Cooking Preferences (for meats)</label>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {modifiers.cooking.map(c=><button key={c.id} onClick={()=>toggleArr("cookingOpts",c.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.cookingOpts.includes(c.id)?"#d97706":"#fff",color:f.cookingOpts.includes(c.id)?"#fff":"#1a1208",border:"2px solid "+(f.cookingOpts.includes(c.id)?"#d97706":"#ede8de"),cursor:"pointer"}}>{c.name}</button>)}
+        </div>
+      </div>
+
+      {/* Extras */}
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Available Extras / Add-ons</label>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {modifiers.extras.map(x=><button key={x.id} onClick={()=>toggleArr("extras",x.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.extras.includes(x.id)?"#059669":"#fff",color:f.extras.includes(x.id)?"#fff":"#1a1208",border:"2px solid "+(f.extras.includes(x.id)?"#059669":"#ede8de"),cursor:"pointer"}}>{x.name} (+{fmt(x.priceAdj)})</button>)}
+        </div>
+      </div>
+
+      {/* Allergens */}
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Allergens / Dietary Info</label>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {modifiers.allergens.map(a=><button key={a.id} onClick={()=>toggleArr("allergens",a.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.allergens.includes(a.id)?"#7c3aed":"#fff",color:f.allergens.includes(a.id)?"#fff":"#1a1208",border:"2px solid "+(f.allergens.includes(a.id)?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{a.name}</button>)}
+        </div>
+      </div>
+
+      <div style={{marginBottom:16}}>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={f.avail} onChange={e=>update("avail",e.target.checked)}/>
+          <span style={{fontSize:13,fontWeight:600}}>Available to order</span>
+        </label>
+      </div>
+
+      {confirmDel?<div style={{padding:14,background:"#fee2e2",borderRadius:9,marginBottom:12}}>
+        <p style={{fontSize:13,fontWeight:700,color:"#991b1b",marginBottom:8}}>Delete this item permanently?</p>
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn btn-o" onClick={()=>setConfirmDel(false)} style={{flex:1}}>Cancel</button>
+          <button onClick={()=>{onDelete(f.id);onClose();}} style={{flex:1,padding:"10px",background:"#dc2626",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Delete Forever</button>
+        </div>
+      </div>:<div style={{display:"flex",gap:8}}>
+        <button className="btn btn-r" onClick={save} style={{flex:2,padding:"12px"}}>{isNew?"Add Item":"Save Changes"}</button>
+        {!isNew&&<button onClick={()=>setConfirmDel(true)} style={{flex:1,padding:"12px",background:"#fff",color:"#dc2626",border:"2px solid #dc2626",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Delete</button>}
+      </div>}
+    </div>
+  </div>;
+}
+
+// -- SET MEAL EDITOR MODAL -----------------------------------------------------
+function SetMealEditor({meal,menu,onSave,onClose,onDelete}){
+  var isNew=!meal||!meal.id;
+  var [f,setF]=useState({
+    id:meal?.id||"sm"+Date.now(),
+    name:meal?.name||"",
+    desc:meal?.desc||"",
+    price:meal?.price||0,
+    itemIds:meal?.itemIds||[],
+    icon:meal?.icon||"party",
+    avail:meal?.avail!==false,
+  });
+  var [confirmDel,setConfirmDel]=useState(false);
+  var update=(k,v)=>setF(x=>({...x,[k]:v}));
+  var toggleItem=id=>setF(x=>({...x,itemIds:x.itemIds.includes(id)?x.itemIds.filter(i=>i!==id):[...x.itemIds,id]}));
+  var regularTotal=f.itemIds.reduce((s,id)=>{var m=menu.find(m=>m.id===id);return s+(m?.price||0);},0);
+  var saving=regularTotal-f.price;
+  var save=()=>{
+    if(!f.name.trim()){alert("Name is required");return;}
+    if(!f.price||f.price<=0){alert("Valid price is required");return;}
+    if(!f.itemIds.length){alert("Select at least one item");return;}
+    onSave({...f,price:+f.price});
+    onClose();
+  };
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:16,overflowY:"auto"}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:500,padding:22,marginTop:20,marginBottom:40}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <h2 style={{fontSize:22}}>{isNew?"Create Set Meal":"Edit Set Meal"}</h2>
+        <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Icon</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(45px,1fr))",gap:5,padding:6,background:"#f7f3ee",borderRadius:8,maxHeight:90,overflowY:"auto"}}>
+          {ICON_KEYS.map(k=><button key={k} onClick={()=>update("icon",k)} style={{padding:6,borderRadius:6,fontSize:20,background:f.icon===k?"#7c3aed":"#fff",border:"2px solid "+(f.icon===k?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{EM[k]||""}</button>)}
+        </div>
+      </div>
+
+      <div style={{marginBottom:10}}><label className="lbl">Combo Name *</label><input className="field" value={f.name} onChange={e=>update("name",e.target.value)} placeholder="Burger Combo"/></div>
+      <div style={{marginBottom:10}}><label className="lbl">Description</label><textarea className="field" value={f.desc} onChange={e=>update("desc",e.target.value)} rows={2} style={{resize:"vertical"}} placeholder="Any burger + fries + drink"/></div>
+      <div style={{marginBottom:12}}><label className="lbl">Combo Price (GBP) *</label><input type="number" step="0.01" className="field" value={f.price} onChange={e=>update("price",e.target.value)} placeholder="19.99"/></div>
+
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Items Included ({f.itemIds.length} selected)</label>
+        <div style={{maxHeight:180,overflowY:"auto",border:"1px solid #ede8de",borderRadius:8,padding:4}}>
+          {menu.filter(m=>m.avail).map(m=><button key={m.id} onClick={()=>toggleItem(m.id)} style={{width:"100%",textAlign:"left",padding:"8px 10px",borderRadius:6,background:f.itemIds.includes(m.id)?"#f5f0ff":"#fff",border:"2px solid "+(f.itemIds.includes(m.id)?"#7c3aed":"transparent"),cursor:"pointer",marginBottom:3,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>{EM[m.icon]||""}</span>
+            <span style={{flex:1,fontSize:12,fontWeight:600}}>{m.name}</span>
+            <span style={{fontSize:11,color:"#bf4626",fontWeight:700}}>{fmt(m.price)}</span>
+          </button>)}
+        </div>
+      </div>
+
+      {f.itemIds.length>0&&f.price>0&&<div style={{padding:"10px 12px",background:saving>0?"#d1fae5":"#fef3c7",borderRadius:8,marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+          <span>Regular total:</span><span style={{fontWeight:700}}>{fmt(regularTotal)}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+          <span>Combo price:</span><span style={{fontWeight:700}}>{fmt(f.price)}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:700,color:saving>0?"#059669":"#d97706",marginTop:4,paddingTop:4,borderTop:"1px solid rgba(0,0,0,.08)"}}>
+          <span>{saving>0?"Customer saves:":"Warning - no saving"}</span>
+          <span>{fmt(Math.abs(saving))}</span>
+        </div>
+      </div>}
+
+      <div style={{marginBottom:14}}>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={f.avail} onChange={e=>update("avail",e.target.checked)}/>
+          <span style={{fontSize:13,fontWeight:600}}>Available to order</span>
+        </label>
+      </div>
+
+      {confirmDel?<div style={{padding:14,background:"#fee2e2",borderRadius:9,marginBottom:12}}>
+        <p style={{fontSize:13,fontWeight:700,color:"#991b1b",marginBottom:8}}>Delete this combo permanently?</p>
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn btn-o" onClick={()=>setConfirmDel(false)} style={{flex:1}}>Cancel</button>
+          <button onClick={()=>{onDelete(f.id);onClose();}} style={{flex:1,padding:"10px",background:"#dc2626",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Delete Forever</button>
+        </div>
+      </div>:<div style={{display:"flex",gap:8}}>
+        <button className="btn btn-r" onClick={save} style={{flex:2,padding:"12px"}}>{isNew?"Create Combo":"Save Changes"}</button>
+        {!isNew&&<button onClick={()=>setConfirmDel(true)} style={{flex:1,padding:"12px",background:"#fff",color:"#dc2626",border:"2px solid #dc2626",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Delete</button>}
+      </div>}
+    </div>
+  </div>;
+}
+
+// -- CATEGORY EDITOR MODAL -----------------------------------------------------
+function CategoryEditor({cat,onSave,onClose,onDelete,menu}){
+  var isNew=!cat||!cat.id;
+  var [f,setF]=useState({
+    id:cat?.id||"cat"+Date.now(),
+    name:cat?.name||"",
+    icon:cat?.icon||"star",
+    order:cat?.order||99,
+  });
+  var [confirmDel,setConfirmDel]=useState(false);
+  var update=(k,v)=>setF(x=>({...x,[k]:v}));
+  var usedBy=!isNew?menu.filter(m=>m.cat===cat.name).length:0;
+  var save=()=>{
+    if(!f.name.trim()){alert("Name is required");return;}
+    onSave({...f,order:+f.order});
+    onClose();
+  };
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:420,padding:22}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <h2 style={{fontSize:20}}>{isNew?"Add Category":"Edit Category"}</h2>
+        <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Icon</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(45px,1fr))",gap:5,padding:6,background:"#f7f3ee",borderRadius:8,maxHeight:120,overflowY:"auto"}}>
+          {ICON_KEYS.map(k=><button key={k} onClick={()=>update("icon",k)} style={{padding:6,borderRadius:6,fontSize:20,background:f.icon===k?"#d4952a":"#fff",border:"2px solid "+(f.icon===k?"#d4952a":"#ede8de"),cursor:"pointer"}}>{EM[k]||""}</button>)}
+        </div>
+      </div>
+
+      <div style={{marginBottom:10}}><label className="lbl">Category Name *</label><input className="field" value={f.name} onChange={e=>update("name",e.target.value)} placeholder="e.g. Breakfast, Specials, Kids Menu"/></div>
+      <div style={{marginBottom:14}}><label className="lbl">Display Order</label><input type="number" className="field" value={f.order} onChange={e=>update("order",e.target.value)} placeholder="1-99 (lower shows first)"/><p style={{fontSize:11,color:"#8a8078",marginTop:4}}>Lower numbers appear first in the menu</p></div>
+
+      {!isNew&&usedBy>0&&<div style={{padding:"10px 12px",background:"#fef3c7",borderRadius:8,marginBottom:12,fontSize:12,color:"#92400e"}}>
+        This category is used by {usedBy} menu item{usedBy!==1?"s":""}. Renaming it will update them automatically.
+      </div>}
+
+      {confirmDel?<div style={{padding:14,background:"#fee2e2",borderRadius:9,marginBottom:12}}>
+        <p style={{fontSize:13,fontWeight:700,color:"#991b1b",marginBottom:8}}>Delete this category?</p>
+        {usedBy>0&&<p style={{fontSize:12,color:"#991b1b",marginBottom:8}}>Cannot delete - {usedBy} item(s) still use it. Move them to another category first.</p>}
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn btn-o" onClick={()=>setConfirmDel(false)} style={{flex:1}}>Cancel</button>
+          <button onClick={()=>{onDelete(f.id);onClose();}} disabled={usedBy>0} style={{flex:1,padding:"10px",background:usedBy>0?"#ccc":"#dc2626",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:usedBy>0?"not-allowed":"pointer"}}>Delete</button>
+        </div>
+      </div>:<div style={{display:"flex",gap:8}}>
+        <button className="btn btn-r" onClick={save} style={{flex:2,padding:"12px"}}>{isNew?"Add Category":"Save Changes"}</button>
+        {!isNew&&<button onClick={()=>setConfirmDel(true)} style={{flex:1,padding:"12px",background:"#fff",color:"#dc2626",border:"2px solid #dc2626",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Delete</button>}
+      </div>}
+    </div>
+  </div>;
+}
+
+function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
+  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
+  var saveItem=item=>{setMenu(ms=>{var ex=ms.find(m=>m.id===item.id);return ex?ms.map(m=>m.id===item.id?item:m):[...ms,item];});push({title:"Saved",body:item.name,color:"#059669"});};
+  var deleteItem=id=>{setMenu(ms=>ms.filter(m=>m.id!==id));push({title:"Deleted",body:"Menu item removed",color:"#dc2626"});};
+  var saveMeal=meal=>{setSetMeals(ms=>{var ex=ms.find(m=>m.id===meal.id);return ex?ms.map(m=>m.id===meal.id?meal:m):[...ms,meal];});push({title:"Saved",body:meal.name,color:"#059669"});};
+  var deleteMeal=id=>{setSetMeals(ms=>ms.filter(m=>m.id!==id));push({title:"Deleted",body:"Combo removed",color:"#dc2626"});};
+  var saveCat=cat=>{setCategories(cs=>{var ex=cs.find(c=>c.id===cat.id);return ex?cs.map(c=>c.id===cat.id?cat:c):[...cs,cat];});push({title:"Saved",body:cat.name,color:"#059669"});};
+  var deleteCat=id=>{
+    var cat=categories.find(c=>c.id===id);
+    var used=menu.filter(m=>m.cat===cat?.name).length;
+    if(used>0){alert("Cannot delete - "+used+" menu item(s) use this category. Move them first.");return;}
+    setCategories(cs=>cs.filter(c=>c.id!==id));push({title:"Deleted",body:"Category removed",color:"#dc2626"});
+  };
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
     <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0}}>{l}</button>)}</div>
     {tab==="orders"&&allSt.map(st=>{var grp=fil.filter(o=>o.status===st);if(!grp.length)return null;return <div key={st} style={{marginBottom:14}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span className="bdg" style={{background:SB[st],color:SC[st]}}>{SL[st]}</span><span style={{color:"#8a8078",fontSize:11}}>{grp.length}</span></div><div className="ag">{grp.map(o=><div key={o.id} className="card" style={{padding:"11px 13px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p><span style={{fontSize:10,color:o.paid?"#059669":"#dc2626",fontWeight:600}}>{o.paid?"Paid":"Unpaid"}</span></div></div><p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{o.items.map(i=>i.name+"x"+i.qty).join(", ")}</p><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}</div><button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button></div>)}</div></div>;})}
     {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(del.length?rev/del.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
-    {tab==="menu"&&<div className="ag">{menu.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div><p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{item.name}</p><p style={{fontSize:10,color:"#8a8078",marginBottom:8}}>{item.cat}</p><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,avail:!m.avail}:m))} style={{width:"100%",padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:item.avail?"#059669":"#ede8de",background:item.avail?"#d1fae5":"#f7f3ee",color:item.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{item.avail?"Available":"86 it - Restore"}</button></div>)}</div>}
+    {tab==="menu"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16}}>Menu Items ({menu.length})</h3><p style={{fontSize:11,color:"#8a8078"}}>Tap a card to edit, or add new items</p></div>
+        <button className="btn btn-r" onClick={()=>setEditItem({})} style={{padding:"8px 16px",fontSize:13}}>+ Add New Item</button>
+      </div>
+      <div className="ag">{menu.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5,cursor:"pointer",transition:"transform .15s"}} onClick={()=>setEditItem(item)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div>
+        <p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{item.name}</p>
+        <p style={{fontSize:10,color:"#8a8078",marginBottom:6}}>{item.cat} - Stock: {item.stock}</p>
+        {item.allergens&&item.allergens.length>0&&<p style={{fontSize:9,color:"#7c3aed",marginBottom:6,fontWeight:600}}>{item.allergens.length} dietary tag{item.allergens.length>1?"s":""}</p>}
+        <div style={{display:"flex",gap:4}}>
+          <button onClick={e=>{e.stopPropagation();setMenu(ms=>ms.map(m=>m.id===item.id?{...m,avail:!m.avail}:m));}} style={{flex:1,padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:item.avail?"#059669":"#ede8de",background:item.avail?"#d1fae5":"#f7f3ee",color:item.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{item.avail?"Available":"86'd"}</button>
+          <button onClick={e=>{e.stopPropagation();setEditItem(item);}} style={{padding:"6px 10px",borderRadius:7,background:"#1a1208",color:"#fff",border:"none",fontWeight:700,fontSize:11,cursor:"pointer"}}>Edit</button>
+        </div>
+      </div>)}</div>
+    </div>}
+
+    {tab==="combos"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16}}>Set Meals & Combos ({setMeals.length})</h3><p style={{fontSize:11,color:"#8a8078"}}>Bundle items at a discounted price</p></div>
+        <button className="btn btn-p" onClick={()=>setEditMeal({})} style={{padding:"8px 16px",fontSize:13}}>+ Create Combo</button>
+      </div>
+      {setMeals.length===0&&<div className="card" style={{textAlign:"center",padding:30,color:"#8a8078"}}><p style={{fontSize:14,marginBottom:4}}>No set meals yet</p><p style={{fontSize:12}}>Create combos to increase average order value</p></div>}
+      <div className="ag">{setMeals.map(sm=>{
+        var items=sm.itemIds.map(id=>menu.find(m=>m.id===id)).filter(Boolean);
+        var reg=items.reduce((s,i)=>s+i.price,0), save=reg-sm.price;
+        return <div key={sm.id} className="card" style={{opacity:sm.avail?1:.5,cursor:"pointer",borderLeft:"4px solid #7c3aed",transition:"transform .15s"}} onClick={()=>setEditMeal(sm)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[sm.icon]||""}</span><div style={{textAlign:"right"}}><span style={{fontWeight:700,color:"#7c3aed",fontSize:14}}>{fmt(sm.price)}</span>{save>0&&<p style={{fontSize:10,color:"#059669",fontWeight:700}}>Save {fmt(save)}</p>}</div></div>
+          <p style={{fontWeight:700,fontSize:13,marginBottom:2}}>{sm.name}</p>
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:6,lineHeight:1.4}}>{sm.desc}</p>
+          <div style={{padding:"6px 8px",background:"#f5f0ff",borderRadius:6,marginBottom:8}}>
+            {items.map(i=><div key={i.id} style={{fontSize:11,color:"#1a1208",display:"flex",gap:6,marginBottom:2}}><span>{EM[i.icon]||""}</span><span>{i.name}</span></div>)}
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={e=>{e.stopPropagation();setSetMeals(ms=>ms.map(m=>m.id===sm.id?{...m,avail:!m.avail}:m));}} style={{flex:1,padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:sm.avail?"#059669":"#ede8de",background:sm.avail?"#d1fae5":"#f7f3ee",color:sm.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{sm.avail?"Active":"Inactive"}</button>
+            <button onClick={e=>{e.stopPropagation();setEditMeal(sm);}} style={{padding:"6px 10px",borderRadius:7,background:"#7c3aed",color:"#fff",border:"none",fontWeight:700,fontSize:11,cursor:"pointer"}}>Edit</button>
+          </div>
+        </div>;
+      })}</div>
+    </div>}
+
+    {tab==="categories"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16}}>Menu Categories ({categories.length})</h3><p style={{fontSize:11,color:"#8a8078"}}>Organize your menu into sections</p></div>
+        <button className="btn btn-r" onClick={()=>setEditCat({})} style={{padding:"8px 16px",fontSize:13}}>+ Add Category</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+        {categories.slice().sort((a,b)=>a.order-b.order).map(c=>{
+          var count=menu.filter(m=>m.cat===c.name).length;
+          return <div key={c.id} className="card" style={{cursor:"pointer",borderLeft:"4px solid #d4952a",transition:"transform .15s"}} onClick={()=>setEditCat(c)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <span style={{fontSize:28}}>{EM[c.icon]||""}</span>
+              <span style={{fontSize:10,background:"#f7f3ee",padding:"2px 8px",borderRadius:10,color:"#8a8078",fontWeight:700}}>#{c.order}</span>
+            </div>
+            <p style={{fontWeight:700,fontSize:15,marginBottom:2}}>{c.name}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{count} item{count!==1?"s":""}</p>
+          </div>;
+        })}
+      </div>
+    </div>}
+
+    {editItem&&<MenuEditor item={editItem} onSave={saveItem} onClose={()=>setEditItem(null)} onDelete={deleteItem} modifiers={MODIFIERS0} categories={categories}/>}
+    {editMeal&&<SetMealEditor meal={editMeal} menu={menu} onSave={saveMeal} onClose={()=>setEditMeal(null)} onDelete={deleteMeal}/>}
+    {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
     {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
@@ -639,6 +1158,274 @@ function TablesV({tables,setTables,push}){
   </div>;
 }
 
+// -- POSTCODE LOOKUP (UK) -----------------------------------------------------
+// Uses free postcodes.io API - no key needed, unlimited calls
+// Returns {ok, town, area, district, lat, lng, distance}
+function lookupPostcode(postcode, branchLat, branchLng){
+  var clean=postcode.replace(/\s+/g,"").toUpperCase();
+  if(!clean)return Promise.resolve({ok:false,reason:"Enter a postcode"});
+  return fetch("https://api.postcodes.io/postcodes/"+encodeURIComponent(clean))
+    .then(r=>r.json())
+    .then(j=>{
+      if(j.status!==200)return{ok:false,reason:"Postcode not found"};
+      var r=j.result;
+      var distance=null;
+      if(branchLat&&branchLng){
+        var toRad=d=>d*Math.PI/180;
+        var dLat=toRad(r.latitude-branchLat),dLng=toRad(r.longitude-branchLng);
+        var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toRad(branchLat))*Math.cos(toRad(r.latitude))*Math.sin(dLng/2)*Math.sin(dLng/2);
+        distance=2*3959*Math.asin(Math.sqrt(a));
+      }
+      return{ok:true,town:r.admin_ward||r.parish||r.admin_district,area:r.region,district:r.admin_district,country:r.country,lat:r.latitude,lng:r.longitude,distance};
+    })
+    .catch(()=>({ok:false,reason:"Lookup failed - check internet"}));
+}
+
+// -- CUSTOMER DATABASE --------------------------------------------------------
+var CUSTOMERS0=[
+  {id:"c1",phone:"07700900001",name:"John Smith",address:{line1:"45 Oxford Street",postcode:"E14 5AB",notes:"Flat 3B, buzzer broken"},distance:2.1,lastOrder:"ORD-1002",totalOrders:8,totalSpent:187.50,notes:"Allergic to nuts"},
+  {id:"c2",phone:"07700900002",name:"Sarah Williams",address:{line1:"12 Camden Road",postcode:"N1 9AA",notes:"Green door"},distance:4.3,lastOrder:null,totalOrders:3,totalSpent:62.80,notes:"Prefers extra spicy"},
+  {id:"c3",phone:"07700900003",name:"Raj Patel",address:{line1:"88 Brick Lane",postcode:"E1 6RL",notes:""},distance:0.8,lastOrder:"ORD-1004",totalOrders:15,totalSpent:412.30,notes:"VIP - regular customer"},
+];
+
+// -- PHONE ORDER VIEW ---------------------------------------------------------
+function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,orders}){
+  var [phone,setPhone]=useState("");
+  var [found,setFound]=useState(null);
+  var [searched,setSearched]=useState(false);
+  var [step,setStep]=useState("search");
+  var [newCust,setNewCust]=useState({name:"",line1:"",postcode:"",notes:"",distance:0});
+  var [orderType,setOrderType]=useState("delivery");
+  var [cart,setCart]=useState([]);
+  var [cat,setCat]=useState("");
+  var [flashId,setFlashId]=useState(null);
+  var [lookingUp,setLookingUp]=useState(false);
+  var [lookupResult,setLookupResult]=useState(null);
+  var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
+  useEffect(()=>{if(!cat&&cats.length)setCat(cats[0]);},[cat,cats]);
+
+  var doLookup=()=>{
+    if(!newCust.postcode.trim())return;
+    setLookingUp(true);setLookupResult(null);
+    lookupPostcode(newCust.postcode,branch?.lat,branch?.lng).then(r=>{
+      setLookupResult(r);
+      setLookingUp(false);
+      if(r.ok&&r.distance!==null){
+        setNewCust(c=>({...c,distance:r.distance.toFixed(1)}));
+      }
+    });
+  };
+
+  var search=()=>{
+    var clean=phone.replace(/\s+/g,"").replace(/^0/,"").replace(/^\+?44/,"0");
+    var full=clean.startsWith("0")?clean:"0"+clean;
+    var c=customers.find(x=>x.phone.replace(/\s+/g,"")===full);
+    setFound(c||null);
+    setSearched(true);
+    if(c)setStep("existing");else setStep("new");
+  };
+
+  var createCustomer=()=>{
+    if(!newCust.name.trim()){alert("Name required");return;}
+    var c={id:"c"+Date.now(),phone:phone,name:newCust.name,address:{line1:newCust.line1,postcode:newCust.postcode,notes:newCust.notes},distance:+newCust.distance||0,lastOrder:null,totalOrders:0,totalSpent:0,notes:""};
+    setCustomers(cs=>[...cs,c]);
+    setFound(c);
+    setStep("ordering");
+    push({title:"Customer added",body:c.name,color:"#059669"});
+  };
+
+  var reorderLast=()=>{
+    if(!found?.lastOrder)return;
+    var last=orders.find(o=>o.id===found.lastOrder);
+    if(!last){alert("Previous order details not available");return;}
+    setCart(last.items.map(i=>({...i})));
+    setStep("ordering");
+    push({title:"Loaded last order",body:last.items.length+" items",color:"#2563eb"});
+  };
+
+  var addItem=it=>{
+    setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+    setFlashId(it.id);setTimeout(()=>setFlashId(null),600);
+  };
+  var decItem=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
+  var delItem=id=>setCart(c=>c.filter(x=>x.id!==id));
+
+  var subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  var deliveryCheck=orderType==="delivery"&&found?checkDelivery(branch,{...found.address,distance:found.distance},subtotal):null;
+  var deliveryFee=deliveryCheck?.fee||0;
+  var total=subtotal+deliveryFee;
+
+  var placeOrder=(paid)=>{
+    if(!cart.length)return;
+    if(orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok){alert(deliveryCheck.reason);return;}
+    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone"};
+    onOrder(o);
+    setCustomers(cs=>cs.map(c=>c.id===found.id?{...c,lastOrder:o.id,totalOrders:c.totalOrders+1,totalSpent:c.totalSpent+total}:c));
+    push({title:"Phone order placed!",body:o.id+" - "+fmt(total),color:"#059669"});
+    setPhone("");setFound(null);setSearched(false);setStep("search");setCart([]);setNewCust({name:"",line1:"",postcode:"",notes:"",distance:0});
+  };
+
+  // Step 1: Search by phone
+  if(step==="search") return <div className="page" style={{maxWidth:500}}>
+    <h2 style={{fontSize:24,marginBottom:4}}>Phone Order</h2>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:20}}>Enter customer's phone number</p>
+    <div className="card" style={{marginBottom:12}}>
+      <label className="lbl">Customer Phone Number</label>
+      <input className="field" value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==="Enter"&&search()} placeholder="07700 900 000" style={{fontSize:22,padding:"14px 16px",textAlign:"center",fontWeight:700,letterSpacing:1}} autoFocus/>
+      <button className="btn btn-r" onClick={search} disabled={phone.length<5} style={{width:"100%",padding:"12px",marginTop:10,fontSize:15}}>Search Customer</button>
+    </div>
+    <div style={{padding:"12px 14px",background:"#fffbeb",borderRadius:9,border:"1px solid #fde68a",fontSize:12,color:"#92400e"}}>
+      <strong>Tip:</strong> Type the number your customer is calling from. If they're new, you can register them. If returning, you will see their history and last order.
+    </div>
+  </div>;
+
+  // Step 2: Existing customer found
+  if(step==="existing"&&found) return <div className="page" style={{maxWidth:560}}>
+    <button className="btn btn-g" onClick={()=>{setStep("search");setFound(null);setPhone("");setSearched(false);}} style={{marginBottom:10,fontSize:13}}>{"< Back"}</button>
+    <div className="card" style={{marginBottom:14,background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none"}}>
+      <p style={{fontSize:11,opacity:.8,letterSpacing:1,marginBottom:3}}>{EM.check} EXISTING CUSTOMER</p>
+      <h2 style={{fontSize:26,color:"#fff",marginBottom:4}}>{found.name}</h2>
+      <p style={{fontSize:13,opacity:.9}}>{found.phone}</p>
+      {found.notes&&<p style={{fontSize:12,opacity:.9,marginTop:6,padding:"5px 9px",background:"rgba(0,0,0,.15)",borderRadius:6}}>{EM.star} {found.notes}</p>}
+    </div>
+
+    <div className="g3" style={{marginBottom:12}}>
+      {[["Orders",found.totalOrders,"#2563eb"],["Spent",fmt(found.totalSpent),"#059669"],["Distance",found.distance?found.distance.toFixed(1)+" mi":"-","#d97706"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"12px 8px",textAlign:"center",border:"1px solid #ede8de"}}><div style={{fontWeight:700,fontSize:16,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600,textTransform:"uppercase"}}>{l}</div></div>)}
+    </div>
+
+    <div className="card" style={{marginBottom:12}}>
+      <p style={{fontWeight:700,fontSize:13,marginBottom:8}}>{EM.pin} Address</p>
+      <p style={{fontSize:14,marginBottom:2}}>{found.address.line1}</p>
+      <p style={{fontSize:14,color:"#8a8078"}}>{found.address.postcode}</p>
+      {found.address.notes&&<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic",marginTop:4}}>{found.address.notes}</p>}
+    </div>
+
+    {found.lastOrder&&<button className="btn btn-p" onClick={reorderLast} style={{width:"100%",padding:"14px",fontSize:15,marginBottom:10}}>
+      Would you like your last order? ({found.lastOrder})
+    </button>}
+
+    <button className="btn btn-r" onClick={()=>setStep("ordering")} style={{width:"100%",padding:"14px",fontSize:15}}>
+      Start New Order
+    </button>
+  </div>;
+
+  // Step 3: New customer
+  if(step==="new") return <div className="page" style={{maxWidth:500}}>
+    <button className="btn btn-g" onClick={()=>{setStep("search");setPhone("");setSearched(false);}} style={{marginBottom:10,fontSize:13}}>{"< Back"}</button>
+    <div className="card" style={{marginBottom:14,background:"#fef3c7",border:"2px solid #fcd34d"}}>
+      <p style={{fontSize:11,letterSpacing:1,color:"#92400e",fontWeight:700,marginBottom:3}}>NEW CUSTOMER</p>
+      <p style={{fontSize:14,color:"#92400e"}}>No customer found for <strong>{phone}</strong></p>
+      <p style={{fontSize:12,color:"#92400e",marginTop:4}}>Type postcode below to auto-fill area</p>
+    </div>
+
+    <div className="card">
+      <label className="lbl">Name *</label>
+      <input className="field" value={newCust.name} onChange={e=>setNewCust({...newCust,name:e.target.value})} placeholder="John Smith" style={{marginBottom:10}}/>
+
+      <label className="lbl">Phone (confirmed)</label>
+      <input className="field" value={phone} readOnly style={{background:"#f7f3ee",marginBottom:12}}/>
+
+      {/* Postcode lookup */}
+      <label className="lbl">Postcode - auto lookup</label>
+      <div style={{display:"flex",gap:6,marginBottom:6}}>
+        <input className="field" value={newCust.postcode} onChange={e=>setNewCust({...newCust,postcode:e.target.value.toUpperCase()})} onKeyDown={e=>e.key==="Enter"&&doLookup()} placeholder="E14 5AB" style={{flex:1,fontSize:16,letterSpacing:1}}/>
+        <button onClick={doLookup} disabled={lookingUp||!newCust.postcode} style={{padding:"0 18px",background:lookingUp?"#8a8078":"#1a1208",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",whiteSpace:"nowrap"}}>
+          {lookingUp?"...":"Find"}
+        </button>
+      </div>
+
+      {/* Lookup result */}
+      {lookupResult&&lookupResult.ok&&<div style={{padding:"10px 12px",background:"#d1fae5",border:"2px solid #059669",borderRadius:8,marginBottom:10,fontSize:12}}>
+        <p style={{fontWeight:700,color:"#065f46",marginBottom:3}}>{EM.check} {lookupResult.town}, {lookupResult.district}</p>
+        {lookupResult.distance!==null&&<p style={{color:"#065f46"}}>{lookupResult.distance.toFixed(1)} miles from branch</p>}
+      </div>}
+      {lookupResult&&!lookupResult.ok&&<div style={{padding:"10px 12px",background:"#fee2e2",border:"2px solid #dc2626",borderRadius:8,marginBottom:10,fontSize:12,color:"#991b1b",fontWeight:700}}>
+        {EM.cross} {lookupResult.reason}
+      </div>}
+
+      <label className="lbl">House number + Street</label>
+      <input className="field" value={newCust.line1} onChange={e=>setNewCust({...newCust,line1:e.target.value})} placeholder="45 Oxford Street" style={{marginBottom:10}}/>
+
+      <label className="lbl">Delivery Notes</label>
+      <input className="field" value={newCust.notes} onChange={e=>setNewCust({...newCust,notes:e.target.value})} placeholder="Flat 3B, buzzer broken" style={{marginBottom:14}}/>
+
+      <button className="btn btn-r" onClick={createCustomer} disabled={!newCust.name.trim()||!newCust.postcode} style={{width:"100%",padding:"13px"}}>
+        Save Customer & Start Order
+      </button>
+    </div>
+  </div>;
+
+  // Step 4: Ordering
+  return <div className="page" style={{maxWidth:800}}>
+    <button className="btn btn-g" onClick={()=>setStep("existing")} style={{marginBottom:10,fontSize:13}}>{"< Back to customer"}</button>
+
+    {/* Customer header */}
+    <div className="card" style={{marginBottom:10,padding:"10px 14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+        <div><p style={{fontWeight:700,fontSize:14}}>{found.name}</p><p style={{fontSize:11,color:"#8a8078"}}>{found.phone}</p></div>
+        <div style={{display:"flex",gap:4}}>
+          {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"6px 14px",borderRadius:7,fontWeight:700,fontSize:12,background:orderType===t?"#bf4626":"#f7f3ee",color:orderType===t?"#fff":"#1a1208",border:"none",cursor:"pointer"}}>{l}</button>)}
+        </div>
+      </div>
+      {orderType==="delivery"&&<div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #ede8de",fontSize:12,color:"#8a8078"}}>
+        {EM.pin} {found.address.line1}, {found.address.postcode} {found.distance?"("+found.distance.toFixed(1)+" mi)":""}
+      </div>}
+    </div>
+
+    {/* Delivery status bar */}
+    {orderType==="delivery"&&deliveryCheck&&<div style={{marginBottom:10,padding:"10px 14px",borderRadius:9,background:deliveryCheck.ok?"#d1fae5":"#fee2e2",border:"2px solid "+(deliveryCheck.ok?"#059669":"#dc2626"),fontSize:13,fontWeight:700,color:deliveryCheck.ok?"#065f46":"#991b1b",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+      <span>{deliveryCheck.ok?(EM.check+" Delivery OK"+(deliveryCheck.zone?" - "+deliveryCheck.zone:"")):(EM.cross+" "+deliveryCheck.reason)}</span>
+      {deliveryCheck.ok&&<span>{deliveryCheck.fee===0?"FREE":fmt(deliveryCheck.fee)+" fee"}</span>}
+    </div>}
+
+    <div style={{display:"grid",gridTemplateColumns:cart.length?"1.5fr 1fr":"1fr",gap:10}}>
+      {/* Menu */}
+      <div>
+        <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:4}}>
+          {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"6px 12px",borderRadius:7,fontWeight:700,fontSize:12,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",cursor:"pointer",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7}}>
+          {menu.filter(i=>i.cat===cat&&i.avail).map(item=>{
+            var inCart=cart.find(c=>c.id===item.id);
+            return <button key={item.id} onClick={()=>addItem(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:9,padding:9,cursor:"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 12px rgba(191,70,38,.2)":"0 2px 6px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative",minHeight:100}}>
+              {inCart&&<div style={{position:"absolute",top:-5,right:-5,background:"#bf4626",color:"#fff",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
+              <span style={{fontSize:24}}>{EM[item.icon]||""}</span>
+              <p style={{fontSize:10,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
+              <p style={{fontSize:12,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
+            </button>;
+          })}
+        </div>
+      </div>
+
+      {/* Cart */}
+      {cart.length>0&&<div>
+        <div className="card" style={{padding:12}}>
+          <p style={{fontWeight:700,marginBottom:8,fontSize:13}}>Order Summary</p>
+          {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid #ede8de",fontSize:12}}>
+            <div style={{flex:1}}><p style={{fontWeight:600}}>{it.name}</p><p style={{fontSize:10,color:"#8a8078"}}>{fmt(it.price)} x {it.qty}</p></div>
+            <div style={{display:"flex",alignItems:"center",gap:4,background:"#f7f3ee",borderRadius:50,padding:"2px 8px"}}>
+              <button onClick={()=>decItem(it.id)} style={{fontSize:16,color:"#bf4626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>-</button>
+              <span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{it.qty}</span>
+              <button onClick={()=>addItem(it)} style={{fontSize:16,color:"#bf4626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>+</button>
+            </div>
+            <button onClick={()=>delItem(it.id)} style={{color:"#ccc",fontSize:14,border:"none",background:"none",cursor:"pointer"}}>x</button>
+          </div>)}
+          <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid #ede8de"}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:3}}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+            {orderType==="delivery"&&deliveryFee>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:3}}><span>Delivery</span><span>{fmt(deliveryFee)}</span></div>}
+            {orderType==="delivery"&&deliveryCheck?.ok&&deliveryFee===0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#059669",marginBottom:3,fontWeight:700}}><span>Delivery</span><span>FREE</span></div>}
+            <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginTop:10}}>
+            <button className="btn btn-r" disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(true)} style={{padding:"11px",fontSize:13}}>Paid</button>
+            <button className="btn btn-d" disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(false)} style={{padding:"11px",fontSize:13}}>COD</button>
+          </div>
+        </div>
+      </div>}
+    </div>
+  </div>;
+}
+
 // -- POS (EPOS for Staff) -----------------------------------------------------
 function PosV({menu,onOrder,push,user,branch}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
@@ -654,7 +1441,13 @@ function PosV({menu,onOrder,push,user,branch}){
   var total=afterDisc+tip;
   var perSplit=total/Math.max(splitN,1);
   var count=cart.reduce((s,i)=>s+i.qty,0);
-  var add=it=>setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+  var [flashId,setFlashId]=useState(null);
+  var add=it=>{
+    setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+    setFlashId(it.id);
+    setTimeout(()=>setFlashId(null),600);
+    if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate(15);}
+  };
   var dec=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
   var del=id=>setCart(c=>c.filter(x=>x.id!==id));
   var clear=()=>{setCart([]);setTbl("");setTip(0);setDiscPct(0);setDiscReason("");setSplitN(1);};
@@ -747,11 +1540,15 @@ function PosV({menu,onOrder,push,user,branch}){
           {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"10px 16px",borderRadius:8,fontWeight:700,fontSize:13,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",flexShrink:0,cursor:"pointer",boxShadow:cat===c?"0 3px 10px rgba(0,0,0,.2)":"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
         </div>
         <div className="pos-grid">
-          {menu.filter(i=>i.cat===cat&&i.avail).map(item=><button key={item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{background:"#fff",border:"none",borderRadius:10,padding:10,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:115,transition:"transform .1s"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.95)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
-            <span style={{fontSize:28}}>{EM[item.icon]||""}</span>
-            <p style={{fontSize:11,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
-            <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
-          </button>)}
+          {menu.filter(i=>i.cat===cat&&i.avail).map(item=>{
+            var inCart=cart.find(c=>c.id===item.id);
+            return <button key={item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:10,padding:10,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 16px rgba(191,70,38,.25)":"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:115,transition:"all .15s",position:"relative"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.93)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} onTouchStart={e=>e.currentTarget.style.transform="scale(.93)"} onTouchEnd={e=>e.currentTarget.style.transform="scale(1)"}>
+              {inCart&&<div style={{position:"absolute",top:-6,right:-6,background:"#bf4626",color:"#fff",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,boxShadow:"0 2px 8px rgba(191,70,38,.5)",border:"2px solid #fff"}}>{inCart.qty}</div>}
+              <span style={{fontSize:28}}>{EM[item.icon]||""}</span>
+              <p style={{fontSize:11,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
+              <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
+            </button>;
+          })}
         </div>
       </div>
 
@@ -766,7 +1563,7 @@ function PosV({menu,onOrder,push,user,branch}){
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
           {cart.length===0&&<p style={{textAlign:"center",color:"#8a8078",padding:20,fontSize:13}}>Tap menu items to add</p>}
-          {cart.map(it=><div key={it.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f7f3ee"}}>
+          {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f7f3ee"}}>
             <div style={{flex:1}}>
               <p style={{fontWeight:700,fontSize:13}}>{it.name}</p>
               <p style={{fontSize:11,color:"#8a8078"}}>{fmt(it.price)} each</p>
@@ -836,6 +1633,9 @@ export default function App(){
   var [reservations,setRes]=useState([{id:"RES-001",branchId:"b1",userId:"u1",name:"Alex Johnson",email:"alex@example.com",phone:"07700",date:"2026-04-22",time:"19:00",guests:2,notes:"Window table",status:"confirmed"}]);
   var [messages,setMessages]=useState([{id:"m1",userId:"s2",name:"Chef Paolo",text:"Kitchen ready!",time:"12:30",role:"kitchen"},{id:"m2",userId:"u1",name:"Alex J",text:"Table 5 asking about wait time",time:"12:46",role:"customer"}]);
   var [tables,setTables]=useState(TABLES0);
+  var [setMeals,setSetMeals]=useState(SETMEALS0);
+  var [categories,setCategories]=useState(CATEGORIES0);
+  var [customers,setCustomers]=useState(CUSTOMERS0);
   var [user,setUser]=useState(null),[branch,setBranch]=useState(null),[showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
@@ -877,9 +1677,9 @@ export default function App(){
   };
   useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
   var isStaff=user&&user.role!=="customer";
-  var tabs=isStaff?["pos","tables","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
-  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables"};
-  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin"};
+  var tabs=isStaff?["pos","phone","tables","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone"};
+  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone"};
 
   if(!branch) return <>
     <style>{CSS}</style>
@@ -921,6 +1721,7 @@ export default function App(){
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch}/>}
+      {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
@@ -928,7 +1729,7 @@ export default function App(){
       {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push}/>}
-      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories}/>}
       {view==="report"  &&<ReportV  orders={orders}/>}
     </main>
   </div>;
