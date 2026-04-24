@@ -1,5 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -525,30 +525,118 @@ function TrackV({orders,branches}){
   </div>;
 }
 
-function BookV({reservations,setReservations,user,onAuth,branches}){
-  var [step,setStep]=useState("form"),[form,setF]=useState({name:user?.name||"",email:"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""}),[conf,setConf]=useState(null);
-  var times=["12:00","12:30","13:00","13:30","14:00","18:00","18:30","19:00","19:30","20:00","20:30","21:00"],today=new Date().toISOString().split("T")[0];
-  var submit=()=>{if(!form.name||!form.email||!form.date||!form.time)return;var r={...form,id:rid(),guests:+form.guests,status:"confirmed",userId:user?.id||null};setReservations(rs=>[r,...rs]);setConf(r);setStep("done");};
+function BookV({reservations,setReservations,user,onAuth,branches,push}){
+  var [step,setStep]=useState("form");
+  var [form,setF]=useState({name:user?.name||"",email:user?.email||"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""});
+  var [conf,setConf]=useState(null);
+  var [hours,setHours]=useState([]);
+  var [branchTables,setBranchTables]=useState([]);
+  var [slotsLoading,setSlotsLoading]=useState(false);
+  var [availSlots,setAvailSlots]=useState([]);
+  var today=new Date().toISOString().split("T")[0];
+
+  // Load hours + tables when branch changes
+  useEffect(()=>{
+    if(!form.branchId)return;
+    dbFetchHours(form.branchId).then(h=>setHours(h||[]));
+    dbFetchTables(form.branchId).then(t=>setBranchTables(t||[]));
+  },[form.branchId]);
+
+  // Generate slots whenever date/guests/branch changes
+  useEffect(()=>{
+    if(!form.date||!form.branchId){setAvailSlots([]);return;}
+    setSlotsLoading(true);
+    var slots=[];
+    var d=new Date(form.date+"T00:00:00");
+    var dow=d.getDay();
+    var todayHours=hours.find(h=>h.day_of_week===dow);
+    if(!todayHours||todayHours.is_closed){setAvailSlots([]);setSlotsLoading(false);return;}
+    // Generate 30-min slots from open to close-90min
+    var toMin=t=>{var p=t.split(":");return +p[0]*60+(+p[1]);};
+    var toStr=m=>{var h=Math.floor(m/60),mm=m%60;return(h<10?"0":"")+h+":"+(mm<10?"0":"")+mm;};
+    var openM=toMin(todayHours.open_time);
+    var closeM=toMin(todayHours.close_time);
+    if(closeM<openM)closeM+=24*60; // past midnight
+    // Last booking 90min before close
+    for(var m=openM;m<=closeM-90;m+=30){slots.push(toStr(m%(24*60)));}
+    // Fetch existing bookings for that date and filter out full slots
+    dbFetchReservations(form.branchId,form.date,form.date).then(existingRes=>{
+      var party=parseInt(form.guests)||2;
+      // For each slot, check if there are enough tables that fit party
+      var validSlots=slots.filter(slot=>{
+        // Count tables that fit party size
+        var fitsTables=branchTables.filter(t=>t.seats>=party);
+        if(fitsTables.length===0)return false;
+        // Count existing bookings at this slot (within 90min window)
+        var slotM=toMin(slot);
+        var booked=(existingRes||[]).filter(r=>{
+          if(r.status==="cancelled")return false;
+          var rM=toMin(r.reservation_time.slice(0,5));
+          return Math.abs(rM-slotM)<90;
+        });
+        // If booked count >= tables that fit, slot is full
+        return booked.length<fitsTables.length;
+      });
+      setAvailSlots(validSlots);
+      setSlotsLoading(false);
+    });
+  },[form.date,form.branchId,form.guests,hours,branchTables]);
+
+  var submit=()=>{
+    if(!form.name||!form.email||!form.date||!form.time)return;
+    var r={...form,id:rid(),guests:+form.guests,status:"confirmed",userId:user?.id||null};
+    setReservations(rs=>[r,...rs]);
+    setConf(r);
+    setStep("done");
+    // Save to database
+    dbSaveReservation(r).then(result=>{
+      if(result.error){push&&push({title:"Booking saved locally",body:"Will sync when online",color:"#d4952a"});}
+      else if(result.data){push&&push({title:"Booking confirmed",body:"See you "+r.date+" at "+r.time,color:"#059669"});}
+    });
+  };
+
+  var selectedBranch=branches.find(b=>b.id===form.branchId);
+  var dayHours=form.date?hours.find(h=>h.day_of_week===new Date(form.date+"T00:00:00").getDay()):null;
+
   if(step==="done"&&conf) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
     <p style={{fontSize:48,marginBottom:10}}>{EM.party}</p>
     <h2 style={{fontSize:24,marginBottom:5}}>Reservation Confirmed!</h2>
-    <div className="card" style={{textAlign:"left",marginBottom:14}}>{[["Branch",(branches.find(b=>b.id===conf.branchId)||{}).name],["Date",conf.date],["Time",conf.time],["Guests",conf.guests+" people"]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ede8de",fontSize:13}}><span style={{color:"#8a8078"}}>{k}</span><span style={{fontWeight:700}}>{v}</span></div>)}</div>
-    <button className="btn btn-r" onClick={()=>{setStep("form");setConf(null);setF({name:user?.name||"",email:"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""});}}>Book Again</button>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:14}}>We look forward to seeing you</p>
+    <div className="card" style={{textAlign:"left",marginBottom:14}}>{[["Branch",(branches.find(b=>b.id===conf.branchId)||{}).name],["Date",conf.date],["Time",conf.time],["Guests",conf.guests+" people"],["Name",conf.name]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #ede8de",fontSize:13}}><span style={{color:"#8a8078"}}>{k}</span><span style={{fontWeight:700}}>{v}</span></div>)}</div>
+    <button className="btn btn-r" onClick={()=>{setStep("form");setConf(null);setF({name:user?.name||"",email:user?.email||"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""});}}>Book Again</button>
   </div>;
+
   return <div className="page" style={{maxWidth:520}}>
     <h2 style={{fontSize:24,marginBottom:4}}>Book a Table</h2>
     <p style={{color:"#8a8078",fontSize:13,marginBottom:18}}>Reserve your spot at La Tavola</p>
-    <div className="card" style={{marginBottom:10}}><p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Choose Branch</p>{branches.map(b=><button key={b.id} onClick={()=>setF(f=>({...f,branchId:b.id}))} style={{width:"100%",textAlign:"left",padding:"9px 11px",borderRadius:8,border:"2px solid "+(form.branchId===b.id?"#bf4626":"#ede8de"),background:form.branchId===b.id?"#fff5f3":"#fff",marginBottom:5,cursor:"pointer"}}><p style={{fontWeight:700,fontSize:13}}>{b.name}</p><p style={{color:"#8a8078",fontSize:11}}>{b.addr}</p></button>)}</div>
     <div className="card" style={{marginBottom:10}}>
-      <div className="g2" style={{marginBottom:9}}><div><label className="lbl">Date</label><input type="date" className="field" value={form.date} min={today} onChange={e=>setF(f=>({...f,date:e.target.value}))}/></div><div><label className="lbl">Guests</label><select className="field" value={form.guests} onChange={e=>setF(f=>({...f,guests:e.target.value}))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></div></div>
-      <label className="lbl">Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:9}}>{times.map(tm=><button key={tm} onClick={()=>setF(f=>({...f,time:tm}))} style={{padding:"7px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(form.time===tm?"#bf4626":"#ede8de"),background:form.time===tm?"#fff5f3":"#fff",color:form.time===tm?"#bf4626":"#1a1208",cursor:"pointer"}}>{tm}</button>)}</div>
+      <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Choose Branch</p>
+      {branches.map(b=><button key={b.id} onClick={()=>setF(f=>({...f,branchId:b.id,time:""}))} style={{width:"100%",textAlign:"left",padding:"9px 11px",borderRadius:8,border:"2px solid "+(form.branchId===b.id?"#bf4626":"#ede8de"),background:form.branchId===b.id?"#fff5f3":"#fff",marginBottom:5,cursor:"pointer"}}><p style={{fontWeight:700,fontSize:13}}>{b.name}</p><p style={{color:"#8a8078",fontSize:11}}>{b.addr}</p></button>)}
+    </div>
+    <div className="card" style={{marginBottom:10}}>
+      <div className="g2" style={{marginBottom:9}}>
+        <div><label className="lbl">Date</label><input type="date" className="field" value={form.date} min={today} onChange={e=>setF(f=>({...f,date:e.target.value,time:""}))}/></div>
+        <div><label className="lbl">Guests</label><select className="field" value={form.guests} onChange={e=>setF(f=>({...f,guests:e.target.value,time:""}))}>{[1,2,3,4,5,6,7,8,10,12].map(n=><option key={n}>{n}</option>)}</select></div>
+      </div>
+      {form.date&&dayHours&&dayHours.is_closed&&<div style={{padding:"11px 14px",background:"#fee2e2",borderRadius:8,marginBottom:9,fontSize:13,color:"#991b1b",fontWeight:600}}>Sorry, this branch is closed on {new Date(form.date+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long"})}s. Please pick another day.</div>}
+      {form.date&&dayHours&&!dayHours.is_closed&&<div style={{padding:"9px 12px",background:"#f0fdf4",borderRadius:8,marginBottom:9,fontSize:12,color:"#065f46"}}><strong>Open {dayHours.open_time?.slice(0,5)} - {dayHours.close_time?.slice(0,5)}</strong> on selected day</div>}
+      {form.date&&!slotsLoading&&availSlots.length===0&&dayHours&&!dayHours.is_closed&&<div style={{padding:"11px 14px",background:"#fffbeb",borderRadius:8,marginBottom:9,fontSize:13,color:"#92400e"}}>{EM.cross} No tables available for {form.guests} guests on this date. Try a different date or smaller party size.</div>}
+      {form.date&&slotsLoading&&<p style={{fontSize:12,color:"#8a8078",textAlign:"center",padding:10}}>Checking availability...</p>}
+      {availSlots.length>0&&<>
+        <label className="lbl">Available Times</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:9}}>
+          {availSlots.map(tm=><button key={tm} onClick={()=>setF(f=>({...f,time:tm}))} style={{padding:"9px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(form.time===tm?"#bf4626":"#ede8de"),background:form.time===tm?"#fff5f3":"#fff",color:form.time===tm?"#bf4626":"#1a1208",cursor:"pointer"}}>{tm}</button>)}
+        </div>
+      </>}
       <div style={{marginBottom:7}}><label className="lbl">Name</label><input className="field" value={form.name} onChange={e=>setF(f=>({...f,name:e.target.value}))} placeholder="Alex Johnson"/></div>
-      <div style={{marginBottom:7}}><label className="lbl">Email</label><input className="field" value={form.email} onChange={e=>setF(f=>({...f,email:e.target.value}))} placeholder="alex@example.com"/></div>
+      <div style={{marginBottom:7}}><label className="lbl">Email</label><input className="field" type="email" value={form.email} onChange={e=>setF(f=>({...f,email:e.target.value}))} placeholder="alex@example.com"/></div>
+      <div style={{marginBottom:7}}><label className="lbl">Phone</label><input className="field" type="tel" value={form.phone} onChange={e=>setF(f=>({...f,phone:e.target.value}))} placeholder="07700 900000"/></div>
       <div><label className="lbl">Special Requests</label><textarea className="field" value={form.notes} onChange={e=>setF(f=>({...f,notes:e.target.value}))} rows={2} style={{resize:"vertical"}} placeholder="Window table, birthday..."/></div>
     </div>
     <button className="btn btn-r" disabled={!form.name||!form.email||!form.date||!form.time} onClick={submit} style={{width:"100%",padding:"12px"}}>Confirm Reservation</button>
   </div>;
 }
+
 
 function ReviewsV({reviews,setReviews,user,onAuth}){
   var [show,setShow]=useState(false),[rat,setRat]=useState(5),[com,setCom]=useState("");
@@ -1319,37 +1407,48 @@ var TABLES0=[
   {id:10,seats:8,x:85,y:30,status:"reserved",resTime:"20:00",resName:"Smith party"},
 ];
 
-function TablesV({tables,setTables,push}){
+function TablesV({tables,setTables,push,branch}){
   var [selected,setSelected]=useState(null);
   var [guestCount,setGuestCount]=useState(2);
-  var t=tables.find(t=>t.id===selected);
+  // Filter tables by current branch
+  var branchTables=branch?tables.filter(t=>!t.branchId||t.branchId===branch.id):tables;
+  var t=branchTables.find(t=>t.id===selected);
+
+  var updateTable=(id,updates)=>{
+    setTables(ts=>ts.map(x=>x.id===id?{...x,...updates}:x));
+    // Save to DB if table has dbId
+    var tbl=tables.find(x=>x.id===id);
+    if(tbl?.dbId){
+      dbUpdateTableStatus(tbl.dbId,updates.status||tbl.status,{}).catch(e=>console.log("Table status save failed:",e));
+    }
+  };
 
   var seat=(guests)=>{
-    setTables(ts=>ts.map(x=>x.id===selected?{...x,status:"occupied",since:nowT(),guests:guests,orderId:null,resTime:null,resName:null}:x));
+    updateTable(selected,{status:"occupied",since:nowT(),guests:guests,orderId:null,resTime:null,resName:null});
     push({title:"Table "+selected+" seated",body:guests+" guests",color:"#2563eb"});
     setSelected(null);
   };
   var clearT=()=>{
-    setTables(ts=>ts.map(x=>x.id===selected?{id:x.id,seats:x.seats,x:x.x,y:x.y,status:"free"}:x));
+    updateTable(selected,{status:"free",since:null,guests:null,orderId:null,resTime:null,resName:null});
     push({title:"Table "+selected+" cleared",body:"Ready for next guests",color:"#059669"});
     setSelected(null);
   };
   var reserve=()=>{
     var nm=prompt("Reservation name:");if(!nm)return;
     var tm=prompt("Time (HH:MM):","19:00");if(!tm)return;
-    setTables(ts=>ts.map(x=>x.id===selected?{...x,status:"reserved",resName:nm,resTime:tm,guests:null,since:null,orderId:null}:x));
+    updateTable(selected,{status:"reserved",resName:nm,resTime:tm,guests:null,since:null,orderId:null});
     setSelected(null);
   };
 
   var stats={
-    free:tables.filter(t=>t.status==="free").length,
-    occupied:tables.filter(t=>t.status==="occupied").length,
-    reserved:tables.filter(t=>t.status==="reserved").length,
-    total:tables.length,
-    guests:tables.filter(t=>t.status==="occupied").reduce((s,t)=>s+(t.guests||0),0),
-    capacity:tables.reduce((s,t)=>s+t.seats,0),
+    free:branchTables.filter(t=>t.status==="free").length,
+    occupied:branchTables.filter(t=>t.status==="occupied").length,
+    reserved:branchTables.filter(t=>t.status==="reserved").length,
+    total:branchTables.length,
+    guests:branchTables.filter(t=>t.status==="occupied").reduce((s,t)=>s+(t.guests||0),0),
+    capacity:branchTables.reduce((s,t)=>s+t.seats,0),
   };
-  var utilization=Math.round((stats.guests/stats.capacity)*100);
+  var utilization=stats.capacity>0?Math.round((stats.guests/stats.capacity)*100):0;
   var colors={free:"#10b981",occupied:"#dc2626",reserved:"#d4952a"};
   var bgs={free:"#d1fae5",occupied:"#fee2e2",reserved:"#fef3c7"};
 
@@ -1365,7 +1464,7 @@ function TablesV({tables,setTables,push}){
       <div style={{position:"relative",width:"100%",height:380,background:"repeating-linear-gradient(45deg,#fafaf5,#fafaf5 10px,#f5f0e8 10px,#f5f0e8 20px)",borderRadius:10,border:"2px dashed #d4c9b8"}}>
         <div style={{position:"absolute",top:4,left:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>MAIN DINING</div>
         <div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>KITCHEN</div>
-        {tables.map(tb=>{
+        {branchTables.map(tb=>{
           var isSel=selected===tb.id,c=colors[tb.status],bg=bgs[tb.status];
           var size=tb.seats<=2?44:tb.seats<=4?54:tb.seats<=6?64:74;
           return <button key={tb.id} onClick={()=>setSelected(tb.id)} style={{position:"absolute",left:tb.x+"%",top:tb.y+"%",width:size,height:size,borderRadius:tb.seats<=2?"50%":12,background:bg,border:"3px solid "+c,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",transition:"all .2s",transform:isSel?"scale(1.15)":"scale(1)",boxShadow:isSel?"0 4px 20px "+c+"88":"0 2px 6px rgba(0,0,0,.1)",zIndex:isSel?10:1,padding:0}}>
@@ -1687,7 +1786,120 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
 }
 
 // -- POS (EPOS for Staff) -----------------------------------------------------
-function PosV({menu,onOrder,push,user,branch}){
+// -- STAFF BOOKINGS DASHBOARD ----------------------------------------------
+function StaffBookingsV({branch,push}){
+  var [bookings,setBookings]=useState([]);
+  var [filter,setFilter]=useState("today");
+  var [loading,setLoading]=useState(true);
+  var today=new Date().toISOString().split("T")[0];
+  var tomorrow=new Date(Date.now()+86400000).toISOString().split("T")[0];
+  var weekAhead=new Date(Date.now()+7*86400000).toISOString().split("T")[0];
+
+  var refresh=useCallback(()=>{
+    setLoading(true);
+    var from=today,to=today;
+    if(filter==="tomorrow"){from=tomorrow;to=tomorrow;}
+    else if(filter==="week"){from=today;to=weekAhead;}
+    else if(filter==="past"){from="2020-01-01";to=today;}
+    dbFetchReservations(branch?.id,from,to).then(data=>{
+      setBookings(data||[]);
+      setLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[branch,filter]);
+
+  useEffect(()=>{refresh();},[refresh]);
+
+  var checkIn=b=>{
+    dbUpdateReservationStatus(b.id,"arrived").then(r=>{
+      if(r.error){push({title:"Update failed",body:r.error.message,color:"#dc2626"});return;}
+      push({title:"Checked in",body:b.customer_name+" arrived",color:"#059669"});
+      refresh();
+    });
+  };
+  var noShow=b=>{
+    if(!window.confirm("Mark "+b.customer_name+" as no-show?"))return;
+    dbUpdateReservationStatus(b.id,"no-show").then(()=>{refresh();push({title:"Marked no-show",body:b.customer_name,color:"#dc2626"});});
+  };
+  var cancel=b=>{
+    if(!window.confirm("Cancel booking for "+b.customer_name+"?"))return;
+    dbUpdateReservationStatus(b.id,"cancelled").then(()=>{refresh();push({title:"Booking cancelled",body:b.customer_name,color:"#dc2626"});});
+  };
+
+  var grouped={};
+  bookings.forEach(b=>{
+    var key=b.reservation_date;
+    if(!grouped[key])grouped[key]=[];
+    grouped[key].push(b);
+  });
+  Object.keys(grouped).forEach(k=>grouped[k].sort((a,b)=>a.reservation_time.localeCompare(b.reservation_time)));
+
+  var statusColor={confirmed:"#2563eb",arrived:"#059669","no-show":"#dc2626",cancelled:"#8a8078"};
+  var statusBg={confirmed:"#dbeafe",arrived:"#d1fae5","no-show":"#fee2e2",cancelled:"#f5f5f5"};
+
+  var stats={
+    total:bookings.length,
+    today:bookings.filter(b=>b.reservation_date===today&&b.status!=="cancelled").length,
+    arrived:bookings.filter(b=>b.status==="arrived").length,
+    pending:bookings.filter(b=>b.status==="confirmed"&&b.reservation_date===today).length,
+  };
+
+  return <div className="page">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div><h2 style={{fontSize:22,marginBottom:2}}>Bookings</h2><p style={{color:"#8a8078",fontSize:12}}>{branch?.name}</p></div>
+      <button onClick={refresh} style={{padding:"8px 14px",fontSize:12,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Refresh</button>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+      {[["Today",stats.today,"#2563eb"],["Arrived",stats.arrived,"#059669"],["Pending",stats.pending,"#d4952a"],["Total",stats.total,"#1a1208"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
+    </div>
+
+    <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",flexWrap:"wrap"}}>
+      {[["today","Today"],["tomorrow","Tomorrow"],["week","Next 7 days"],["past","Past"]].map(([k,l])=><button key={k} onClick={()=>setFilter(k)} style={{padding:"8px 14px",fontSize:12,fontWeight:700,background:filter===k?"#bf4626":"#fff",color:filter===k?"#fff":"#1a1208",border:"2px solid "+(filter===k?"#bf4626":"#ede8de"),borderRadius:8,cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>)}
+    </div>
+
+    {loading&&<p style={{textAlign:"center",color:"#8a8078",padding:20,fontSize:13}}>Loading bookings...</p>}
+    {!loading&&bookings.length===0&&<div className="card" style={{textAlign:"center",padding:30}}>
+      <p style={{fontSize:40,marginBottom:10}}>{EM.cal}</p>
+      <p style={{fontSize:14,color:"#8a8078"}}>No bookings for this period</p>
+    </div>}
+
+    {Object.keys(grouped).sort().map(date=><div key={date} style={{marginBottom:20}}>
+      <h3 style={{fontSize:14,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:8,paddingBottom:6,borderBottom:"2px solid #ede8de"}}>
+        {new Date(date+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+        <span style={{float:"right",color:"#bf4626",fontSize:12}}>{grouped[date].length} booking{grouped[date].length!==1?"s":""}</span>
+      </h3>
+      {grouped[date].map(b=><div key={b.id} className="card" style={{marginBottom:8,padding:"12px 14px",borderLeft:"4px solid "+statusColor[b.status]}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,flexWrap:"wrap",gap:6}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <p style={{fontWeight:700,fontSize:16}}>{b.customer_name}</p>
+              <span style={{padding:"2px 8px",borderRadius:6,background:statusBg[b.status],color:statusColor[b.status],fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{b.status}</span>
+            </div>
+            <p style={{fontSize:13,color:"#8a8078",marginTop:3}}>
+              {EM.cal} {b.reservation_time.slice(0,5)} - {b.party_size} guest{b.party_size!==1?"s":""}
+              {b.table_id&&<span style={{color:"#bf4626",fontWeight:700,marginLeft:8}}>Table {b.table_id}</span>}
+            </p>
+            {b.customer_phone&&<p style={{fontSize:12,color:"#8a8078",marginTop:2}}>{EM.phone} {b.customer_phone}</p>}
+            {b.customer_email&&<p style={{fontSize:11,color:"#8a8078",marginTop:1}}>{b.customer_email}</p>}
+            {b.notes&&<p style={{fontSize:12,color:"#d4952a",marginTop:4,fontStyle:"italic"}}>Note: {b.notes}</p>}
+          </div>
+        </div>
+        {b.status==="confirmed"&&b.reservation_date===today&&<div style={{display:"flex",gap:6,marginTop:8}}>
+          <button className="btn btn-r" onClick={()=>checkIn(b)} style={{flex:2,padding:"8px",fontSize:12}}>{EM.check} Check In</button>
+          <button className="btn btn-d" onClick={()=>noShow(b)} style={{flex:1,padding:"8px",fontSize:12}}>No-show</button>
+          <button onClick={()=>cancel(b)} style={{flex:1,padding:"8px",fontSize:12,background:"none",color:"#8a8078",border:"1px solid #ede8de",borderRadius:8,cursor:"pointer",fontWeight:700}}>Cancel</button>
+        </div>}
+        {b.status==="confirmed"&&b.reservation_date>today&&<div style={{display:"flex",gap:6,marginTop:8}}>
+          <button onClick={()=>cancel(b)} style={{padding:"8px 14px",fontSize:12,background:"none",color:"#dc2626",border:"1px solid #fee2e2",borderRadius:8,cursor:"pointer",fontWeight:700}}>Cancel Booking</button>
+        </div>}
+      </div>)}
+    </div>)}
+  </div>;
+}
+
+
+function PosV({menu,onOrder,push,user,branch,tables,setTables}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(""),[type,setType]=useState("dine-in");
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
@@ -1727,9 +1939,22 @@ function PosV({menu,onOrder,push,user,branch}){
   var clear=()=>{setCart([]);setTbl("");setTip(0);setDiscPct(0);setDiscReason("");setSplitN(1);};
   var send=(paid,method)=>{
     if(!cart.length)return;
+    var tableId=type==="dine-in"?parseInt(tbl)||null:null;
     var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
-    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN};
+    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId};
     onOrder(o);setLastOrder(o);push({title:paid?"Paid by "+method:"Sent to kitchen",body:o.id+" - "+fmt(o.total),color:paid?"#059669":"#2563eb"});
+    // Auto-update table status when dine-in order placed
+    if(tableId&&setTables&&tables){
+      var targetTable=tables.find(t=>t.id===tableId||t.table_number===tableId);
+      if(targetTable){
+        setTables(ts=>ts.map(t=>(t.id===tableId||t.table_number===tableId)?{...t,status:"occupied",since:nowT(),guests:t.guests||splitN,orderId:o.id}:t));
+        // Save to DB if this table has a dbId
+        if(targetTable.dbId||targetTable.id){
+          var dbTableId=targetTable.dbId||targetTable.id;
+          dbUpdateTableStatus(dbTableId,"occupied",{}).catch(e=>console.log("Table update failed:",e));
+        }
+      }
+    }
     clear();setPayStep(paid?"done":null);setCashGiven("");
   };
   var change=parseFloat(cashGiven)-total;
@@ -2028,6 +2253,22 @@ export default function App(){
         setReviews(formatted);
       }
     }).catch(e=>console.log("Reviews load failed:",e));
+
+    // Load tables from the database (for all branches - filter per branch in TablesV)
+    dbFetchTables().then(dbTables=>{
+      if(dbTables&&dbTables.length){
+        var formatted=dbTables.map(t=>({
+          id:t.table_number||t.id,
+          dbId:t.id,
+          branchId:t.branch_id,
+          seats:t.seats,
+          x:t.x_pos,
+          y:t.y_pos,
+          status:t.status||"free",
+        }));
+        setTables(formatted);
+      }
+    }).catch(e=>console.log("Tables load failed:",e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -2076,9 +2317,9 @@ export default function App(){
   };
   useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
   var isStaff=user&&user.role!=="customer";
-  var tabs=isStaff?["pos","phone","tables","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
-  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone"};
-  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone"};
+  var tabs=isStaff?["pos","phone","tables","bookings","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings"};
+  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal"};
 
   if(!branch) return <>
     <style>{CSS}</style>
@@ -2119,11 +2360,12 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
-      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push}/>}
+      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch}/>}
+      {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
-      {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
+      {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}

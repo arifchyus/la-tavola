@@ -286,3 +286,117 @@ export function subscribeToOrders(onChange) {
     .subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+// ---- OPENING HOURS ----------------------------------------------------------
+export async function fetchOpeningHours(branchId) {
+  const { data, error } = await supabase.from('opening_hours')
+    .select('*')
+    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('branch_id', branchId)
+    .order('day_of_week');
+  if (error) console.error('fetchOpeningHours:', error);
+  return data || [];
+}
+
+export async function saveOpeningHours(branchId, dayOfWeek, openTime, closeTime, isClosed) {
+  // Upsert: delete old then insert new (simpler than upsert for our case)
+  await supabase.from('opening_hours')
+    .delete()
+    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('branch_id', branchId)
+    .eq('day_of_week', dayOfWeek);
+  
+  const { data, error } = await supabase.from('opening_hours').insert({
+    restaurant_id: RESTAURANT_ID,
+    branch_id: branchId,
+    day_of_week: dayOfWeek,
+    open_time: isClosed ? null : openTime,
+    close_time: isClosed ? null : closeTime,
+    is_closed: isClosed,
+  }).select().single();
+  if (error) console.error('saveOpeningHours:', error);
+  return { data, error };
+}
+
+// ---- RESERVATIONS ---------------------------------------------------------
+export async function saveReservation(res) {
+  const { data, error } = await supabase.from('reservations').insert({
+    restaurant_id: RESTAURANT_ID,
+    branch_id: res.branchId,
+    customer_name: res.name,
+    customer_email: res.email,
+    customer_phone: res.phone || null,
+    party_size: parseInt(res.guests) || 2,
+    reservation_date: res.date,
+    reservation_time: res.time,
+    notes: res.notes || null,
+    status: res.status || 'confirmed',
+    table_id: res.tableId || null,
+  }).select().single();
+  if (error) console.error('saveReservation:', error);
+  return { data, error };
+}
+
+export async function fetchReservations(branchId, dateFrom, dateTo) {
+  let q = supabase.from('reservations').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (branchId) q = q.eq('branch_id', branchId);
+  if (dateFrom) q = q.gte('reservation_date', dateFrom);
+  if (dateTo) q = q.lte('reservation_date', dateTo);
+  const { data, error } = await q.order('reservation_date').order('reservation_time');
+  if (error) console.error('fetchReservations:', error);
+  return data || [];
+}
+
+export async function updateReservationStatus(id, status) {
+  const { data, error } = await supabase.from('reservations')
+    .update({ status })
+    .eq('id', id)
+    .select().single();
+  return { data, error };
+}
+
+// ---- TABLES ---------------------------------------------------------------
+export async function fetchTables(branchId) {
+  let q = supabase.from('restaurant_tables').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data, error } = await q.order('table_number');
+  if (error) console.error('fetchTables:', error);
+  return data || [];
+}
+
+export async function updateTableStatus(id, status, extra) {
+  const payload = { status, ...(extra || {}) };
+  const { data, error } = await supabase.from('restaurant_tables')
+    .update(payload)
+    .eq('id', id)
+    .select().single();
+  if (error) console.error('updateTableStatus:', error);
+  return { data, error };
+}
+
+export async function saveTable(table) {
+  if (table.dbId) {
+    const { data, error } = await supabase.from('restaurant_tables')
+      .update({
+        seats: table.seats,
+        x_pos: table.x,
+        y_pos: table.y,
+        status: table.status,
+        table_number: table.id,
+      })
+      .eq('id', table.dbId)
+      .select().single();
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('restaurant_tables').insert({
+      restaurant_id: RESTAURANT_ID,
+      branch_id: table.branchId || 'b1',
+      table_number: table.id,
+      seats: table.seats,
+      x_pos: table.x,
+      y_pos: table.y,
+      status: table.status || 'free',
+    }).select().single();
+    return { data, error };
+  }
+}
