@@ -155,14 +155,26 @@ var MENU=[
 ];
 var BRANCHES=[
   {id:"b1",name:"City Centre",addr:"12 King Street, London EC2A",phone:"020 7123 4567",lat:51.5195,lng:-0.0876,
-    delivery:{enabled:true,method:"postcode",postcodes:["EC1","EC2","EC3","EC4","E1","E14","N1"],radius:0,zones:[],flatFee:2.50,freeOver:25,minOrder:15}},
+    delivery:{enabled:true,method:"postcode",postcodes:["EC1","EC2","EC3","EC4","E1","E14","N1"],radius:0,zones:[],flatFee:2.50,freeOver:25,minOrder:15},
+    cod:{enabled:true,minOrder:15,maxMiles:3}},
   {id:"b2",name:"Canary Wharf",addr:"One Canada Square, London E14",phone:"020 7987 6543",lat:51.5049,lng:-0.0195,
-    delivery:{enabled:true,method:"radius",postcodes:[],radius:3,zones:[],flatFee:0,freeOver:0,minOrder:10}},
+    delivery:{enabled:true,method:"radius",postcodes:[],radius:3,zones:[],flatFee:0,freeOver:0,minOrder:10},
+    cod:{enabled:false,minOrder:20,maxMiles:2}},
   {id:"b3",name:"Shoreditch",addr:"45 Brick Lane, London E1",phone:"020 3456 7890",lat:51.5209,lng:-0.0717,
     delivery:{enabled:true,method:"zone",postcodes:[],radius:0,
       zones:[{id:"z1",name:"Zone 1",maxMiles:3,fee:0},{id:"z2",name:"Zone 2",maxMiles:5,fee:2.50},{id:"z3",name:"Zone 3",maxMiles:7,fee:4.50}],
-      flatFee:0,freeOver:35,minOrder:20}},
+      flatFee:0,freeOver:35,minOrder:20},
+    cod:{enabled:true,minOrder:20,maxMiles:3}},
 ];
+
+// Check if COD is allowed for this branch + order
+function checkCOD(branch,orderTotal,distance){
+  var c=branch.cod;
+  if(!c||!c.enabled)return{ok:false,reason:"Cash on delivery not accepted here"};
+  if(c.minOrder&&orderTotal<c.minOrder)return{ok:false,reason:"Min order "+fmt(c.minOrder)+" for cash on delivery"};
+  if(c.maxMiles&&distance!=null&&distance>c.maxMiles)return{ok:false,reason:"Cash on delivery only within "+c.maxMiles+" miles"};
+  return{ok:true};
+}
 
 // Delivery helper - checks if an address is deliverable and returns fee
 function checkDelivery(branch,address,orderTotal){
@@ -446,7 +458,13 @@ function BranchSel({onSelect}){
 function MenuV({menu,user,branch,onOrder,push,discounts}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState({}),[step,setStep]=useState("menu");
-  var [type,setType]=useState("dine-in"),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
+  var [type,setType]=useState(()=>{
+    if(typeof window!=="undefined"){
+      var params=new URLSearchParams(window.location.search);
+      if(params.get("table")&&params.get("branch"))return "eatin";
+    }
+    return "delivery";
+  }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
   var [slot,setSlot]=useState(null),[code,setCode]=useState(""),[disc,setDisc]=useState(null),[derr,setDerr]=useState("");
   var [last,setLast]=useState(null),[showPay,setPay]=useState(false);
   var slots=getSlots(),busy=[slots[2],slots[5]];
@@ -455,7 +473,44 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
   var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
-  var finalize=paid=>{var customer=type==="dine-in"?"Table "+(table||"?"):(cname||"Guest");var o={id:uid(),branchId:branch?.id,userId:user?.id||"guest",customer,items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),total,status:"pending",time:nowT(),type,paid,slot:type==="collection"?slot:null,discCode:disc?.code||null};onOrder(o);setLast(o);setCart({});push({title:"New Order!",body:o.id+" - "+fmt(o.total),color:"#bf4626"});setStep(type==="collection"?"cdone":"done");};
+  var finalize=paid=>{
+    var params=typeof window!=="undefined"?new URLSearchParams(window.location.search):null;
+    var qrTable=params?params.get("table"):null;
+    var customer=type==="eatin"&&qrTable?"Table "+qrTable:(cname||"Guest");
+    var phone=type==="delivery"?(table||null):null;
+    var tableId=type==="eatin"&&qrTable?parseInt(qrTable):null;
+    var effectiveType=type==="eatin"?"dine-in":type;
+    // Determine payment method for pay-later orders
+    var payMethod=null;
+    if(!paid){
+      if(type==="delivery")payMethod="cod"; // Cash on Delivery
+      else if(type==="collection")payMethod="cash-at-counter";
+      else if(type==="eatin")payMethod="pay-at-table";
+    }
+    var o={
+      id:uid(),
+      branchId:branch?.id,
+      userId:user?.id||"guest",
+      customer,
+      phone,
+      tableId,
+      items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),
+      total,
+      status:"pending",
+      time:nowT(),
+      type:effectiveType,
+      paid,
+      payMethod,
+      slot:type==="collection"?slot:null,
+      discCode:disc?.code||null,
+      source:type==="eatin"?"qr-table":"online",
+    };
+    onOrder(o);
+    setLast(o);
+    setCart({});
+    push({title:"Order placed!",body:o.id+" - "+(paid?"Paid online":payMethod==="cod"?"Cash on delivery":"Pay later")+" - "+fmt(o.total),color:paid?"#059669":"#d4952a"});
+    setStep(type==="collection"?"cdone":"done");
+  };
 
   if(step==="cdone"&&last) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
     <p style={{fontSize:48,marginBottom:12}}>{EM.bag}</p>
@@ -478,10 +533,18 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       <button className="btn btn-g" onClick={()=>setStep("menu")} style={{marginBottom:10,fontSize:13}}>Back to menu</button>
       <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
       <div className="card" style={{marginBottom:10}}>
-        <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>Order type</p>
-        <div className="g3" style={{marginBottom:12}}>{[["dine-in","Dine In"],["takeaway","Takeaway"],["collection","Collection"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setSlot(null);}} style={{padding:"10px 4px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid "+(type===tp?"#bf4626":"#ede8de"),background:type===tp?"#fff5f3":"#fff",color:type===tp?"#bf4626":"#1a1208",cursor:"pointer"}}>{lb}</button>)}</div>
-        {type==="dine-in"&&<div><label className="lbl">Table Number</label><input className="field" value={table} onChange={e=>setTable(e.target.value)} placeholder="e.g. 5"/></div>}
-        {type==="takeaway"&&<div><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>}
+        <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>How would you like your order?</p>
+        <div className="g3" style={{marginBottom:12}}>{[["delivery","Delivery"],["collection","Collection"],["eatin","Eat In"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setSlot(null);}} style={{padding:"12px 4px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid "+(type===tp?"#bf4626":"#ede8de"),background:type===tp?"#fff5f3":"#fff",color:type===tp?"#bf4626":"#1a1208",cursor:"pointer"}}>{lb}</button>)}</div>
+        {type==="eatin"&&<div style={{padding:"14px 16px",background:"#fffbeb",borderRadius:9,border:"2px solid #fde68a"}}>
+          <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:5}}>{EM.cart} At the restaurant?</p>
+          <p style={{fontSize:12,color:"#92400e",marginBottom:8}}>Scan the QR code on your table to order. A staff member can also take your order at the table.</p>
+          {(()=>{var params=new URLSearchParams(window.location.search);var qrTable=params.get("table");var qrBranch=params.get("branch");if(qrTable&&qrBranch){return <p style={{fontSize:13,fontWeight:700,color:"#059669",padding:"8px 10px",background:"#d1fae5",borderRadius:6}}>{EM.check} You are at Table {qrTable}. Your order will be delivered here.</p>;}return <button onClick={()=>setType("collection")} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:13}}>Switch to Collection Instead</button>;})()}
+        </div>}
+        {type==="delivery"&&<div style={{marginBottom:5}}>
+          <div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>
+          <div style={{marginBottom:9}}><label className="lbl">Phone</label><input className="field" type="tel" value={table} onChange={e=>setTable(e.target.value)} placeholder="07700 900000"/></div>
+          <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:7,fontSize:11,color:"#92400e"}}><strong>Note:</strong> Delivery address and fee will be confirmed on next step. Payment required online.</div>
+        </div>}
         {type==="collection"&&<div><div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div><label className="lbl">Collection Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginTop:4}}>{slots.map(s=><button key={s} disabled={busy.includes(s)} onClick={()=>setSlot(s)} style={{padding:"8px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(slot===s?"#7c3aed":"#ede8de"),background:slot===s?"#f5f0ff":"#fff",color:slot===s?"#7c3aed":busy.includes(s)?"#ccc":"#1a1208",opacity:busy.includes(s)?.4:1,cursor:busy.includes(s)?"not-allowed":"pointer"}}>{s}</button>)}</div></div>}
       </div>
       <div className="card" style={{marginBottom:10}}>
@@ -493,7 +556,31 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         {saving>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#059669",marginBottom:3}}><span>Discount</span><span>- {fmt(saving)}</span></div>}
         <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
       </div>
-      {type==="collection"?<button className="btn btn-p" disabled={!slot} onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14}}>Pay and Reserve {slot?"("+slot+")":""} - {fmt(total)}</button>:<div style={{display:"flex",gap:8}}><button className="btn btn-r" onClick={()=>setPay(true)} style={{flex:1,padding:"12px"}}>Pay Now - {fmt(total)}</button><button className="btn btn-o" onClick={()=>finalize(false)} style={{flex:1,padding:"12px"}}>Pay Later</button></div>}
+      {(()=>{
+        var params=typeof window!=="undefined"?new URLSearchParams(window.location.search):null;
+        var qrTable=params?params.get("table"):null;
+        var isEatInAtTable=type==="eatin"&&qrTable;
+        if(type==="eatin"&&!qrTable){
+          return <div style={{padding:"14px",background:"#fef3c7",borderRadius:9,textAlign:"center",fontSize:13,color:"#92400e",fontWeight:600}}>Please scan the QR code at your table, or switch to Delivery/Collection above.</div>;
+        }
+        if(type==="delivery"){
+          if(!cname||!table){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Enter name and phone to continue</button>;}
+          var codCheck=branch?checkCOD(branch,total,null):{ok:false,reason:"Loading..."};
+          return <div>
+            <button className="btn btn-r" onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:7}}>{EM.star} Pay Online - {fmt(total)}</button>
+            {codCheck.ok?<button className="btn btn-o" onClick={()=>finalize(false)} style={{width:"100%",padding:"12px",fontSize:13}}>{EM.pound} Cash on Delivery - {fmt(total)}</button>:<div style={{padding:"9px 11px",background:"#f5f0eb",borderRadius:7,fontSize:11,color:"#8a8078",textAlign:"center"}}>{EM.pound} Cash on Delivery: {codCheck.reason}</div>}
+          </div>;
+        }
+        if(type==="collection"){
+          if(!cname){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Enter your name to continue</button>;}
+          if(!slot){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Select a collection time</button>;}
+          return <div style={{display:"flex",gap:8}}><button className="btn btn-p" onClick={()=>setPay(true)} style={{flex:1,padding:"12px"}}>Pay Online - {fmt(total)}</button><button className="btn btn-o" onClick={()=>finalize(false)} style={{flex:1,padding:"12px"}}>Pay at Collection</button></div>;
+        }
+        if(isEatInAtTable){
+          return <div style={{display:"flex",gap:8}}><button className="btn btn-r" onClick={()=>setPay(true)} style={{flex:1,padding:"12px"}}>Pay Now - {fmt(total)}</button><button className="btn btn-o" onClick={()=>finalize(false)} style={{flex:1,padding:"12px"}}>Ask Staff for Bill</button></div>;
+        }
+        return null;
+      })()}
     </div>
   </>;
 
@@ -1509,6 +1596,20 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <select value={adminBranch} onChange={e=>setAdminBranch(e.target.value)} style={{padding:"7px 10px",fontSize:12,border:"2px solid #ede8de",borderRadius:8,fontWeight:700,cursor:"pointer"}}>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+          <button onClick={()=>{
+            var branchTables=tables.filter(t=>t.branchId===adminBranch).sort((a,b)=>(+a.id)-(+b.id));
+            if(branchTables.length===0){alert("No tables for this branch yet. Add tables first.");return;}
+            var baseUrl=window.location.origin+window.location.pathname;
+            var win=window.open("","","width=900,height=700");
+            if(!win){alert("Please allow pop-ups to print QR codes");return;}
+            var cards=branchTables.map(t=>{
+              var url=baseUrl+"?branch="+adminBranch+"&table="+t.id;
+              var qrImgUrl="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
+              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>LA TAVOLA</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
+            }).join("");
+            win.document.write("<html><head><title>QR Codes - "+(branches.find(b=>b.id===adminBranch)||{}).name+"</title><style>body{font-family:system-ui,sans-serif;padding:20px;background:#f5f5f5}h1{text-align:center;margin-bottom:20px}.print-hint{text-align:center;color:#666;margin-bottom:20px}@media print{body{background:#fff;padding:0}.print-hint{display:none}}</style></head><body><h1>QR Codes - Stick on Tables</h1><p class='print-hint'>Use Cmd/Ctrl+P to print. Stick each QR code on its corresponding table.</p>"+cards+"</body></html>");
+            win.document.close();
+          }} style={{padding:"7px 14px",fontSize:12,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer"}}>Print QR Codes</button>
           <button className="btn btn-r" onClick={()=>{var tbs=tables.filter(t=>t.branchId===adminBranch);var nextNum=tbs.length>0?Math.max(...tbs.map(t=>+t.id||0))+1:1;setEditTable({id:nextNum,seats:4,x:20,y:20});}} style={{padding:"7px 14px",fontSize:12}}>+ Add Table</button>
         </div>
       </div>
@@ -2266,6 +2367,120 @@ function StaffBookingsV({branch,push}){
 }
 
 
+// -- INCOMING ONLINE ORDERS PANEL ------------------------------------------
+function IncomingOrdersV({orders,setOrders,push,branch,customers}){
+  var [filter,setFilter]=useState("new");
+  // Only show orders from online/QR sources that need attention
+  var relevant=orders.filter(o=>{
+    if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+    if(o.source==="staff"||o.source==="phone")return false; // ignore staff/phone orders
+    return true;
+  });
+  var newOrders=relevant.filter(o=>o.status==="pending");
+  var accepted=relevant.filter(o=>["preparing","ready"].includes(o.status));
+  var completed=relevant.filter(o=>["delivered","collected"].includes(o.status));
+  var rejected=relevant.filter(o=>o.status==="cancelled");
+
+  var list=filter==="new"?newOrders:filter==="accepted"?accepted:filter==="completed"?completed:rejected;
+
+  // Helper to detect risk level
+  var getRiskInfo=(o)=>{
+    var flags=[];
+    var customer=customers?.find(c=>c.phone===o.phone);
+    // First-time customer
+    if(!customer||!customer.total_orders||customer.total_orders===0)flags.push("first_time");
+    // High value order
+    if(o.total>=50)flags.push("high_value");
+    // Pay later (higher risk)
+    if(!o.paid)flags.push("unpaid");
+    // Customer with history of no-shows (future enhancement)
+    return flags;
+  };
+
+  var accept=o=>{
+    setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
+    push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
+  };
+  var reject=o=>{
+    var reason=prompt("Why are you rejecting this order? (optional)");
+    setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled",rejectReason:reason||"Restaurant unable to fulfill"}:x));
+    push({title:"Order rejected",body:o.id,color:"#dc2626"});
+  };
+  var callCust=o=>{
+    if(o.phone)window.location.href="tel:"+o.phone;
+    else alert("No phone number on this order");
+  };
+
+  return <div className="page">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div><h2 style={{fontSize:22,marginBottom:2}}>Incoming Orders</h2><p style={{color:"#8a8078",fontSize:12}}>Online + QR code orders - {branch?.name}</p></div>
+      {newOrders.length>0&&<div style={{padding:"6px 12px",background:"#dc2626",color:"#fff",borderRadius:20,fontSize:12,fontWeight:700,animation:"pulse 1.5s infinite"}}>{newOrders.length} new</div>}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+      {[["New",newOrders.length,"#dc2626"],["Accepted",accepted.length,"#2563eb"],["Completed",completed.length,"#059669"],["Rejected",rejected.length,"#8a8078"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
+    </div>
+
+    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+      {[["new","New"],["accepted","Preparing"],["completed","Done"],["rejected","Rejected"]].map(([k,l])=><button key={k} onClick={()=>setFilter(k)} style={{padding:"8px 14px",fontSize:12,fontWeight:700,background:filter===k?"#bf4626":"#fff",color:filter===k?"#fff":"#1a1208",border:"2px solid "+(filter===k?"#bf4626":"#ede8de"),borderRadius:8,cursor:"pointer"}}>{l}</button>)}
+    </div>
+
+    {list.length===0?<div className="card" style={{textAlign:"center",padding:30}}>
+      <p style={{fontSize:40,marginBottom:10}}>{EM.bag}</p>
+      <p style={{fontSize:14,color:"#8a8078"}}>No {filter} orders</p>
+    </div>:list.map(o=>{
+      var risk=getRiskInfo(o);
+      var isHighRisk=risk.length>=2;
+      var typeLabel=o.source==="qr-table"?"QR Eat-In Table "+(o.tableId||"?"):o.type==="delivery"?"Delivery":o.type==="collection"?"Collection "+(o.slot||""):o.type;
+      return <div key={o.id} className="card" style={{marginBottom:10,padding:"12px 14px",borderLeft:"4px solid "+(isHighRisk?"#dc2626":o.status==="preparing"?"#2563eb":o.status==="cancelled"?"#8a8078":"#d4952a")}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
+              <p style={{fontWeight:700,fontSize:15}}>{o.customer||"Guest"}</p>
+              <span style={{padding:"2px 7px",background:"#f5f0ff",color:"#7c3aed",borderRadius:5,fontSize:10,fontWeight:700}}>{typeLabel}</span>
+              {o.paid?<span style={{padding:"2px 7px",background:"#d1fae5",color:"#065f46",borderRadius:5,fontSize:10,fontWeight:700}}>PAID {o.payMethod||""}</span>:o.payMethod==="cod"?<span style={{padding:"2px 7px",background:"#fde68a",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>{EM.pound} CASH ON DELIVERY</span>:o.payMethod==="cash-at-counter"?<span style={{padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>CASH AT COUNTER</span>:<span style={{padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>UNPAID</span>}
+            </div>
+            <p style={{fontSize:11,color:"#8a8078"}}>{o.id} - {o.time} - {fmt(o.total)}</p>
+            {o.phone&&<p style={{fontSize:11,color:"#8a8078"}}>{EM.phone} {o.phone}</p>}
+            {o.address&&<p style={{fontSize:11,color:"#8a8078"}}>{EM.pin} {typeof o.address==="string"?o.address:o.address.line1||""}</p>}
+          </div>
+        </div>
+
+        {risk.length>0&&o.status==="pending"&&<div style={{padding:"7px 10px",background:isHighRisk?"#fee2e2":"#fffbeb",borderRadius:7,marginBottom:8,fontSize:11,color:isHighRisk?"#991b1b":"#92400e"}}>
+          <strong>{isHighRisk?EM.cross+" High Risk":EM.star+" Check this"}:</strong>
+          {risk.includes("first_time")&&" First-time customer."}
+          {risk.includes("high_value")&&" High-value order ("+fmt(o.total)+")."}
+          {risk.includes("unpaid")&&" Payment not collected yet."}
+        </div>}
+
+        <div style={{background:"#fafaf5",borderRadius:6,padding:"7px 10px",marginBottom:8,fontSize:11}}>
+          {(o.items||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><span>{it.name} x{it.qty}</span><span>{fmt((+it.price||0)*it.qty)}</span></div>)}
+        </div>
+
+        {o.status==="pending"&&<div style={{display:"flex",gap:6}}>
+          <button className="btn btn-r" onClick={()=>accept(o)} style={{flex:2,padding:"10px",fontSize:13}}>{EM.check} Accept & Send to Kitchen</button>
+          {o.phone&&<button onClick={()=>callCust(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#2563eb",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>{EM.phone} Call</button>}
+          <button onClick={()=>reject(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Reject</button>
+        </div>}
+        {o.status==="preparing"&&<div style={{display:"flex",gap:6}}>
+          <button className="btn btn-p" onClick={()=>setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"ready"}:x))} style={{flex:1,padding:"9px",fontSize:12}}>Mark Ready</button>
+          <button className="btn btn-d" onClick={()=>{
+            var isCOD=o.payMethod==="cod"&&!o.paid;
+            if(isCOD){
+              if(!window.confirm("COD order - did driver collect "+fmt(o.total)+" cash?\n\nOK = Yes, cash collected\nCancel = No, not paid"))return;
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:o.type==="delivery"?"delivered":"collected",paid:true,payMethod:"cash"}:x));
+              push({title:"Cash collected",body:o.id+" - "+fmt(o.total),color:"#059669"});
+              dbUpdateOrderPayment(o.id,true,"cash").catch(e=>console.log("Save failed:",e));
+            }else{
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:o.type==="delivery"?"delivered":"collected"}:x));
+            }
+          }} style={{flex:1,padding:"9px",fontSize:12}}>Complete</button>
+        </div>}
+      </div>;
+    })}
+  </div>;
+}
+
 function PosV({menu,onOrder,push,user,branch,tables,setTables}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
@@ -2602,6 +2817,18 @@ export default function App(){
     }catch(e){}
   },[branch]);
 
+  // Auto-detect branch from QR code URL (customer scans QR at table)
+  useEffect(()=>{
+    if(typeof window==="undefined")return;
+    var params=new URLSearchParams(window.location.search);
+    var qrBranch=params.get("branch");
+    if(qrBranch&&!branch){
+      var b=BRANCHES.find(x=>x.id===qrBranch);
+      if(b)setBranch(b);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   // Load data from Supabase on app start
   useEffect(()=>{
     // Load orders from the database
@@ -2763,9 +2990,9 @@ export default function App(){
   };
   useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
   var isStaff=user&&user.role!=="customer";
-  var tabs=isStaff?["pos","phone","tables","bookings","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
-  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings"};
-  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal"};
+  var tabs=isStaff?["pos","phone","tables","bookings","incoming","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming"};
+  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag"};
 
   if(!branch) return <>
     <style>{CSS}</style>
@@ -2815,6 +3042,7 @@ export default function App(){
         push({title:"Adding to Table "+tableId,body:"Add items and send to kitchen",color:"#2563eb"});
       }}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
+      {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
