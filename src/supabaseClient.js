@@ -418,3 +418,45 @@ export async function deleteTable(dbId) {
   if (error) console.error('deleteTable:', error);
   return { error };
 }
+
+// ---- CUSTOMER AUTH ----------------------------------------------------------
+// Simple email+password auth using customers table
+// Note: For production, use Supabase Auth (supabase.auth.signUp) for real security
+
+export async function registerCustomer(name, email, password, phone) {
+  // Check if email already exists
+  const { data: existing } = await supabase.from('customers')
+    .select('id')
+    .eq('email', email)
+    .eq('restaurant_id', RESTAURANT_ID)
+    .maybeSingle();
+  if (existing) {
+    return { error: { message: 'Email already registered' } };
+  }
+  // Insert new customer with password (stored as-is for demo; use Supabase Auth in production)
+  const { data, error } = await supabase.from('customers').insert({
+    restaurant_id: RESTAURANT_ID,
+    name: name,
+    email: email,
+    phone: phone || null,
+    password_hash: password, // In production, hash this or use Supabase Auth
+    address: {},
+  }).select().single();
+  if (error) console.error('registerCustomer:', error);
+  return { data, error };
+}
+
+export async function loginCustomer(email, password) {
+  const { data, error } = await supabase.from('customers')
+    .select('*')
+    .eq('email', email)
+    .eq('restaurant_id', RESTAURANT_ID)
+    .maybeSingle();
+  if (error) {
+    console.error('loginCustomer:', error);
+    return { error };
+  }
+  if (!data) return { error: { message: 'Email not found' } };
+  if (data.password_hash !== password) return { error: { message: 'Incorrect password' } };
+  return { data };
+}

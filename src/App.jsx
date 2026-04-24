@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -350,22 +350,60 @@ function Toasts({list,dismiss}){
 }
 
 function Auth({onLogin,onClose,users,setUsers}){
-  var [tab,setTab]=useState("in"),[em,setEm]=useState(""),[pw,setPw]=useState(""),[nm,setNm]=useState(""),[err,setErr]=useState("");
-  var login=()=>{var u=users.find(u=>u.email===em&&u.pw===pw);if(u){onLogin(u);onClose();}else{setErr("Invalid credentials.");}};
-  var reg=()=>{if(!nm||!em||!pw){setErr("All fields required.");return;}if(users.find(u=>u.email===em)){setErr("Already registered.");return;}var nu={id:"u"+Date.now(),name:nm,email:em,pw,avatar:nm.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2),role:"customer"};setUsers(u=>[...u,nu]);onLogin(nu);onClose();};
+  var [tab,setTab]=useState("in"),[em,setEm]=useState(""),[pw,setPw]=useState(""),[nm,setNm]=useState(""),[ph,setPh]=useState(""),[err,setErr]=useState(""),[loading,setLoading]=useState(false);
+  var login=async()=>{
+    setErr("");setLoading(true);
+    // Try staff first (hardcoded for demo)
+    var staffUser=users.find(u=>u.email===em&&u.pw===pw);
+    if(staffUser){onLogin(staffUser);onClose();setLoading(false);return;}
+    // Try customer DB
+    var r=await dbLoginCustomer(em,pw);
+    if(r.error){setErr(r.error.message||"Invalid login");setLoading(false);return;}
+    var u=r.data;
+    onLogin({
+      id:u.id,
+      name:u.name,
+      email:u.email,
+      phone:u.phone,
+      avatar:(u.name||"U").split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2),
+      role:"customer",
+    });
+    onClose();setLoading(false);
+  };
+  var reg=async()=>{
+    if(!nm||!em||!pw){setErr("Name, email, and password required.");return;}
+    if(pw.length<6){setErr("Password must be at least 6 characters.");return;}
+    setErr("");setLoading(true);
+    var r=await dbRegisterCustomer(nm,em,pw,ph);
+    if(r.error){setErr(r.error.message||"Registration failed");setLoading(false);return;}
+    var u=r.data;
+    onLogin({
+      id:u.id,
+      name:u.name,
+      email:u.email,
+      phone:u.phone,
+      avatar:nm.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2),
+      role:"customer",
+    });
+    onClose();setLoading(false);
+  };
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:370,padding:24}}>
       <h2 style={{fontSize:22,marginBottom:4}}>Welcome</h2>
       <p style={{color:"#8a8078",fontSize:13,marginBottom:16}}>La Tavola member portal</p>
       <div style={{display:"flex",gap:4,marginBottom:16,background:"#f7f3ee",borderRadius:9,padding:3}}>
-        {[["in","Sign In"],["up","Register"]].map(([k,l])=><button key={k} onClick={()=>{setTab(k);setErr("");}} style={{flex:1,padding:"7px",borderRadius:7,fontWeight:700,fontSize:13,background:tab===k?"#fff":"transparent",color:tab===k?"#1a1208":"#8a8078",border:"none",cursor:"pointer"}}>{l}</button>)}
+        {[["in","Sign In"],["up","Sign Up"]].map(([k,l])=><button key={k} onClick={()=>{setTab(k);setErr("");}} style={{flex:1,padding:"9px",borderRadius:7,fontWeight:700,fontSize:13,background:tab===k?"#fff":"transparent",color:tab===k?"#1a1208":"#8a8078",border:"none",cursor:"pointer"}}>{l}</button>)}
       </div>
-      {tab==="up"&&<div style={{marginBottom:9}}><label className="lbl">Name</label><input className="field" value={nm} onChange={e=>setNm(e.target.value)} placeholder="Alex Johnson"/></div>}
-      <div style={{marginBottom:9}}><label className="lbl">Email</label><input className="field" value={em} onChange={e=>setEm(e.target.value)} placeholder="you@example.com"/></div>
-      <div style={{marginBottom:12}}><label className="lbl">Password</label><input type="password" className="field" value={pw} onChange={e=>setPw(e.target.value)} placeholder="password"/></div>
-      {err&&<p style={{color:"#dc2626",fontSize:12,marginBottom:9,fontWeight:600}}>{err}</p>}
-      <button className="btn btn-r" style={{width:"100%",padding:"12px"}} onClick={tab==="in"?login:reg}>{tab==="in"?"Sign In":"Create Account"}</button>
-      {tab==="in"&&<p style={{fontSize:11,color:"#8a8078",marginTop:8,textAlign:"center"}}>Demo: alex@example.com / pass123 | Staff: marco@staff.com / staff123</p>}
+      {tab==="up"&&<>
+        <div style={{marginBottom:9}}><label className="lbl">Full Name</label><input className="field" value={nm} onChange={e=>setNm(e.target.value)} placeholder="Alex Johnson"/></div>
+        <div style={{marginBottom:9}}><label className="lbl">Phone (optional)</label><input type="tel" className="field" value={ph} onChange={e=>setPh(e.target.value)} placeholder="07700 900000"/></div>
+      </>}
+      <div style={{marginBottom:9}}><label className="lbl">Email</label><input type="email" className="field" value={em} onChange={e=>setEm(e.target.value)} placeholder="you@example.com"/></div>
+      <div style={{marginBottom:12}}><label className="lbl">Password {tab==="up"&&<span style={{color:"#8a8078",fontWeight:400}}>(min 6 chars)</span>}</label><input type="password" className="field" value={pw} onChange={e=>setPw(e.target.value)} placeholder="password"/></div>
+      {err&&<p style={{color:"#dc2626",fontSize:12,marginBottom:9,fontWeight:600,padding:"8px 10px",background:"#fee2e2",borderRadius:6}}>{EM.cross} {err}</p>}
+      <button className="btn btn-r" style={{width:"100%",padding:"12px"}} disabled={loading} onClick={tab==="in"?login:reg}>{loading?"Please wait...":(tab==="in"?"Sign In":"Create Account")}</button>
+      {tab==="in"&&<p style={{fontSize:10,color:"#8a8078",marginTop:8,textAlign:"center",lineHeight:1.5}}>Staff demo: marco@staff.com / staff123<br/>Or create your own customer account above</p>}
+      {tab==="up"&&<p style={{fontSize:10,color:"#8a8078",marginTop:8,textAlign:"center"}}>By signing up you agree to receive order updates</p>}
     </div>
   </div>;
 }
