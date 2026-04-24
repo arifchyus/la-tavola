@@ -234,7 +234,9 @@ input,select,textarea{font-family:inherit;font-size:14px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes flashGreen{0%{background:#d1fae5;transform:scale(1)}30%{background:#a7f3d0;transform:scale(1.03)}100%{background:transparent;transform:scale(1)}}
+@keyframes slideInTop{0%{opacity:0;transform:translateY(-20px);background:#d1fae5}100%{opacity:1;transform:translateY(0);background:transparent}}
 .flash{animation:flashGreen .6s ease both}
+.cart-item-new{animation:slideInTop .4s ease-out both}
 .fadeup{animation:fadeUp .3s ease both}
 .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.07);border:1px solid #ede8de}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .18s}
@@ -1700,10 +1702,24 @@ function PosV({menu,onOrder,push,user,branch}){
   var perSplit=total/Math.max(splitN,1);
   var count=cart.reduce((s,i)=>s+i.qty,0);
   var [flashId,setFlashId]=useState(null);
+  var cartRef=useRef(null);
   var add=it=>{
-    setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+    setCart(c=>{
+      var ex=c.find(x=>x.id===it.id);
+      if(ex){
+        // If item already in cart, increment qty and move to top
+        var others=c.filter(x=>x.id!==it.id);
+        return [{...ex,qty:ex.qty+1},...others];
+      }
+      // New item goes to top
+      return [{id:it.id,name:it.name,qty:1,price:it.price},...c];
+    });
     setFlashId(it.id);
     setTimeout(()=>setFlashId(null),600);
+    // Auto-scroll cart to top to show newly added item
+    setTimeout(()=>{
+      if(cartRef.current)cartRef.current.scrollTop=0;
+    },50);
     if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate(15);}
   };
   var dec=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
@@ -1819,7 +1835,7 @@ function PosV({menu,onOrder,push,user,branch}){
           </div>
           {cart.length>0&&<button onClick={clear} style={{color:"#dc2626",fontSize:12,fontWeight:700,border:"none",background:"none",cursor:"pointer"}}>Clear</button>}
         </div>
-        <div className="pos-cart-items">
+        <div className="pos-cart-items" ref={cartRef}>
           {cart.length===0&&<p style={{textAlign:"center",color:"#8a8078",padding:20,fontSize:13}}>Tap menu items to add</p>}
           {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f7f3ee"}}>
             <div style={{flex:1}}>
