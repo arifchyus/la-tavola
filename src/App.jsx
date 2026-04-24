@@ -2375,7 +2375,6 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
     try{return localStorage.getItem("latavola_sound")!=="0";}catch(e){return true;}
   });
   var [lastNewCount,setLastNewCount]=useState(0);
-  var [pendingAlert,setPendingAlert]=useState(false);
   var audioRef=useRef(null);
   var origTitleRef=useRef(typeof document!=="undefined"?document.title:"La Tavola");
 
@@ -2453,7 +2452,6 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
       var latest=newOrders[0];
       playDing();
       showBrowserNotif(latest);
-      setPendingAlert(true);
       // Flash tab title
       if(typeof document!=="undefined"){
         var titleFlash=setInterval(()=>{
@@ -2520,13 +2518,11 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
   var accept=o=>{
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
     push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
-    setPendingAlert(false);
   };
   var reject=o=>{
     var reason=prompt("Why are you rejecting this order? (optional)");
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled",rejectReason:reason||"Restaurant unable to fulfill"}:x));
     push({title:"Order rejected",body:o.id,color:"#dc2626"});
-    setPendingAlert(false);
   };
   var callCust=o=>{
     if(o.phone)window.location.href="tel:"+o.phone;
