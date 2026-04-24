@@ -2715,7 +2715,7 @@ function StaffBookingsV({branch,push}){
 
 
 // -- INCOMING ONLINE ORDERS PANEL ------------------------------------------
-function IncomingOrdersV({orders,setOrders,push,branch,customers}){
+function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTables}){
   var [filter,setFilter]=useState("new");
   var [soundOn,setSoundOn]=useState(()=>{
     try{return localStorage.getItem("latavola_sound")!=="0";}catch(e){return true;}
@@ -2874,6 +2874,16 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
     push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
     dbUpdateOrderStatus(o.id,"preparing").catch(e=>console.log("Status save failed:",e));
+    // If this is a QR eat-in order (has tableId), auto-occupy the table
+    if(o.tableId&&tables&&setTables){
+      var tbl=tables.find(t=>(t.id===o.tableId||t.id===+o.tableId||+t.id===+o.tableId)&&(!branch||!t.branchId||t.branchId===branch.id));
+      if(tbl){
+        setTables(ts=>ts.map(x=>x===tbl?{...x,status:"occupied",since:nowT(),guests:x.guests||1,orderId:o.id}:x));
+        if(tbl.dbId){
+          dbUpdateTableStatus(tbl.dbId,"occupied",{}).catch(e=>console.log("Table save failed:",e));
+        }
+      }
+    }
   };
   var reject=o=>{
     var reason=prompt("Why are you rejecting this order? (optional)");
@@ -3538,7 +3548,7 @@ export default function App(){
         push({title:"Adding to Table "+tableId,body:"Add items and send to kitchen",color:"#2563eb"});
       }}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
-      {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers}/>}
+      {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
