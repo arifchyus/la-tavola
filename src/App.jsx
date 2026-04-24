@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,incrementDiscountUse as dbIncrementCodeUse,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1386,6 +1386,42 @@ function TableEditor({table,onSave,onClose,existingTables}){
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1");
+  var [delivSettings,setDelivSettings]=useState({});
+  var [promoCodes,setPromoCodes]=useState([]);
+  var [autoDiscs,setAutoDiscs]=useState([]);
+  var [editCode,setEditCode]=useState(null);
+  var [editAuto,setEditAuto]=useState(null);
+
+  // Load delivery and promo data
+  useEffect(()=>{
+    dbFetchAllDelivery().then(list=>{
+      var map={};
+      (list||[]).forEach(s=>{map[s.branch_id]={
+        dbId:s.id,method:s.method,enabled:s.enabled,
+        minOrder:parseFloat(s.min_order||0),freeOver:parseFloat(s.free_over||0),
+        flatFee:parseFloat(s.flat_fee||0),maxRadius:s.max_radius||3,
+        zones:s.zones||[],postcodes:s.postcodes||[],
+        codEnabled:s.cod_enabled,codMinOrder:parseFloat(s.cod_min_order||15),codMaxMiles:s.cod_max_miles||3,
+      };});
+      setDelivSettings(map);
+    });
+    dbFetchCodes().then(list=>{
+      setPromoCodes((list||[]).map(c=>({
+        dbId:c.id,code:c.code,type:c.type,value:parseFloat(c.value),
+        description:c.description,minOrder:parseFloat(c.min_order||0),
+        maxUses:c.max_uses,uses:c.uses||0,expiresAt:c.expires_at,active:c.active,
+        firstOrderOnly:c.first_order_only,branchIds:c.branch_ids||[],
+      })));
+    });
+    dbFetchAutoDiscounts().then(list=>{
+      setAutoDiscs((list||[]).map(a=>({
+        dbId:a.id,name:a.name,description:a.description,ruleType:a.rule_type,
+        minOrder:parseFloat(a.min_order||0),discountType:a.discount_type,
+        discountValue:parseFloat(a.discount_value||0),active:a.active,
+        firstOrderOnly:a.first_order_only,branchIds:a.branch_ids||[],
+      })));
+    });
+  },[]);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
@@ -1513,7 +1549,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -1589,6 +1625,87 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
     {showImport&&<MenuImportModal onClose={()=>setShowImport(false)} onImport={bulkImport} categories={categories}/>}
     {editTable&&<TableEditor table={editTable} onSave={saveTable} onClose={()=>setEditTable(null)} existingTables={tables.filter(t=>t.branchId===adminBranch)}/>}
+    {editCode&&<div onClick={()=>setEditCode(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:460,padding:22,maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h2 style={{fontSize:20}}>{editCode.dbId?"Edit Code":"Create Promo Code"}</h2>
+          <button onClick={()=>setEditCode(null)} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+        </div>
+        <div style={{marginBottom:10}}><label className="lbl">Code (customers type this)</label><input className="field" value={editCode.code||""} onChange={e=>setEditCode({...editCode,code:e.target.value.toUpperCase()})} placeholder="WELCOME10" style={{fontWeight:700,letterSpacing:1}}/></div>
+        <div style={{marginBottom:10}}>
+          <label className="lbl">Discount Type</label>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5}}>
+            {[["percent","% off"],["fixed",EM.pound+" off"],["free_delivery","Free delivery"]].map(([k,l])=><button key={k} onClick={()=>setEditCode({...editCode,type:k})} style={{padding:"10px 4px",fontSize:12,fontWeight:700,background:editCode.type===k?"#bf4626":"#fff",color:editCode.type===k?"#fff":"#1a1208",border:"2px solid "+(editCode.type===k?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+          </div>
+        </div>
+        {editCode.type!=="free_delivery"&&<div style={{marginBottom:10}}><label className="lbl">{editCode.type==="percent"?"Percentage":"Amount"}</label><input type="number" step="0.01" className="field" value={editCode.value||""} onChange={e=>setEditCode({...editCode,value:+e.target.value})}/></div>}
+        <div style={{marginBottom:10}}><label className="lbl">Description (shown to customer)</label><input className="field" value={editCode.description||""} onChange={e=>setEditCode({...editCode,description:e.target.value})} placeholder="10% off your first order"/></div>
+        <div className="g2" style={{marginBottom:10}}>
+          <div><label className="lbl">Min order {EM.pound}</label><input type="number" step="0.01" className="field" value={editCode.minOrder||0} onChange={e=>setEditCode({...editCode,minOrder:+e.target.value})}/></div>
+          <div><label className="lbl">Max uses</label><input type="number" className="field" value={editCode.maxUses||100} onChange={e=>setEditCode({...editCode,maxUses:+e.target.value})}/></div>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={editCode.firstOrderOnly||false} onChange={e=>setEditCode({...editCode,firstOrderOnly:e.target.checked})} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontSize:13}}>First order only</span>
+        </label>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}}>
+          <input type="checkbox" checked={editCode.active!==false} onChange={e=>setEditCode({...editCode,active:e.target.checked})} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontSize:13,fontWeight:700}}>Active</span>
+        </label>
+        <div style={{display:"flex",gap:7}}>
+          <button className="btn btn-o" onClick={()=>setEditCode(null)} style={{flex:1,padding:"11px"}}>Cancel</button>
+          <button className="btn btn-r" onClick={()=>{
+            if(!editCode.code){alert("Code required");return;}
+            dbSaveCode(editCode).then(r=>{
+              if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+              var saved={...editCode,dbId:r.data?.id||editCode.dbId};
+              setPromoCodes(cs=>editCode.dbId?cs.map(x=>x.dbId===editCode.dbId?saved:x):[...cs,saved]);
+              push({title:"Code saved",body:editCode.code,color:"#059669"});
+              setEditCode(null);
+            });
+          }} style={{flex:2,padding:"11px"}}>Save Code</button>
+        </div>
+      </div>
+    </div>}
+    {editAuto&&<div onClick={()=>setEditAuto(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:460,padding:22,maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h2 style={{fontSize:20}}>{editAuto.dbId?"Edit Offer":"Create Auto Offer"}</h2>
+          <button onClick={()=>setEditAuto(null)} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+        </div>
+        <div style={{marginBottom:10}}><label className="lbl">Offer Name</label><input className="field" value={editAuto.name||""} onChange={e=>setEditAuto({...editAuto,name:e.target.value})} placeholder="10% off \u00A330+"/></div>
+        <div style={{marginBottom:10}}><label className="lbl">Description</label><input className="field" value={editAuto.description||""} onChange={e=>setEditAuto({...editAuto,description:e.target.value})} placeholder="Shown to customer at checkout"/></div>
+        <div style={{marginBottom:10}}><label className="lbl">Minimum order to trigger {EM.pound}</label><input type="number" step="0.01" className="field" value={editAuto.minOrder||0} onChange={e=>setEditAuto({...editAuto,minOrder:+e.target.value})}/></div>
+        <div style={{marginBottom:10}}>
+          <label className="lbl">Discount Type</label>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5}}>
+            {[["percent","% off"],["fixed",EM.pound+" off"],["free_delivery","Free delivery"]].map(([k,l])=><button key={k} onClick={()=>setEditAuto({...editAuto,discountType:k})} style={{padding:"10px 4px",fontSize:12,fontWeight:700,background:editAuto.discountType===k?"#7c3aed":"#fff",color:editAuto.discountType===k?"#fff":"#1a1208",border:"2px solid "+(editAuto.discountType===k?"#7c3aed":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+          </div>
+        </div>
+        {editAuto.discountType!=="free_delivery"&&<div style={{marginBottom:10}}><label className="lbl">{editAuto.discountType==="percent"?"Percentage %":"Amount "+EM.pound}</label><input type="number" step="0.01" className="field" value={editAuto.discountValue||0} onChange={e=>setEditAuto({...editAuto,discountValue:+e.target.value})}/></div>}
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={editAuto.firstOrderOnly||false} onChange={e=>setEditAuto({...editAuto,firstOrderOnly:e.target.checked})} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontSize:13}}>First order only</span>
+        </label>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}}>
+          <input type="checkbox" checked={editAuto.active!==false} onChange={e=>setEditAuto({...editAuto,active:e.target.checked})} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontSize:13,fontWeight:700}}>Active</span>
+        </label>
+        <div style={{display:"flex",gap:7}}>
+          <button className="btn btn-o" onClick={()=>setEditAuto(null)} style={{flex:1,padding:"11px"}}>Cancel</button>
+          <button className="btn btn-r" onClick={()=>{
+            if(!editAuto.name){alert("Name required");return;}
+            dbSaveAutoDiscount(editAuto).then(r=>{
+              if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+              var saved={...editAuto,dbId:r.data?.id||editAuto.dbId};
+              setAutoDiscs(ls=>editAuto.dbId?ls.map(x=>x.dbId===editAuto.dbId?saved:x):[...ls,saved]);
+              push({title:"Offer saved",body:editAuto.name,color:"#059669"});
+              setEditAuto(null);
+            });
+          }} style={{flex:2,padding:"11px"}}>Save Offer</button>
+        </div>
+      </div>
+    </div>}
     {tab==="tables"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
         <div>
@@ -1637,6 +1754,132 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>}
       </>})()}
     </div>}
+    {tab==="delivery"&&(()=>{
+      var ds=delivSettings[adminBranch]||{method:"radius",enabled:true,minOrder:15,freeOver:25,flatFee:2.50,maxRadius:3,zones:[],postcodes:[],codEnabled:true,codMinOrder:15,codMaxMiles:3};
+      var update=(key,val)=>{setDelivSettings(s=>({...s,[adminBranch]:{...ds,[key]:val}}));};
+      var save=()=>{
+        dbSaveDelivery(adminBranch,ds).then(r=>{
+          if(r.error)push({title:"Save failed",body:r.error.message,color:"#dc2626"});
+          else push({title:"Delivery saved",body:(branches.find(b=>b.id===adminBranch)||{}).name,color:"#059669"});
+        });
+      };
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+          <div><h3 style={{fontSize:16,marginBottom:2}}>Delivery Settings</h3><p style={{fontSize:11,color:"#8a8078"}}>Configure delivery for each branch</p></div>
+          <select value={adminBranch} onChange={e=>setAdminBranch(e.target.value)} style={{padding:"7px 10px",fontSize:12,border:"2px solid #ede8de",borderRadius:8,fontWeight:700,cursor:"pointer"}}>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        </div>
+        <div className="card" style={{padding:16,marginBottom:10}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer"}}>
+            <input type="checkbox" checked={ds.enabled!==false} onChange={e=>update("enabled",e.target.checked)} style={{width:18,height:18,cursor:"pointer"}}/>
+            <span style={{fontWeight:700}}>Delivery Enabled</span>
+          </label>
+          <p style={{fontSize:11,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:6}}>METHOD</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:12}}>
+            {[["radius","Radius","Simple - X miles from here"],["postcode","Postcode","By UK postcode areas"],["zone","Zone","Tiered - multiple zones"]].map(([k,l,d])=><button key={k} onClick={()=>update("method",k)} style={{padding:"11px 6px",fontSize:12,fontWeight:700,background:ds.method===k?"#bf4626":"#fff",color:ds.method===k?"#fff":"#1a1208",border:"2px solid "+(ds.method===k?"#bf4626":"#ede8de"),borderRadius:8,cursor:"pointer",textAlign:"center"}}><div>{l}</div><div style={{fontSize:9,fontWeight:500,marginTop:2,opacity:.8}}>{d}</div></button>)}
+          </div>
+          <div className="g2" style={{marginBottom:12}}>
+            <div><label className="lbl">Minimum order</label><input type="number" step="0.01" className="field" value={ds.minOrder||0} onChange={e=>update("minOrder",+e.target.value)}/></div>
+            <div><label className="lbl">Free delivery over</label><input type="number" step="0.01" className="field" value={ds.freeOver||0} onChange={e=>update("freeOver",+e.target.value)} placeholder="0 = never free"/></div>
+          </div>
+
+          {ds.method==="radius"&&<div className="g2">
+            <div><label className="lbl">Flat delivery fee</label><input type="number" step="0.01" className="field" value={ds.flatFee||0} onChange={e=>update("flatFee",+e.target.value)}/></div>
+            <div><label className="lbl">Max radius (miles)</label><input type="number" className="field" value={ds.maxRadius||3} onChange={e=>update("maxRadius",+e.target.value)}/></div>
+          </div>}
+
+          {ds.method==="postcode"&&<div>
+            <label className="lbl">Postcode areas and fees</label>
+            {(ds.postcodes||[]).map((p,i)=><div key={i} style={{display:"flex",gap:5,marginBottom:5}}>
+              <input className="field" value={p.prefix} onChange={e=>{var arr=[...ds.postcodes];arr[i]={...arr[i],prefix:e.target.value.toUpperCase()};update("postcodes",arr);}} placeholder="EC1" style={{flex:1}}/>
+              <input type="number" step="0.01" className="field" value={p.fee} onChange={e=>{var arr=[...ds.postcodes];arr[i]={...arr[i],fee:+e.target.value};update("postcodes",arr);}} placeholder="Fee" style={{flex:1}}/>
+              <button onClick={()=>{var arr=ds.postcodes.filter((_,x)=>x!==i);update("postcodes",arr);}} style={{padding:"0 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,fontWeight:700,cursor:"pointer"}}>x</button>
+            </div>)}
+            <button onClick={()=>update("postcodes",[...(ds.postcodes||[]),{prefix:"",fee:0}])} style={{padding:"8px 14px",fontSize:12,fontWeight:700,background:"#f7f3ee",border:"2px dashed #ede8de",borderRadius:7,cursor:"pointer",width:"100%"}}>+ Add Postcode</button>
+          </div>}
+
+          {ds.method==="zone"&&<div>
+            <label className="lbl">Zones (tiered by distance)</label>
+            {(ds.zones||[]).map((z,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 40px",gap:5,marginBottom:5}}>
+              <input className="field" value={z.name||""} onChange={e=>{var arr=[...ds.zones];arr[i]={...arr[i],name:e.target.value};update("zones",arr);}} placeholder="Zone name"/>
+              <input type="number" step="0.1" className="field" value={z.maxMiles||0} onChange={e=>{var arr=[...ds.zones];arr[i]={...arr[i],maxMiles:+e.target.value};update("zones",arr);}} placeholder="Max mi"/>
+              <input type="number" step="0.01" className="field" value={z.fee||0} onChange={e=>{var arr=[...ds.zones];arr[i]={...arr[i],fee:+e.target.value};update("zones",arr);}} placeholder="Fee"/>
+              <button onClick={()=>{var arr=ds.zones.filter((_,x)=>x!==i);update("zones",arr);}} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,fontWeight:700,cursor:"pointer"}}>x</button>
+            </div>)}
+            <button onClick={()=>update("zones",[...(ds.zones||[]),{name:"Zone "+((ds.zones||[]).length+1),maxMiles:3,fee:0}])} style={{padding:"8px 14px",fontSize:12,fontWeight:700,background:"#f7f3ee",border:"2px dashed #ede8de",borderRadius:7,cursor:"pointer",width:"100%"}}>+ Add Zone</button>
+          </div>}
+        </div>
+
+        <div className="card" style={{padding:16,marginBottom:10}}>
+          <p style={{fontSize:14,fontWeight:700,marginBottom:8}}>Cash on Delivery</p>
+          <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,cursor:"pointer"}}>
+            <input type="checkbox" checked={ds.codEnabled!==false} onChange={e=>update("codEnabled",e.target.checked)} style={{width:18,height:18,cursor:"pointer"}}/>
+            <span style={{fontWeight:700}}>Accept Cash on Delivery</span>
+          </label>
+          {ds.codEnabled&&<div className="g2">
+            <div><label className="lbl">Min order for COD</label><input type="number" step="0.01" className="field" value={ds.codMinOrder||15} onChange={e=>update("codMinOrder",+e.target.value)}/></div>
+            <div><label className="lbl">Max miles for COD</label><input type="number" className="field" value={ds.codMaxMiles||3} onChange={e=>update("codMaxMiles",+e.target.value)}/></div>
+          </div>}
+        </div>
+
+        <button className="btn btn-r" onClick={save} style={{width:"100%",padding:"13px",fontSize:14}}>Save Delivery Settings</button>
+      </div>;
+    })()}
+
+    {tab==="codes"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16,marginBottom:2}}>Promo Codes</h3><p style={{fontSize:11,color:"#8a8078"}}>Customer-entered discount codes</p></div>
+        <button className="btn btn-r" onClick={()=>setEditCode({type:"percent",value:10,minOrder:0,maxUses:100,active:true})} style={{padding:"7px 14px",fontSize:12}}>+ Create Code</button>
+      </div>
+      {promoCodes.length===0?<div className="card" style={{textAlign:"center",padding:30}}>
+        <p style={{fontSize:40,marginBottom:10}}>{EM.star}</p>
+        <p style={{fontSize:14,color:"#8a8078"}}>No promo codes yet</p>
+      </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:8}}>
+        {promoCodes.map(c=><div key={c.dbId} className="card" style={{padding:12,borderLeft:"4px solid "+(c.active?"#059669":"#8a8078")}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <p style={{fontWeight:700,fontSize:16,letterSpacing:1,color:"#bf4626"}}>{c.code}</p>
+            <span style={{padding:"2px 7px",background:c.active?"#d1fae5":"#f5f5f5",color:c.active?"#065f46":"#8a8078",borderRadius:4,fontSize:10,fontWeight:700}}>{c.active?"ACTIVE":"INACTIVE"}</span>
+          </div>
+          <p style={{fontSize:13,fontWeight:700,marginBottom:3}}>{c.type==="percent"?c.value+"% off":c.type==="fixed"?fmt(c.value)+" off":"Free delivery"}</p>
+          {c.description&&<p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{c.description}</p>}
+          <div style={{fontSize:11,color:"#8a8078",marginBottom:8}}>
+            <div>Min order: {fmt(c.minOrder)}</div>
+            <div>Used: {c.uses}/{c.maxUses}</div>
+            {c.firstOrderOnly&&<div style={{color:"#d4952a",fontWeight:700}}>First order only</div>}
+          </div>
+          <div style={{display:"flex",gap:5}}>
+            <button onClick={()=>setEditCode(c)} style={{flex:1,padding:"6px",fontSize:11,fontWeight:700,background:"#f7f3ee",border:"none",borderRadius:6,cursor:"pointer"}}>Edit</button>
+            <button onClick={()=>{if(!window.confirm("Delete code "+c.code+"?"))return;setPromoCodes(cs=>cs.filter(x=>x.dbId!==c.dbId));dbDeleteCode(c.dbId).then(r=>{if(r.error)push({title:"Delete failed",body:r.error.message,color:"#dc2626"});else push({title:"Code deleted",body:c.code,color:"#dc2626"});});}} style={{padding:"6px 12px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
+          </div>
+        </div>)}
+      </div>}
+    </div>}
+
+    {tab==="autodisc"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16,marginBottom:2}}>Auto Discounts</h3><p style={{fontSize:11,color:"#8a8078"}}>Offers that apply automatically without a code</p></div>
+        <button className="btn btn-r" onClick={()=>setEditAuto({name:"",ruleType:"min_order",minOrder:30,discountType:"percent",discountValue:10,active:true})} style={{padding:"7px 14px",fontSize:12}}>+ Create Offer</button>
+      </div>
+      {autoDiscs.length===0?<div className="card" style={{textAlign:"center",padding:30}}>
+        <p style={{fontSize:40,marginBottom:10}}>{EM.party}</p>
+        <p style={{fontSize:14,color:"#8a8078"}}>No auto offers yet</p>
+      </div>:<div style={{display:"grid",gap:8}}>
+        {autoDiscs.map(a=><div key={a.dbId} className="card" style={{padding:12,borderLeft:"4px solid "+(a.active?"#7c3aed":"#8a8078")}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5,gap:8}}>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:15,marginBottom:3}}>{a.name}</p>
+              <p style={{fontSize:12,color:"#8a8078"}}>{a.description}</p>
+              <p style={{fontSize:11,color:"#7c3aed",fontWeight:700,marginTop:4}}>{a.discountType==="percent"?a.discountValue+"%":a.discountType==="fixed"?fmt(a.discountValue):"Free delivery"} on orders over {fmt(a.minOrder)}</p>
+            </div>
+            <span style={{padding:"2px 7px",background:a.active?"#d1fae5":"#f5f5f5",color:a.active?"#065f46":"#8a8078",borderRadius:4,fontSize:10,fontWeight:700}}>{a.active?"ON":"OFF"}</span>
+          </div>
+          <div style={{display:"flex",gap:5,marginTop:6}}>
+            <button onClick={()=>setEditAuto(a)} style={{flex:1,padding:"6px",fontSize:11,fontWeight:700,background:"#f7f3ee",border:"none",borderRadius:6,cursor:"pointer"}}>Edit</button>
+            <button onClick={()=>{if(!window.confirm("Delete offer "+a.name+"?"))return;setAutoDiscs(ls=>ls.filter(x=>x.dbId!==a.dbId));dbDeleteAutoDiscount(a.dbId).then(()=>push({title:"Offer deleted",body:a.name,color:"#dc2626"}));}} style={{padding:"6px 12px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
+          </div>
+        </div>)}
+      </div>}
+    </div>}
+
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
     {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}

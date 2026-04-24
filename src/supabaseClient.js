@@ -460,3 +460,140 @@ export async function loginCustomer(email, password) {
   if (data.password_hash !== password) return { error: { message: 'Incorrect password' } };
   return { data };
 }
+
+// ---- DELIVERY SETTINGS ------------------------------------------------------
+export async function fetchDeliverySettings(branchId) {
+  let q = supabase.from('delivery_settings').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (branchId) q = q.eq('branch_id', branchId).maybeSingle();
+  const { data, error } = await q;
+  if (error) console.error('fetchDeliverySettings:', error);
+  return data;
+}
+
+export async function fetchAllDeliverySettings() {
+  const { data, error } = await supabase.from('delivery_settings')
+    .select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (error) console.error('fetchAllDeliverySettings:', error);
+  return data || [];
+}
+
+export async function saveDeliverySettings(branchId, settings) {
+  // Check if exists
+  const { data: existing } = await supabase.from('delivery_settings')
+    .select('id').eq('restaurant_id', RESTAURANT_ID).eq('branch_id', branchId).maybeSingle();
+  
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    branch_id: branchId,
+    method: settings.method || 'radius',
+    enabled: settings.enabled !== false,
+    min_order: settings.minOrder || 0,
+    free_over: settings.freeOver || 0,
+    flat_fee: settings.flatFee || 0,
+    max_radius: settings.maxRadius || 3,
+    zones: settings.zones || [],
+    postcodes: settings.postcodes || [],
+    cod_enabled: settings.codEnabled !== false,
+    cod_min_order: settings.codMinOrder || 15,
+    cod_max_miles: settings.codMaxMiles || 3,
+    updated_at: new Date().toISOString(),
+  };
+  
+  if (existing) {
+    const { data, error } = await supabase.from('delivery_settings')
+      .update(payload).eq('id', existing.id).select().single();
+    if (error) console.error('updateDeliverySettings:', error);
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('delivery_settings')
+      .insert(payload).select().single();
+    if (error) console.error('insertDeliverySettings:', error);
+    return { data, error };
+  }
+}
+
+// ---- DISCOUNT CODES ---------------------------------------------------------
+export async function fetchDiscountCodes() {
+  const { data, error } = await supabase.from('discount_codes')
+    .select('*').eq('restaurant_id', RESTAURANT_ID).order('created_at', { ascending: false });
+  if (error) console.error('fetchDiscountCodes:', error);
+  return data || [];
+}
+
+export async function saveDiscountCode(code) {
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    code: code.code.toUpperCase().trim(),
+    type: code.type || 'percent',
+    value: parseFloat(code.value) || 0,
+    description: code.description || null,
+    min_order: parseFloat(code.minOrder) || 0,
+    max_uses: parseInt(code.maxUses) || 1000,
+    uses: code.uses || 0,
+    expires_at: code.expiresAt || null,
+    active: code.active !== false,
+    first_order_only: code.firstOrderOnly || false,
+    branch_ids: code.branchIds || [],
+  };
+  if (code.dbId) {
+    const { data, error } = await supabase.from('discount_codes')
+      .update(payload).eq('id', code.dbId).select().single();
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('discount_codes')
+      .insert(payload).select().single();
+    return { data, error };
+  }
+}
+
+export async function deleteDiscountCode(dbId) {
+  const { error } = await supabase.from('discount_codes').delete().eq('id', dbId);
+  return { error };
+}
+
+export async function incrementDiscountUse(code) {
+  const { data } = await supabase.from('discount_codes')
+    .select('uses').eq('restaurant_id', RESTAURANT_ID).eq('code', code.toUpperCase()).maybeSingle();
+  if (data) {
+    await supabase.from('discount_codes')
+      .update({ uses: (data.uses || 0) + 1 })
+      .eq('restaurant_id', RESTAURANT_ID).eq('code', code.toUpperCase());
+  }
+}
+
+// ---- AUTO DISCOUNTS ---------------------------------------------------------
+export async function fetchAutoDiscounts() {
+  const { data, error } = await supabase.from('auto_discounts')
+    .select('*').eq('restaurant_id', RESTAURANT_ID).order('created_at', { ascending: false });
+  if (error) console.error('fetchAutoDiscounts:', error);
+  return data || [];
+}
+
+export async function saveAutoDiscount(ad) {
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    name: ad.name,
+    description: ad.description || null,
+    rule_type: ad.ruleType || 'min_order',
+    min_order: parseFloat(ad.minOrder) || 0,
+    discount_type: ad.discountType || 'percent',
+    discount_value: parseFloat(ad.discountValue) || 10,
+    active: ad.active !== false,
+    first_order_only: ad.firstOrderOnly || false,
+    branch_ids: ad.branchIds || [],
+  };
+  if (ad.dbId) {
+    const { data, error } = await supabase.from('auto_discounts')
+      .update(payload).eq('id', ad.dbId).select().single();
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('auto_discounts')
+      .insert(payload).select().single();
+    return { data, error };
+  }
+}
+
+export async function deleteAutoDiscount(dbId) {
+  const { error } = await supabase.from('auto_discounts').delete().eq('id', dbId);
+  return { error };
+}
