@@ -106,13 +106,19 @@ Rules:
     };
 
     // Call Claude API
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    };
+    // PDFs require a beta header
+    if (fileType === 'application/pdf') {
+      headers['anthropic-beta'] = 'pdfs-2024-09-25';
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers,
       body: JSON.stringify(claudeRequest),
     });
 

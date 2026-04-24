@@ -1874,18 +1874,36 @@ function PosV({menu,onOrder,push,user,branch}){
 
 
 export default function App(){
-  var [view,setView]=useState("menu"),[orders,setOrders]=useState(ORDERS0),[menu,setMenu]=useState(MENU);
-  var [discs,setDiscs]=useState(DISCOUNTS),[users,setUsers]=useState(USERS);
-  var [reviews,setReviews]=useState([{id:"r1",userId:"u1",name:"Alex J",rating:5,comment:"Amazing food! The tiramisu was divine.",date:"Today",helpful:3},{id:"r2",userId:"u2",name:"Sarah L",rating:4,comment:"Great burger, came quickly.",date:"Yesterday",helpful:1}]);
-  var [reservations,setRes]=useState([{id:"RES-001",branchId:"b1",userId:"u1",name:"Alex Johnson",email:"alex@example.com",phone:"07700",date:"2026-04-22",time:"19:00",guests:2,notes:"Window table",status:"confirmed"}]);
-  var [messages,setMessages]=useState([{id:"m1",userId:"s2",name:"Chef Paolo",text:"Kitchen ready!",time:"12:30",role:"kitchen"},{id:"m2",userId:"u1",name:"Alex J",text:"Table 5 asking about wait time",time:"12:46",role:"customer"}]);
-  var [tables,setTables]=useState(TABLES0);
-  var [setMeals,setSetMeals]=useState(SETMEALS0);
-  var [categories,setCategories]=useState(CATEGORIES0);
-  var [customers,setCustomers]=useState(CUSTOMERS0);
-  var [user,setUser]=useState(null),[branch,setBranch]=useState(null),[showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
+  var [view,setView]=useState("menu"),[orders,setOrders]=useState([]),[menu,setMenu]=useState([]);
+  var [discs,setDiscs]=useState([]),[users,setUsers]=useState(USERS);
+  var [reviews,setReviews]=useState([]);
+  var [reservations,setRes]=useState([]);
+  var [messages,setMessages]=useState([]);
+  var [tables,setTables]=useState([]);
+  var [setMeals,setSetMeals]=useState([]);
+  var [categories,setCategories]=useState([]);
+  var [customers,setCustomers]=useState([]);
+  // Restore user and branch from localStorage so refresh doesn't log out
+  var [user,setUser]=useState(()=>{try{var u=localStorage.getItem("latavola_user");return u?JSON.parse(u):null;}catch(e){return null;}});
+  var [branch,setBranch]=useState(()=>{try{var b=localStorage.getItem("latavola_branch");return b?JSON.parse(b):null;}catch(e){return null;}});
+  var [showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
+
+  // Persist user session so refresh doesn't log out
+  useEffect(()=>{
+    try{
+      if(user)localStorage.setItem("latavola_user",JSON.stringify(user));
+      else localStorage.removeItem("latavola_user");
+    }catch(e){}
+  },[user]);
+
+  useEffect(()=>{
+    try{
+      if(branch)localStorage.setItem("latavola_branch",JSON.stringify(branch));
+      else localStorage.removeItem("latavola_branch");
+    }catch(e){}
+  },[branch]);
 
   // Load data from Supabase on app start
   useEffect(()=>{

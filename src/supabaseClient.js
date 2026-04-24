@@ -125,7 +125,7 @@ export async function fetchMenu() {
 }
 
 export async function saveMenuItem(item) {
-  // Upsert: insert if new, update if exists
+  // Save menu item with category name directly
   const payload = {
     restaurant_id: RESTAURANT_ID,
     name: item.name,
@@ -138,6 +138,7 @@ export async function saveMenuItem(item) {
     sizes: item.sizes || [],
     extras: item.extras || [],
     cooking_opts: item.cookingOpts || [],
+    category_name: item.cat || 'Mains',
   };
   
   // If item has a UUID id (from database), update. Otherwise insert.
