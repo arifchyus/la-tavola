@@ -1559,8 +1559,14 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
   var total=subtotal;
 
   var updateTable=(id,updates)=>{
-    setTables(ts=>ts.map(x=>x.id===id?{...x,...updates}:x));
-    var tbl=tables.find(x=>x.id===id);
+    // Match by BOTH branch_id AND table_number to avoid updating same-numbered tables in other branches
+    var currentBranchId=branch?.id;
+    setTables(ts=>ts.map(x=>{
+      var matches=x.id===id&&(!currentBranchId||!x.branchId||x.branchId===currentBranchId);
+      return matches?{...x,...updates}:x;
+    }));
+    // Find the correct table (this branch only) and save to DB
+    var tbl=tables.find(x=>x.id===id&&(!currentBranchId||!x.branchId||x.branchId===currentBranchId));
     if(tbl?.dbId){
       dbUpdateTableStatus(tbl.dbId,updates.status||tbl.status,{}).catch(e=>console.log("Table status save failed:",e));
     }
@@ -2224,7 +2230,14 @@ function StaffBookingsV({branch,push}){
 
 function PosV({menu,onOrder,push,user,branch,tables,setTables}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
-  var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(""),[type,setType]=useState("dine-in");
+  var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
+    if(typeof window!=="undefined"&&window.__preselectedTable){
+      var v=window.__preselectedTable;
+      window.__preselectedTable=null;
+      return v;
+    }
+    return "";
+  }),[type,setType]=useState("dine-in");
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
@@ -2757,7 +2770,12 @@ export default function App(){
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
-      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{setView("pos");setTimeout(()=>{var el=document.querySelector("input[placeholder='Table #']");if(el)el.focus();},100);push({title:"Switched to POS",body:"Enter table "+tableId+" to continue",color:"#2563eb"});}}/>}
+      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
+        // Store preselected table so POS can pick it up
+        window.__preselectedTable=String(tableId);
+        setView("pos");
+        push({title:"Adding to Table "+tableId,body:"Add items and send to kitchen",color:"#2563eb"});
+      }}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
