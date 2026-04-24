@@ -502,6 +502,11 @@ function BranchSel({onSelect}){
 function MenuV({menu,user,branch,onOrder,push,discounts}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState({}),[step,setStep]=useState("menu");
+  // Auto-select first category when menu data loads from DB
+  useEffect(()=>{
+    if(!cat&&cats.length>0)setCat(cats[0]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[cats.length]);
   var [type,setType]=useState(()=>{
     var sess=getQrSession();
     if(sess.valid)return "eatin";
