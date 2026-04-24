@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -2374,7 +2374,8 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
   var [soundOn,setSoundOn]=useState(()=>{
     try{return localStorage.getItem("latavola_sound")!=="0";}catch(e){return true;}
   });
-  var [lastNewCount,setLastNewCount]=useState(0);
+  var seenOrderIdsRef=useRef(new Set());
+  var initialLoadRef=useRef(true);
   var audioRef=useRef(null);
   var origTitleRef=useRef(typeof document!=="undefined"?document.title:"La Tavola");
 
@@ -2445,13 +2446,22 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
     }catch(e){console.log("Notif failed:",e);}
   },[]);
 
-  // Detect new orders and trigger alerts
+  // Detect genuinely new orders (by ID, not just count) and trigger alerts
   useEffect(()=>{
-    if(newOrders.length>lastNewCount&&lastNewCount>=0){
-      // New order(s) arrived
-      var latest=newOrders[0];
+    // On first load, mark all current new orders as "already seen" - don't alert
+    if(initialLoadRef.current){
+      newOrders.forEach(o=>seenOrderIdsRef.current.add(o.id));
+      initialLoadRef.current=false;
+      return;
+    }
+    // Check for any order IDs we haven't seen before
+    var trulyNewOrders=newOrders.filter(o=>!seenOrderIdsRef.current.has(o.id));
+    if(trulyNewOrders.length>0){
+      var latest=trulyNewOrders[0];
       playDing();
       showBrowserNotif(latest);
+      // Mark these orders as seen
+      trulyNewOrders.forEach(o=>seenOrderIdsRef.current.add(o.id));
       // Flash tab title
       if(typeof document!=="undefined"){
         var titleFlash=setInterval(()=>{
@@ -2464,9 +2474,8 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
         },10000);
       }
     }
-    setLastNewCount(newOrders.length);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[newOrders.length]);
+  },[newOrders.length,newOrders.map(o=>o.id).join(",")]);
 
   // Auto-refresh - reload orders from DB every 10 seconds
   useEffect(()=>{
@@ -2518,11 +2527,13 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
   var accept=o=>{
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
     push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
+    dbUpdateOrderStatus(o.id,"preparing").catch(e=>console.log("Status save failed:",e));
   };
   var reject=o=>{
     var reason=prompt("Why are you rejecting this order? (optional)");
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled",rejectReason:reason||"Restaurant unable to fulfill"}:x));
     push({title:"Order rejected",body:o.id,color:"#dc2626"});
+    dbUpdateOrderStatus(o.id,"cancelled").catch(e=>console.log("Status save failed:",e));
   };
   var callCust=o=>{
     if(o.phone)window.location.href="tel:"+o.phone;
@@ -2596,16 +2607,22 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
           <button onClick={()=>reject(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Reject</button>
         </div>}
         {o.status==="preparing"&&<div style={{display:"flex",gap:6}}>
-          <button className="btn btn-p" onClick={()=>setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"ready"}:x))} style={{flex:1,padding:"9px",fontSize:12}}>Mark Ready</button>
+          <button className="btn btn-p" onClick={()=>{
+            setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"ready"}:x));
+            dbUpdateOrderStatus(o.id,"ready").catch(e=>console.log("Status save failed:",e));
+          }} style={{flex:1,padding:"9px",fontSize:12}}>Mark Ready</button>
           <button className="btn btn-d" onClick={()=>{
             var isCOD=o.payMethod==="cod"&&!o.paid;
+            var newStatus=o.type==="delivery"?"delivered":"collected";
             if(isCOD){
               if(!window.confirm("COD order - did driver collect "+fmt(o.total)+" cash?\n\nOK = Yes, cash collected\nCancel = No, not paid"))return;
-              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:o.type==="delivery"?"delivered":"collected",paid:true,payMethod:"cash"}:x));
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:newStatus,paid:true,payMethod:"cash"}:x));
               push({title:"Cash collected",body:o.id+" - "+fmt(o.total),color:"#059669"});
               dbUpdateOrderPayment(o.id,true,"cash").catch(e=>console.log("Save failed:",e));
+              dbUpdateOrderStatus(o.id,newStatus).catch(e=>console.log("Status save failed:",e));
             }else{
-              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:o.type==="delivery"?"delivered":"collected"}:x));
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:newStatus}:x));
+              dbUpdateOrderStatus(o.id,newStatus).catch(e=>console.log("Status save failed:",e));
             }
           }} style={{flex:1,padding:"9px",fontSize:12}}>Complete</button>
         </div>}
