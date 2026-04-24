@@ -168,6 +168,7 @@ var BRANCHES=[
 ];
 
 // Check if COD is allowed for this branch + order
+// eslint-disable-next-line no-unused-vars
 function checkCOD(branch,orderTotal,distance){
   var c=branch.cod;
   if(!c||!c.enabled)return{ok:false,reason:"Cash on delivery not accepted here"};
