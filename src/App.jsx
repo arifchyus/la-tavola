@@ -1,4 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
+// eslint-disable-next-line no-unused-vars
 import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
@@ -595,7 +596,6 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
     });
   };
 
-  var selectedBranch=branches.find(b=>b.id===form.branchId);
   var dayHours=form.date?hours.find(h=>h.day_of_week===new Date(form.date+"T00:00:00").getDay()):null;
 
   if(step==="done"&&conf) return <div className="page fadeup" style={{maxWidth:420,textAlign:"center"}}>
