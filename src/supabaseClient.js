@@ -400,3 +400,11 @@ export async function saveTable(table) {
     return { data, error };
   }
 }
+
+export async function deleteTable(dbId) {
+  const { error } = await supabase.from('restaurant_tables')
+    .delete()
+    .eq('id', dbId);
+  if (error) console.error('deleteTable:', error);
+  return { error };
+}

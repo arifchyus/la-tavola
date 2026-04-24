@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -589,10 +589,18 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
     setReservations(rs=>[r,...rs]);
     setConf(r);
     setStep("done");
-    // Save to database
+    // Save to database with detailed error handling
     dbSaveReservation(r).then(result=>{
-      if(result.error){push&&push({title:"Booking saved locally",body:"Will sync when online",color:"#d4952a"});}
-      else if(result.data){push&&push({title:"Booking confirmed",body:"See you "+r.date+" at "+r.time,color:"#059669"});}
+      if(result.error){
+        console.error("RESERVATION SAVE ERROR:",result.error);
+        push&&push({title:"DB error: "+result.error.message,body:"Check console for details",color:"#dc2626"});
+      }else if(result.data){
+        console.log("RESERVATION SAVED:",result.data);
+        push&&push({title:"Saved to database",body:"ID: "+result.data.id,color:"#059669"});
+      }
+    }).catch(err=>{
+      console.error("RESERVATION EXCEPTION:",err);
+      push&&push({title:"Exception: "+err.message,body:"Check console",color:"#dc2626"});
     });
   };
 
@@ -1202,9 +1210,56 @@ function CategoryEditor({cat,onSave,onClose,onDelete,menu}){
   </div>;
 }
 
-function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories}){
+// -- TABLE EDITOR MODAL -----------------------------------------------------
+function TableEditor({table,onSave,onClose,existingTables}){
+  var [form,setForm]=useState({
+    id:table.id||1,
+    seats:table.seats||4,
+    x:table.x||20,
+    y:table.y||20,
+    dbId:table.dbId,
+    branchId:table.branchId,
+    status:table.status||"free",
+  });
+  var isNew=!table.dbId;
+  var numberTaken=isNew&&existingTables.some(t=>+t.id===+form.id);
+  var save=()=>{
+    if(numberTaken){alert("Table number "+form.id+" is already used in this branch");return;}
+    if(form.seats<1||form.seats>20){alert("Seats must be between 1 and 20");return;}
+    onSave(form);
+  };
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:420,padding:22}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <h2 style={{fontSize:20}}>{isNew?"Add Table":"Edit Table "+table.id}</h2>
+        <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Table Number</label>
+        <input type="number" className="field" value={form.id} onChange={e=>setForm(f=>({...f,id:+e.target.value}))} min="1"/>
+        {numberTaken&&<p style={{color:"#dc2626",fontSize:11,marginTop:3}}>This number is already taken in this branch</p>}
+      </div>
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Number of Seats</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:5}}>
+          {[2,4,6,8,10,12].map(n=><button key={n} onClick={()=>setForm(f=>({...f,seats:n}))} style={{padding:"10px 4px",fontSize:13,fontWeight:700,background:form.seats===n?"#bf4626":"#fff",color:form.seats===n?"#fff":"#1a1208",border:"2px solid "+(form.seats===n?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{n}</button>)}
+        </div>
+        <input type="number" className="field" value={form.seats} onChange={e=>setForm(f=>({...f,seats:Math.max(1,+e.target.value)}))} min="1" max="20" style={{marginTop:6}} placeholder="Or enter custom seats"/>
+      </div>
+      <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:8,marginBottom:12,fontSize:11,color:"#92400e"}}>
+        <strong>Tip:</strong> You can drag tables on the Tables view to reposition them later.
+      </div>
+      <div style={{display:"flex",gap:7}}>
+        <button className="btn btn-o" onClick={onClose} style={{flex:1,padding:"11px"}}>Cancel</button>
+        <button className="btn btn-r" onClick={save} disabled={numberTaken} style={{flex:2,padding:"11px"}}>{isNew?"Add Table":"Save Changes"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
-  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false);
+  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1");
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
@@ -1297,7 +1352,42 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     });
     push({title:"Imported!",body:newItems.length+" items, "+newCats.length+" categories",color:"#059669"});
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
+
+  // Tables management
+  var saveTable=tbl=>{
+    if(tbl.dbId){
+      // Update existing
+      setTables(ts=>ts.map(t=>t.dbId===tbl.dbId?tbl:t));
+      dbSaveTable(tbl).then(r=>{
+        if(r.error)push({title:"Save failed",body:r.error.message,color:"#dc2626"});
+        else push({title:"Table updated",body:"Table "+tbl.id,color:"#059669"});
+      });
+    }else{
+      // Insert new
+      var newT={...tbl,branchId:adminBranch,status:"free"};
+      setTables(ts=>[...ts,newT]);
+      dbSaveTable(newT).then(r=>{
+        if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});}
+        else if(r.data){
+          setTables(ts=>ts.map(t=>(t.id===newT.id&&!t.dbId)?{...t,dbId:r.data.id}:t));
+          push({title:"Table added",body:"Table "+tbl.id,color:"#059669"});
+        }
+      });
+    }
+    setEditTable(null);
+  };
+  var deleteTable=tbl=>{
+    if(tbl.status==="occupied"){alert("Cannot delete occupied table. Clear it first.");return;}
+    if(!window.confirm("Delete Table "+tbl.id+"? This cannot be undone."))return;
+    setTables(ts=>ts.filter(t=>t!==tbl));
+    if(tbl.dbId){
+      dbDeleteTable(tbl.dbId).then(r=>{
+        if(r.error)push({title:"Delete failed",body:r.error.message,color:"#dc2626"});
+        else push({title:"Table deleted",body:"Table "+tbl.id,color:"#dc2626"});
+      });
+    }
+  };
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stock","Stock"],["discounts","Discounts"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -1372,6 +1462,41 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {editMeal&&<SetMealEditor meal={editMeal} menu={menu} onSave={saveMeal} onClose={()=>setEditMeal(null)} onDelete={deleteMeal}/>}
     {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
     {showImport&&<MenuImportModal onClose={()=>setShowImport(false)} onImport={bulkImport} categories={categories}/>}
+    {editTable&&<TableEditor table={editTable} onSave={saveTable} onClose={()=>setEditTable(null)} existingTables={tables.filter(t=>t.branchId===adminBranch)}/>}
+    {tab==="tables"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div>
+          <h3 style={{fontSize:16,marginBottom:2}}>Tables Management</h3>
+          <p style={{fontSize:11,color:"#8a8078"}}>Manage tables for each branch independently</p>
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <select value={adminBranch} onChange={e=>setAdminBranch(e.target.value)} style={{padding:"7px 10px",fontSize:12,border:"2px solid #ede8de",borderRadius:8,fontWeight:700,cursor:"pointer"}}>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+          <button className="btn btn-r" onClick={()=>{var tbs=tables.filter(t=>t.branchId===adminBranch);var nextNum=tbs.length>0?Math.max(...tbs.map(t=>+t.id||0))+1:1;setEditTable({id:nextNum,seats:4,x:20,y:20});}} style={{padding:"7px 14px",fontSize:12}}>+ Add Table</button>
+        </div>
+      </div>
+      {(()=>{var branchTables=tables.filter(t=>t.branchId===adminBranch);var totalSeats=branchTables.reduce((s,t)=>s+t.seats,0);return <>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:12}}>
+          <div style={{background:"#fff",borderRadius:9,padding:"9px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:"#1a1208"}}>{branchTables.length}</div><div style={{fontSize:10,color:"#8a8078"}}>Tables</div></div>
+          <div style={{background:"#fff",borderRadius:9,padding:"9px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:"#bf4626"}}>{totalSeats}</div><div style={{fontSize:10,color:"#8a8078"}}>Total Seats</div></div>
+          <div style={{background:"#fff",borderRadius:9,padding:"9px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700,color:"#059669"}}>{branchTables.filter(t=>t.status==="free").length}</div><div style={{fontSize:10,color:"#8a8078"}}>Available</div></div>
+        </div>
+        {branchTables.length===0?<div className="card" style={{textAlign:"center",padding:30}}><p style={{fontSize:40,marginBottom:10}}>{EM.cart}</p><p style={{fontSize:14,color:"#8a8078",marginBottom:10}}>No tables yet for this branch</p><button className="btn btn-r" onClick={()=>setEditTable({id:1,seats:4,x:20,y:20})} style={{padding:"9px 18px"}}>Add First Table</button></div>:
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
+          {branchTables.sort((a,b)=>(+a.id)-(+b.id)).map(tbl=>{
+            var statusColor=tbl.status==="occupied"?"#dc2626":tbl.status==="reserved"?"#d4952a":"#059669";
+            return <div key={(tbl.dbId||tbl.id)+"_"+tbl.id} className="card" style={{padding:12,borderLeft:"4px solid "+statusColor}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div><p style={{fontWeight:700,fontSize:18}}>Table {tbl.id}</p><p style={{fontSize:11,color:"#8a8078"}}>{tbl.seats} seats - <span style={{color:statusColor,fontWeight:700,textTransform:"capitalize"}}>{tbl.status||"free"}</span></p></div>
+              </div>
+              <div style={{display:"flex",gap:5}}>
+                <button onClick={()=>setEditTable(tbl)} style={{flex:1,padding:"6px",fontSize:11,background:"#f7f3ee",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>Edit</button>
+                <button onClick={()=>deleteTable(tbl)} style={{padding:"6px 10px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
+              </div>
+            </div>;
+          })}
+        </div>}
+      </>})()}
+    </div>}
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
     {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
@@ -1914,6 +2039,7 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
   var perSplit=total/Math.max(splitN,1);
   var count=cart.reduce((s,i)=>s+i.qty,0);
   var [flashId,setFlashId]=useState(null);
+  var [showPicker,setShowPicker]=useState(false);
   var cartRef=useRef(null);
   var add=it=>{
     setCart(c=>{
@@ -1939,6 +2065,12 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
   var clear=()=>{setCart([]);setTbl("");setTip(0);setDiscPct(0);setDiscReason("");setSplitN(1);};
   var send=(paid,method)=>{
     if(!cart.length)return;
+    // VALIDATION: Dine-in requires table number
+    if(type==="dine-in"&&!tbl){
+      push({title:"Table required!",body:"Please select a table number for dine-in orders",color:"#dc2626"});
+      if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate([50,50,50]);}
+      return;
+    }
     var tableId=type==="dine-in"?parseInt(tbl)||null:null;
     var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
     var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId};
@@ -2028,7 +2160,10 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
       <div style={{display:"flex",gap:4}}>
         {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>setType(tp)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
-      {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"5px 8px",border:"none",borderRadius:6,fontSize:13,fontWeight:700,textAlign:"center"}}/>}
+      {type==="dine-in"&&<>
+        <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"5px 8px",border:"none",borderRadius:6,fontSize:13,fontWeight:700,textAlign:"center",background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208"}}/>
+        <button onClick={()=>setShowPicker(true)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>Pick Table</button>
+      </>}
       <span style={{color:"#888",fontSize:11,marginLeft:"auto"}}>{user?.name||"Staff"}</span>
     </div>
 
@@ -2113,14 +2248,75 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
           <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:18,marginBottom:6,paddingTop:6,borderTop:"1px solid #ede8de"}}><span>TOTAL</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
           {splitN>1&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#7c3aed",marginBottom:8,fontWeight:700,background:"#f5f3ff",padding:"6px 10px",borderRadius:7}}><span>Per person ({splitN})</span><span>{fmt(perSplit)}</span></div>}
 
+          {type==="dine-in"&&!tbl&&cart.length>0&&<div style={{padding:"10px 12px",background:"#fee2e2",borderRadius:7,marginBottom:8,fontSize:12,color:"#991b1b",fontWeight:700,textAlign:"center",border:"2px solid #fca5a5"}}>
+            {EM.cross} Select a table number to continue
+          </div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
-            <button className="btn btn-d" disabled={!cart.length} onClick={()=>setPayStep("cash")} style={{padding:"14px",fontSize:14}}>Cash</button>
-            <button className="btn btn-p" disabled={!cart.length} onClick={()=>setPayStep("card")} style={{padding:"14px",fontSize:14}}>Card</button>
+            <button className="btn btn-d" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("cash")} style={{padding:"14px",fontSize:14}}>Cash</button>
+            <button className="btn btn-p" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("card")} style={{padding:"14px",fontSize:14}}>Card</button>
           </div>
-          <button className="btn btn-o" disabled={!cart.length} onClick={()=>send(false,null)} style={{width:"100%",padding:"10px",fontSize:13}}>Send to kitchen (pay later)</button>
+          <button className="btn btn-o" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>send(false,null)} style={{width:"100%",padding:"10px",fontSize:13}}>Send to kitchen (pay later)</button>
         </div>
       </div>
     </div>
+
+    {showPicker&&(()=>{
+      var branchTables=tables?tables.filter(t=>!t.branchId||t.branchId===branch?.id).sort((a,b)=>(+a.id)-(+b.id)):[];
+      var statusColor={free:"#10b981",occupied:"#dc2626",reserved:"#d4952a"};
+      var statusBg={free:"#d1fae5",occupied:"#fee2e2",reserved:"#fef3c7"};
+      return <div onClick={()=>setShowPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:520,padding:22,maxHeight:"85vh",overflowY:"auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div>
+              <h2 style={{fontSize:20,marginBottom:2}}>Pick a Table</h2>
+              <p style={{fontSize:12,color:"#8a8078"}}>{branch?.name} - {branchTables.length} tables</p>
+            </div>
+            <button onClick={()=>setShowPicker(false)} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+          </div>
+          <div style={{display:"flex",gap:10,marginBottom:14,fontSize:11}}>
+            {[["Free","#10b981"],["Occupied","#dc2626"],["Reserved","#d4952a"]].map(([l,c])=><div key={l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:12,height:12,borderRadius:"50%",background:c,display:"inline-block"}}/><span style={{color:"#8a8078"}}>{l}</span></div>)}
+          </div>
+          {branchTables.length===0?<div style={{textAlign:"center",padding:30}}>
+            <p style={{fontSize:40,marginBottom:10}}>{EM.cart}</p>
+            <p style={{fontSize:14,color:"#8a8078"}}>No tables yet. Add tables in Admin panel.</p>
+          </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(85px,1fr))",gap:8}}>
+            {branchTables.map(t=>{
+              var c=statusColor[t.status]||statusColor.free;
+              var bg=statusBg[t.status]||statusBg.free;
+              var selected=String(tbl)===String(t.id);
+              return <button key={(t.dbId||t.id)+"_"+t.id} onClick={()=>{
+                if(t.status==="occupied"){
+                  if(!window.confirm("Table "+t.id+" is occupied. Add another order to this table?"))return;
+                }
+                setTbl(String(t.id));
+                setShowPicker(false);
+                if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate(10);}
+              }} style={{
+                padding:"14px 6px",
+                background:selected?"#bf4626":bg,
+                color:selected?"#fff":c,
+                border:"3px solid "+(selected?"#bf4626":c),
+                borderRadius:10,
+                cursor:"pointer",
+                fontWeight:700,
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"center",
+                gap:2,
+                transition:"all .15s",
+              }}>
+                <span style={{fontSize:18}}>T{t.id}</span>
+                <span style={{fontSize:10,fontWeight:600}}>{t.seats} seats</span>
+                {t.status==="occupied"&&t.guests&&<span style={{fontSize:9,fontWeight:700}}>{t.guests} in</span>}
+              </button>;
+            })}
+          </div>}
+          <div style={{marginTop:14,display:"flex",gap:7}}>
+            <button className="btn btn-o" onClick={()=>setShowPicker(false)} style={{flex:1,padding:"11px"}}>Cancel</button>
+          </div>
+        </div>
+      </div>;
+    })()}
   </div>;
 }
 
@@ -2370,7 +2566,7 @@ export default function App(){
       {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push}/>}
-      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch}/>}
       {view==="report"  &&<ReportV  orders={orders}/>}
     </main>
   </div>;
