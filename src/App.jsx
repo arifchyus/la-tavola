@@ -727,6 +727,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
 
 function TrackV({orders,branches}){
   var [q,setQ]=useState(""),[found,setFound]=useState(null),[tried,setTried]=useState(false);
+  // Auto-update displayed order as orders prop changes (real-time status sync)
+  useEffect(()=>{
+    if(found&&orders){
+      var updated=orders.find(o=>o.id===found.id);
+      if(updated)setFound(updated);
+    }
+  },[orders,found]);
   var search=()=>{setFound(orders.find(o=>o.id.toLowerCase()===q.trim().toLowerCase())||null);setTried(true);};
   var fb=found?branches.find(b=>b.id===found.branchId):null;
   var stepsN=["pending","preparing","ready","delivered"],stepsC=["pending","preparing","ready","collected"];
@@ -943,14 +950,26 @@ function ChatV({messages,setMessages,user,onAuth}){
 
 function KitchenV({orders,setOrders,push}){
   var active=orders.filter(o=>o.status==="pending"||o.status==="preparing");
-  var adv=id=>setOrders(os=>os.map(o=>{if(o.id!==id)return o;var next=o.status==="pending"?"preparing":"ready";push({title:id,body:"-> "+next,color:next==="ready"?"#059669":"#2563eb"});return{...o,status:next};}));
+  var adv=id=>{
+    var order=orders.find(o=>o.id===id);
+    if(!order)return;
+    var next=order.status==="pending"?"preparing":"ready";
+    setOrders(os=>os.map(o=>o.id===id?{...o,status:next}:o));
+    push({title:id,body:"-> "+next,color:next==="ready"?"#059669":"#2563eb"});
+    // Persist to database so customer can see update
+    dbUpdateOrderStatus(id,next).catch(e=>console.log("Kitchen status save failed:",e));
+  };
+  var cancel=id=>{
+    setOrders(os=>os.map(x=>x.id===id?{...x,status:"cancelled"}:x));
+    dbUpdateOrderStatus(id,"cancelled").catch(e=>console.log("Cancel save failed:",e));
+  };
   return <div className="kbg"><div style={{maxWidth:940,margin:"0 auto"}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><h2 style={{color:"#fff",fontSize:18,fontFamily:"'Inter',sans-serif"}}>Kitchen Display</h2><span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/><span style={{color:"#666",fontSize:11}}>{active.length} tickets</span></div>
     {active.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><p style={{fontSize:32,marginBottom:7}}>OK</p><p style={{fontSize:14}}>All caught up!</p></div>}
     <div className="ag">{active.map(o=><div key={o.id} style={{background:o.status==="pending"?"#1a0a06":"#06101a",border:"2px solid "+(o.status==="pending"?"#d97706":"#2563eb"),borderRadius:12,padding:13}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div><p style={{color:"#fff",fontWeight:700,fontSize:14}}>{o.id}</p><p style={{color:"#666",fontSize:10}}>{o.customer} - {o.time}{o.slot?" | Collect "+o.slot:""}</p></div><span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{SL[o.status]}</span></div>
       {o.items.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,.07)",fontSize:13}}><span style={{color:"#fff",fontWeight:600}}>{it.name}</span><span style={{color:"#f59e0b",fontWeight:700,fontSize:15}}>x{it.qty}</span></div>)}
-      <div style={{display:"flex",gap:5,marginTop:10}}><button onClick={()=>adv(o.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:o.status==="pending"?"#2563eb":"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{o.status==="pending"?"Start":"Mark Ready"}</button><button onClick={()=>setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled"}:x))} style={{padding:"7px 9px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>X</button></div>
+      <div style={{display:"flex",gap:5,marginTop:10}}><button onClick={()=>adv(o.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:o.status==="pending"?"#2563eb":"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{o.status==="pending"?"Start":"Mark Ready"}</button><button onClick={()=>cancel(o.id)} style={{padding:"7px 9px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>X</button></div>
     </div>)}</div>
   </div></div>;
 }
@@ -1527,7 +1546,11 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   },[]);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
-  var upSt=(id,st)=>{setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});};
+  var upSt=(id,st)=>{
+    setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
+    push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});
+    dbUpdateOrderStatus(id,st).catch(e=>console.log("Admin status save failed:",e));
+  };
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
   var saveItem=item=>{
     // Save to local state immediately (for instant UI)
@@ -2987,7 +3010,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
   </div>;
 }
 
-function PosV({menu,onOrder,push,user,branch,tables,setTables}){
+function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
     if(typeof window!=="undefined"&&window.__preselectedTable){
@@ -3042,8 +3065,17 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
       return;
     }
     var tableId=type==="dine-in"?parseInt(tbl)||null:null;
+    // CONFLICT CHECK: If another order exists for this table already, warn
+    if(tableId&&orders){
+      var existing=orders.filter(o=>o.tableId===tableId&&o.branchId===branch?.id&&!o.paid&&!["delivered","collected","cancelled"].includes(o.status));
+      if(existing.length>0){
+        var otherOrder=existing[0];
+        var msg="Table "+tableId+" already has an active order ("+otherOrder.id+") by "+(otherOrder.takenBy||otherOrder.customer)+" totaling "+fmt(otherOrder.total)+".\n\nOK = Add to existing bill (recommended)\nCancel = Don't send this order";
+        if(!window.confirm(msg))return;
+      }
+    }
     var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
-    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId};
+    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:"staff"};
     onOrder(o);setLastOrder(o);push({title:paid?"Paid by "+method:"Sent to kitchen",body:o.id+" - "+fmt(o.total),color:paid?"#059669":"#2563eb"});
     // Auto-update table status when dine-in order placed
     if(tableId&&setTables&&tables){
@@ -3221,6 +3253,16 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables}){
           {type==="dine-in"&&!tbl&&cart.length>0&&<div style={{padding:"10px 12px",background:"#fee2e2",borderRadius:7,marginBottom:8,fontSize:12,color:"#991b1b",fontWeight:700,textAlign:"center",border:"2px solid #fca5a5"}}>
             {EM.cross} Select a table number to continue
           </div>}
+          {type==="dine-in"&&tbl&&orders&&(()=>{
+            var tableIdNum=parseInt(tbl);
+            var existing=orders.filter(o=>o.tableId===tableIdNum&&o.branchId===branch?.id&&!o.paid&&!["delivered","collected","cancelled"].includes(o.status));
+            if(existing.length===0)return null;
+            return <div style={{padding:"10px 12px",background:"#fef3c7",borderRadius:7,marginBottom:8,fontSize:11,color:"#92400e",border:"2px solid #fde68a"}}>
+              <strong>{EM.star} Table {tbl} already has {existing.length} active order{existing.length!==1?"s":""}</strong>
+              <br/>By {existing[0].takenBy||existing[0].customer||"another staff"} - {fmt(existing.reduce((s,o)=>s+o.total,0))}
+              <br/>Your new items will be added to the same bill.
+            </div>;
+          })()}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
             <button className="btn btn-d" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("cash")} style={{padding:"14px",fontSize:14}}>Cash</button>
             <button className="btn btn-p" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("card")} style={{padding:"14px",fontSize:14}}>Card</button>
@@ -3451,6 +3493,28 @@ export default function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
+  // Auto-refresh orders every 15 seconds (so customers see status updates and staff sees new orders)
+  useEffect(()=>{
+    var interval=setInterval(()=>{
+      fetchOrders().then(dbOrders=>{
+        if(dbOrders&&dbOrders.length){
+          var formatted=dbOrders.map(o=>({
+            id:o.order_number,branchId:o.branch_id,userId:o.customer_id,
+            customer:o.customer_name||"Guest",phone:o.customer_phone,
+            items:o.items||[],subtotal:parseFloat(o.subtotal||0),
+            deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
+            status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
+            address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
+            tableId:o.table_id,
+            time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
+          }));
+          setOrders(formatted);
+        }
+      }).catch(e=>console.log("Order auto-refresh failed:",e));
+    },15000);
+    return()=>clearInterval(interval);
+  },[]);
+
   // Monitor network status
   useEffect(()=>{
     var goOnline=()=>{setOnline(true);syncQueue();};
@@ -3539,7 +3603,7 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
         // Store preselected table so POS can pick it up
