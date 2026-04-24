@@ -131,7 +131,7 @@ var EM={
   check:String.fromCharCode(0x2705),
   cross:String.fromCharCode(0x274C),
 };
-var fmt=n=>EM.pound+Number(n).toFixed(2);
+var fmt=n=>{var v=Number(n);return EM.pound+(isNaN(v)?"0.00":v.toFixed(2));};
 var nowT=()=>new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 var uid=()=>"ORD-"+Math.floor(Math.random()*90000+10000);
 var rid=()=>"RES-"+Math.floor(Math.random()*9000+1000);
@@ -276,17 +276,21 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .lbar{height:7px;background:#ede8de;border-radius:4px;overflow:hidden}
 .lfill{height:100%;border-radius:4px;transition:width .8s}
 
-/* POS responsive layout */
-.pos-wrap{min-height:calc(100vh - 58px);background:#f0ebe0;display:flex;flex-direction:column}
-.pos-body{display:flex;flex:1;overflow:hidden}
-.pos-menu{flex:1 1 60%;padding:12px;overflow-y:auto}
-.pos-cart{flex:1 1 40%;background:#fff;display:flex;flex-direction:column;border-left:1px solid #ede8de;max-width:400px;min-width:300px}
+/* POS responsive layout - LOCKED TO VIEWPORT so cart footer stays visible */
+.pos-wrap{height:calc(100vh - 58px);background:#f0ebe0;display:flex;flex-direction:column;overflow:hidden}
+.pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
+.pos-menu{flex:1 1 60%;padding:12px;overflow-y:auto;min-height:0}
+.pos-cart{flex:1 1 40%;background:#fff;display:flex;flex-direction:column;border-left:1px solid #ede8de;max-width:400px;min-width:300px;min-height:0}
+.pos-cart-items{flex:1;overflow-y:auto;padding:8px 12px;min-height:0}
+.pos-cart-footer{padding:12px;border-top:1px solid #ede8de;background:#f7f3ee;flex-shrink:0}
 .pos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
 
 /* Phone: stack vertically, cart slides over menu */
 @media(max-width:700px){
-  .pos-body{flex-direction:column}
-  .pos-cart{max-width:100%;min-width:0;border-left:none;border-top:2px solid #ede8de;max-height:55vh}
+  .pos-wrap{height:auto;min-height:calc(100vh - 58px);overflow:visible}
+  .pos-body{flex-direction:column;overflow:visible}
+  .pos-cart{max-width:100%;min-width:0;border-left:none;border-top:2px solid #ede8de}
+  .pos-cart-items{max-height:35vh}
   .pos-grid{grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:6px}
 }
 
@@ -405,8 +409,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var [slot,setSlot]=useState(null),[code,setCode]=useState(""),[disc,setDisc]=useState(null),[derr,setDerr]=useState("");
   var [last,setLast]=useState(null),[showPay,setPay]=useState(false);
   var slots=getSlots(),busy=[slots[2],slots[5]];
-  var items=Object.keys(cart).map(id=>({...menu.find(m=>m.id===+id),qty:cart[id]})).filter(Boolean);
-  var sub=items.reduce((s,i)=>s+i.price*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
+  var items=Object.keys(cart).map(id=>{var m=menu.find(m=>String(m.id)===String(id));return m?{...m,qty:cart[id]}:null;}).filter(Boolean);
+  var sub=items.reduce((s,i)=>s+(+i.price||0)*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
   var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
   var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
@@ -1815,7 +1819,7 @@ function PosV({menu,onOrder,push,user,branch}){
           </div>
           {cart.length>0&&<button onClick={clear} style={{color:"#dc2626",fontSize:12,fontWeight:700,border:"none",background:"none",cursor:"pointer"}}>Clear</button>}
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"8px 12px"}}>
+        <div className="pos-cart-items">
           {cart.length===0&&<p style={{textAlign:"center",color:"#8a8078",padding:20,fontSize:13}}>Tap menu items to add</p>}
           {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid #f7f3ee"}}>
             <div style={{flex:1}}>
@@ -1831,7 +1835,7 @@ function PosV({menu,onOrder,push,user,branch}){
             <button onClick={()=>del(it.id)} style={{color:"#ccc",fontSize:16,border:"none",background:"none",cursor:"pointer"}}>x</button>
           </div>)}
         </div>
-        <div style={{padding:12,borderTop:"1px solid #ede8de",background:"#f7f3ee"}}>
+        <div className="pos-cart-footer">
           {/* Tip selector */}
           {cart.length>0&&<div style={{marginBottom:8}}>
             <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:4}}>TIP</p>
