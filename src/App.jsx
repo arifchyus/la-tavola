@@ -752,6 +752,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   </>;
 
   return <div className="page">
+    {(()=>{var sess=getQrSession();if(!sess.valid)return null;return <div style={{background:"linear-gradient(135deg,#d1fae5,#a7f3d0)",border:"2px solid #059669",borderRadius:12,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+      <div>
+        <p style={{fontSize:13,fontWeight:700,color:"#065f46",marginBottom:2}}>{EM.check} Seated at Table {sess.table}</p>
+        <p style={{fontSize:11,color:"#047857"}}>Your order will be delivered to your table</p>
+      </div>
+      <button onClick={()=>{if(window.confirm("End your table session? Only click this if you have finished eating and are leaving the restaurant."))clearQrSession();window.location.reload();}} style={{padding:"7px 12px",fontSize:11,background:"#fff",color:"#065f46",border:"1px solid #059669",borderRadius:7,cursor:"pointer",fontWeight:700}}>End Session / Leaving</button>
+    </div>;})()}
     <div style={{background:"linear-gradient(135deg,#1a1208,#2e1f10)",borderRadius:16,padding:"22px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 50%,rgba(212,149,42,.12),transparent 70%)"}}/>
       <div style={{position:"relative",zIndex:1}}>
