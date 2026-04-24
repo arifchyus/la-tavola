@@ -246,6 +246,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#d4c9b8;border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes flashPulse{0%,100%{box-shadow:0 0 0 2px #dc2626,0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 2px #dc2626,0 0 0 10px rgba(220,38,38,0)}}
 @keyframes flashGreen{0%{background:#d1fae5;transform:scale(1)}30%{background:#a7f3d0;transform:scale(1.03)}100%{background:transparent;transform:scale(1)}}
 @keyframes slideInTop{0%{opacity:0;transform:translateY(-20px);background:#d1fae5}100%{opacity:1;transform:translateY(0);background:transparent}}
 .flash{animation:flashGreen .6s ease both}
@@ -2370,10 +2371,18 @@ function StaffBookingsV({branch,push}){
 // -- INCOMING ONLINE ORDERS PANEL ------------------------------------------
 function IncomingOrdersV({orders,setOrders,push,branch,customers}){
   var [filter,setFilter]=useState("new");
+  var [soundOn,setSoundOn]=useState(()=>{
+    try{return localStorage.getItem("latavola_sound")!=="0";}catch(e){return true;}
+  });
+  var [lastNewCount,setLastNewCount]=useState(0);
+  var [pendingAlert,setPendingAlert]=useState(false);
+  var audioRef=useRef(null);
+  var origTitleRef=useRef(typeof document!=="undefined"?document.title:"La Tavola");
+
   // Only show orders from online/QR sources that need attention
   var relevant=orders.filter(o=>{
     if(branch&&o.branchId&&o.branchId!==branch.id)return false;
-    if(o.source==="staff"||o.source==="phone")return false; // ignore staff/phone orders
+    if(o.source==="staff"||o.source==="phone")return false;
     return true;
   });
   var newOrders=relevant.filter(o=>o.status==="pending");
@@ -2383,28 +2392,141 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
 
   var list=filter==="new"?newOrders:filter==="accepted"?accepted:filter==="completed"?completed:rejected;
 
-  // Helper to detect risk level
+  // Play chime sound
+  var playDing=useCallback(()=>{
+    if(!soundOn)return;
+    try{
+      // Use Web Audio API to generate a "ding" chime (no file needed)
+      var AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)return;
+      var ctx=new AudioCtx();
+      var osc=ctx.createOscillator();
+      var gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type="sine";
+      osc.frequency.setValueAtTime(880,ctx.currentTime); // High A note
+      osc.frequency.exponentialRampToValueAtTime(660,ctx.currentTime+0.15);
+      gain.gain.setValueAtTime(0.35,ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime+0.4);
+      // Second note for "ding-dong" effect
+      setTimeout(()=>{
+        var osc2=ctx.createOscillator();
+        var gain2=ctx.createGain();
+        osc2.connect(gain2);gain2.connect(ctx.destination);
+        osc2.type="sine";
+        osc2.frequency.setValueAtTime(1100,ctx.currentTime);
+        gain2.gain.setValueAtTime(0.3,ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+        osc2.start(ctx.currentTime);
+        osc2.stop(ctx.currentTime+0.5);
+      },180);
+    }catch(e){console.log("Sound failed:",e);}
+  },[soundOn]);
+
+  // Show browser notification
+  var showBrowserNotif=useCallback((order)=>{
+    if(typeof window==="undefined"||!("Notification" in window))return;
+    if(Notification.permission!=="granted")return;
+    try{
+      var body=order.customer+" - "+fmt(order.total)+" - "+(order.type||"order");
+      var notif=new Notification(String.fromCharCode(0xD83C,0xDF7D)+" New Order - La Tavola",{
+        body:body,
+        icon:"/icon-192.png",
+        badge:"/icon-192.png",
+        tag:"order-"+order.id,
+        requireInteraction:false,
+      });
+      notif.onclick=function(){
+        window.focus();
+        this.close();
+      };
+      setTimeout(()=>notif.close(),8000);
+    }catch(e){console.log("Notif failed:",e);}
+  },[]);
+
+  // Detect new orders and trigger alerts
+  useEffect(()=>{
+    if(newOrders.length>lastNewCount&&lastNewCount>=0){
+      // New order(s) arrived
+      var latest=newOrders[0];
+      playDing();
+      showBrowserNotif(latest);
+      setPendingAlert(true);
+      // Flash tab title
+      if(typeof document!=="undefined"){
+        var titleFlash=setInterval(()=>{
+          document.title=document.title===origTitleRef.current?
+            String.fromCharCode(0xD83D,0xDD14)+" ("+newOrders.length+") New Orders - La Tavola":origTitleRef.current;
+        },1000);
+        setTimeout(()=>{
+          clearInterval(titleFlash);
+          document.title=origTitleRef.current;
+        },10000);
+      }
+    }
+    setLastNewCount(newOrders.length);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[newOrders.length]);
+
+  // Auto-refresh - reload orders from DB every 10 seconds
+  useEffect(()=>{
+    var interval=setInterval(()=>{
+      fetchOrders().then(dbOrders=>{
+        if(dbOrders&&dbOrders.length){
+          var formatted=dbOrders.map(o=>({
+            id:o.order_number,branchId:o.branch_id,userId:o.customer_id,
+            customer:o.customer_name||"Guest",phone:o.customer_phone,
+            items:o.items||[],subtotal:parseFloat(o.subtotal||0),
+            deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
+            status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
+            address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
+            tableId:o.table_id,
+            time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
+          }));
+          setOrders(formatted);
+        }
+      }).catch(e=>console.log("Auto-refresh failed:",e));
+    },10000); // 10 seconds
+    return()=>clearInterval(interval);
+  },[setOrders]);
+
+  // Request notification permission on mount
+  useEffect(()=>{
+    if(typeof window!=="undefined"&&"Notification" in window){
+      if(Notification.permission==="default"){
+        Notification.requestPermission();
+      }
+    }
+  },[]);
+
+  var toggleSound=()=>{
+    var newVal=!soundOn;
+    setSoundOn(newVal);
+    try{localStorage.setItem("latavola_sound",newVal?"1":"0");}catch(e){}
+    if(newVal)playDing(); // Test sound when enabling
+  };
+
   var getRiskInfo=(o)=>{
     var flags=[];
     var customer=customers?.find(c=>c.phone===o.phone);
-    // First-time customer
     if(!customer||!customer.total_orders||customer.total_orders===0)flags.push("first_time");
-    // High value order
     if(o.total>=50)flags.push("high_value");
-    // Pay later (higher risk)
     if(!o.paid)flags.push("unpaid");
-    // Customer with history of no-shows (future enhancement)
     return flags;
   };
 
   var accept=o=>{
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
     push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
+    setPendingAlert(false);
   };
   var reject=o=>{
     var reason=prompt("Why are you rejecting this order? (optional)");
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"cancelled",rejectReason:reason||"Restaurant unable to fulfill"}:x));
     push({title:"Order rejected",body:o.id,color:"#dc2626"});
+    setPendingAlert(false);
   };
   var callCust=o=>{
     if(o.phone)window.location.href="tel:"+o.phone;
@@ -2412,13 +2534,20 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
   };
 
   return <div className="page">
+    <audio ref={audioRef} preload="auto"/>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
-      <div><h2 style={{fontSize:22,marginBottom:2}}>Incoming Orders</h2><p style={{color:"#8a8078",fontSize:12}}>Online + QR code orders - {branch?.name}</p></div>
-      {newOrders.length>0&&<div style={{padding:"6px 12px",background:"#dc2626",color:"#fff",borderRadius:20,fontSize:12,fontWeight:700,animation:"pulse 1.5s infinite"}}>{newOrders.length} new</div>}
+      <div>
+        <h2 style={{fontSize:22,marginBottom:2}}>Incoming Orders</h2>
+        <p style={{color:"#8a8078",fontSize:12}}>Online + QR code orders - {branch?.name} - auto-refreshes every 10 sec</p>
+      </div>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <button onClick={toggleSound} title={soundOn?"Sound on - click to mute":"Sound off - click to enable"} style={{padding:"8px 12px",fontSize:18,background:soundOn?"#d1fae5":"#f5f5f5",color:soundOn?"#065f46":"#999",border:"2px solid "+(soundOn?"#059669":"#ddd"),borderRadius:8,cursor:"pointer",fontWeight:700}}>{soundOn?String.fromCharCode(0xD83D,0xDD0A):String.fromCharCode(0xD83D,0xDD07)}</button>
+        {newOrders.length>0&&<div style={{padding:"8px 14px",background:"#dc2626",color:"#fff",borderRadius:20,fontSize:13,fontWeight:700,animation:"pulse 1s infinite",boxShadow:"0 0 20px rgba(220,38,38,.5)"}}>{newOrders.length} NEW!</div>}
+      </div>
     </div>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-      {[["New",newOrders.length,"#dc2626"],["Accepted",accepted.length,"#2563eb"],["Completed",completed.length,"#059669"],["Rejected",rejected.length,"#8a8078"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
+      {[["New",newOrders.length,"#dc2626"],["Accepted",accepted.length,"#2563eb"],["Completed",completed.length,"#059669"],["Rejected",rejected.length,"#8a8078"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:(l==="New"&&v>0)?"2px solid "+c:"1px solid #ede8de",textAlign:"center",animation:(l==="New"&&v>0)?"flashPulse 1.5s infinite":"none"}}><div style={{fontSize:22,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
     </div>
 
     <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
@@ -2431,11 +2560,19 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers}){
     </div>:list.map(o=>{
       var risk=getRiskInfo(o);
       var isHighRisk=risk.length>=2;
+      var isNew=o.status==="pending";
       var typeLabel=o.source==="qr-table"?"QR Eat-In Table "+(o.tableId||"?"):o.type==="delivery"?"Delivery":o.type==="collection"?"Collection "+(o.slot||""):o.type;
-      return <div key={o.id} className="card" style={{marginBottom:10,padding:"12px 14px",borderLeft:"4px solid "+(isHighRisk?"#dc2626":o.status==="preparing"?"#2563eb":o.status==="cancelled"?"#8a8078":"#d4952a")}}>
+      return <div key={o.id} className="card" style={{
+        marginBottom:10,
+        padding:"12px 14px",
+        borderLeft:"4px solid "+(isHighRisk?"#dc2626":o.status==="preparing"?"#2563eb":o.status==="cancelled"?"#8a8078":"#d4952a"),
+        animation:isNew?"flashPulse 1.8s infinite":"none",
+        boxShadow:isNew?"0 0 0 2px #dc2626":"0 1px 3px rgba(0,0,0,.05)",
+      }}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
+              {isNew&&<span style={{padding:"2px 8px",background:"#dc2626",color:"#fff",borderRadius:5,fontSize:10,fontWeight:700,animation:"pulse 1s infinite"}}>NEW</span>}
               <p style={{fontWeight:700,fontSize:15}}>{o.customer||"Guest"}</p>
               <span style={{padding:"2px 7px",background:"#f5f0ff",color:"#7c3aed",borderRadius:5,fontSize:10,fontWeight:700}}>{typeLabel}</span>
               {o.paid?<span style={{padding:"2px 7px",background:"#d1fae5",color:"#065f46",borderRadius:5,fontSize:10,fontWeight:700}}>PAID {o.payMethod||""}</span>:o.payMethod==="cod"?<span style={{padding:"2px 7px",background:"#fde68a",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>{EM.pound} CASH ON DELIVERY</span>:o.payMethod==="cash-at-counter"?<span style={{padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>CASH AT COUNTER</span>:<span style={{padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:5,fontSize:10,fontWeight:700}}>UNPAID</span>}
