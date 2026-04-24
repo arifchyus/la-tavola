@@ -21,6 +21,7 @@ export async function saveOrderToDb(order) {
   const { data, error } = await supabase.from('orders').insert({
     order_number: order.id,
     restaurant_id: RESTAURANT_ID,
+    branch_id: order.branchId || null,
     customer_name: order.customer,
     customer_phone: order.phone || null,
     items: order.items,
@@ -38,6 +39,7 @@ export async function saveOrderToDb(order) {
     taken_by: order.takenBy || null,
     source: order.source || 'online',
     notes: order.notes || null,
+    table_id: order.tableId || null,
   }).select().single();
   if (error) console.error('saveOrderToDb error:', error);
   return { data, error };
@@ -60,6 +62,14 @@ export async function updateOrderStatus(orderId, newStatus) {
     .update({ status: newStatus })
     .eq('order_number', orderId);
   if (error) console.error('updateOrderStatus error:', error);
+}
+
+export async function updateOrderPayment(orderId, paid, payMethod) {
+  const { error } = await supabase
+    .from('orders')
+    .update({ paid: paid, pay_method: payMethod })
+    .eq('order_number', orderId);
+  if (error) console.error('updateOrderPayment error:', error);
 }
 
 // ---- CUSTOMER HELPERS -------------------------------------------------------

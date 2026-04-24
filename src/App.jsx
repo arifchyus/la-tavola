@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1590,6 +1590,8 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
   var payAll=(method)=>{
     tableOrders.forEach(o=>{
       setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:method}:x));
+      // Save to DB
+      dbUpdateOrderPayment(o.id,true,method).catch(e=>console.log("Payment save failed:",e));
     });
     updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
     push({title:"Payment received",body:fmt(total)+" by "+method+" - Table "+selected+" cleared",color:"#059669"});
@@ -1607,6 +1609,8 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
       // All paid, close out
       tableOrders.forEach(o=>{
         setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:"split"}:x));
+        // Save to DB
+        dbUpdateOrderPayment(o.id,true,"split").catch(e=>console.log("Payment save failed:",e));
       });
       updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
       push({title:"Bill fully paid",body:"Table "+selected+" cleared",color:"#059669"});
@@ -2570,6 +2574,7 @@ export default function App(){
           slot:o.slot,
           takenBy:o.taken_by,
           source:o.source,
+          tableId:o.table_id,
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
