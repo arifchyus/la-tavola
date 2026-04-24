@@ -769,7 +769,10 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       <div style={{position:"relative",zIndex:1}}>
         <p style={{color:"#d4952a",fontSize:10,letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>Welcome to</p>
         <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>La Tavola</h1>
-        {branch&&<p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{branch.addr}</p>}
+        {branch&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:6,flexWrap:"wrap"}}>
+          <p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{EM.pin} {branch.addr}</p>
+          <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))window.location.href="/";}} style={{padding:"5px 11px",fontSize:11,background:"rgba(212,149,42,.2)",color:"#d4952a",border:"1px solid rgba(212,149,42,.4)",borderRadius:6,cursor:"pointer",fontWeight:700}}>Change Branch</button>
+        </div>}
         {user&&<p style={{color:"#d4952a",fontSize:13,marginTop:6}}>{EM.wave} Hello, {user.name.split(" ")[0]}!</p>}
       </div>
     </div>
@@ -3654,7 +3657,7 @@ export default function App(){
   return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
     <nav className="nav">
       <span className="nlogo">La Tavola</span>
-      <button className="hmob" onClick={()=>setBranch(null)} style={{background:"rgba(255,255,255,.07)",color:"#bbb",borderRadius:7,padding:"3px 9px",fontSize:10,border:"1px solid rgba(255,255,255,.12)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name}</button>
+      <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
         {notifs.length>0&&<span style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>{notifs.length}</span>}
