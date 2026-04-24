@@ -1532,16 +1532,34 @@ var TABLES0=[
   {id:10,seats:8,x:85,y:30,status:"reserved",resTime:"20:00",resName:"Smith party"},
 ];
 
-function TablesV({tables,setTables,push,branch}){
+function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
   var [selected,setSelected]=useState(null);
   var [guestCount,setGuestCount]=useState(2);
+  var [paymentStep,setPaymentStep]=useState(null);
+  var [splitMode,setSplitMode]=useState("amount");
+  var [splitN,setSplitN]=useState(2);
+  var [paidSplits,setPaidSplits]=useState([]);
+  var [itemSplit,setItemSplit]=useState({});
+  var [customAmount,setCustomAmount]=useState("");
   // Filter tables by current branch
   var branchTables=branch?tables.filter(t=>!t.branchId||t.branchId===branch.id):tables;
   var t=branchTables.find(t=>t.id===selected);
 
+  // Get all unpaid orders for selected table
+  var tableOrders=t&&orders?orders.filter(o=>(o.tableId===t.id||o.tableId===+t.id)&&!o.paid&&o.status!=="cancelled"):[];
+  // Aggregate items across all orders for this table
+  var allItems=[];
+  tableOrders.forEach(o=>{(o.items||[]).forEach(it=>{
+    var ex=allItems.find(x=>x.name===it.name&&x.price===it.price);
+    if(ex)ex.qty+=it.qty;
+    else allItems.push({...it,orderId:o.id});
+  });});
+  var subtotal=allItems.reduce((s,i)=>s+(+i.price||0)*i.qty,0);
+  var vat=subtotal-subtotal/1.2;
+  var total=subtotal;
+
   var updateTable=(id,updates)=>{
     setTables(ts=>ts.map(x=>x.id===id?{...x,...updates}:x));
-    // Save to DB if table has dbId
     var tbl=tables.find(x=>x.id===id);
     if(tbl?.dbId){
       dbUpdateTableStatus(tbl.dbId,updates.status||tbl.status,{}).catch(e=>console.log("Table status save failed:",e));
@@ -1554,15 +1572,52 @@ function TablesV({tables,setTables,push,branch}){
     setSelected(null);
   };
   var clearT=()=>{
+    if(tableOrders.length>0){
+      if(!window.confirm("Table has "+tableOrders.length+" unpaid order(s) totaling "+fmt(total)+". Clear without payment?"))return;
+    }
     updateTable(selected,{status:"free",since:null,guests:null,orderId:null,resTime:null,resName:null});
     push({title:"Table "+selected+" cleared",body:"Ready for next guests",color:"#059669"});
     setSelected(null);
+    setPaymentStep(null);
   };
   var reserve=()=>{
     var nm=prompt("Reservation name:");if(!nm)return;
     var tm=prompt("Time (HH:MM):","19:00");if(!tm)return;
     updateTable(selected,{status:"reserved",resName:nm,resTime:tm,guests:null,since:null,orderId:null});
     setSelected(null);
+  };
+  // Mark all table orders as paid and free the table
+  var payAll=(method)=>{
+    tableOrders.forEach(o=>{
+      setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:method}:x));
+    });
+    updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
+    push({title:"Payment received",body:fmt(total)+" by "+method+" - Table "+selected+" cleared",color:"#059669"});
+    setSelected(null);
+    setPaymentStep(null);
+    setPaidSplits([]);
+    setSplitN(2);
+    setItemSplit({});
+  };
+  // Handle partial split payment
+  var paySplitPortion=(amount,method)=>{
+    setPaidSplits(ps=>[...ps,{amount,method,at:nowT()}]);
+    var totalPaid=paidSplits.reduce((s,p)=>s+p.amount,0)+amount;
+    if(totalPaid>=total-0.01){
+      // All paid, close out
+      tableOrders.forEach(o=>{
+        setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:"split"}:x));
+      });
+      updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
+      push({title:"Bill fully paid",body:"Table "+selected+" cleared",color:"#059669"});
+      setSelected(null);
+      setPaymentStep(null);
+      setPaidSplits([]);
+      setSplitN(2);
+      setItemSplit({});
+    }else{
+      push({title:"Split payment",body:fmt(amount)+" by "+method+" received",color:"#2563eb"});
+    }
   };
 
   var stats={
@@ -1610,15 +1665,17 @@ function TablesV({tables,setTables,push,branch}){
           <p style={{color:"#8a8078",fontSize:12}}>{t.seats} seats - currently <strong style={{color:colors[t.status],textTransform:"capitalize"}}>{t.status}</strong></p>
           {t.status==="occupied"&&<>
             <p style={{fontSize:12,color:"#8a8078",marginTop:3}}>Seated since {t.since} with {t.guests} guest{t.guests!==1?"s":""}</p>
-            {t.orderId&&<p style={{fontSize:12,color:"#bf4626",fontWeight:700,marginTop:2}}>Order: {t.orderId}</p>}
+            {tableOrders.length>0&&<p style={{fontSize:12,color:"#bf4626",fontWeight:700,marginTop:2}}>{tableOrders.length} unpaid order{tableOrders.length!==1?"s":""}</p>}
           </>}
           {t.status==="reserved"&&<p style={{fontSize:12,color:"#8a8078",marginTop:3}}>Reserved for <strong>{t.resName}</strong> at <strong>{t.resTime}</strong></p>}
         </div>
-        <button onClick={()=>setSelected(null)} style={{color:"#ccc",fontSize:18,border:"none",background:"none",cursor:"pointer",padding:4}}>x</button>
+        <button onClick={()=>{setSelected(null);setPaymentStep(null);setPaidSplits([]);}} style={{color:"#ccc",fontSize:18,border:"none",background:"none",cursor:"pointer",padding:4}}>x</button>
       </div>
+
+      {/* FREE TABLE */}
       {t.status==="free"&&<div>
         <p style={{fontSize:11,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:6}}>SEAT GUESTS</p>
-        <div style={{display:"grid",gridTemplateColumns:"repeat("+t.seats+",1fr)",gap:5,marginBottom:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(t.seats,8)+",1fr)",gap:5,marginBottom:10}}>
           {Array.from({length:t.seats}).map((_,i)=><button key={i} onClick={()=>setGuestCount(i+1)} style={{padding:"10px 4px",borderRadius:8,fontWeight:700,fontSize:14,background:guestCount===i+1?"#1a1208":"#f7f3ee",color:guestCount===i+1?"#fff":"#1a1208",border:"none",cursor:"pointer"}}>{i+1}</button>)}
         </div>
         <div style={{display:"flex",gap:7}}>
@@ -1626,11 +1683,148 @@ function TablesV({tables,setTables,push,branch}){
           <button className="btn btn-o" onClick={reserve} style={{flex:1,padding:"12px"}}>Reserve</button>
         </div>
       </div>}
-      {t.status==="occupied"&&<div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-        <button className="btn btn-p" onClick={()=>alert("Switch to POS tab and enter table "+t.id)} style={{flex:1,padding:"12px"}}>Take Order</button>
-        <button className="btn btn-o" onClick={()=>alert("Bill printed for table "+t.id)} style={{flex:1,padding:"12px"}}>Print Bill</button>
-        <button className="btn btn-d" onClick={clearT} style={{flex:1,padding:"12px"}}>Clear Table</button>
+
+      {/* OCCUPIED TABLE - RUNNING BILL */}
+      {t.status==="occupied"&&!paymentStep&&<div>
+        {allItems.length>0?<>
+          <div style={{background:"#fafaf5",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #ede8de"}}>
+            <p style={{fontSize:11,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:8}}>RUNNING BILL</p>
+            {allItems.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #ede8de",fontSize:13}}>
+              <span>{it.name} <span style={{color:"#8a8078"}}>x{it.qty}</span></span>
+              <span style={{fontWeight:700}}>{fmt((+it.price||0)*it.qty)}</span>
+            </div>)}
+            <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0 2px",fontSize:12,color:"#8a8078"}}>
+              <span>Subtotal</span><span>{fmt(subtotal)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:11,color:"#8a8078"}}>
+              <span>VAT incl. 20%</span><span>{fmt(vat)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0 0",marginTop:6,borderTop:"2px solid #1a1208",fontWeight:700,fontSize:18}}>
+              <span>TOTAL</span><span style={{color:"#bf4626"}}>{fmt(total)}</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
+            <button className="btn btn-o" onClick={()=>onGoToPos&&onGoToPos(t.id)} style={{padding:"11px",fontSize:13}}>+ Add More Items</button>
+            <button className="btn btn-o" onClick={()=>{
+              var win=window.open("","","width=300,height=500");
+              if(!win)return;
+              var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div><div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.close();
+              setTimeout(()=>win.print(),200);
+            }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
+            <button className="btn btn-d" onClick={()=>payAll("cash")} style={{padding:"13px",fontSize:14}}>Pay Cash {fmt(total)}</button>
+            <button className="btn btn-p" onClick={()=>payAll("card")} style={{padding:"13px",fontSize:14}}>Pay Card {fmt(total)}</button>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setPaymentStep("split")} style={{flex:1,padding:"11px",fontSize:13,background:"#7c3aed",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Split Bill</button>
+            <button onClick={clearT} style={{flex:1,padding:"11px",fontSize:13,background:"#fff",color:"#dc2626",border:"2px solid #fee2e2",borderRadius:8,cursor:"pointer",fontWeight:700}}>Clear Without Pay</button>
+          </div>
+        </>:<div>
+          <p style={{color:"#8a8078",fontSize:13,marginBottom:10,textAlign:"center",padding:"15px 0"}}>No orders yet for this table</p>
+          <div style={{display:"flex",gap:7}}>
+            <button className="btn btn-r" onClick={()=>onGoToPos&&onGoToPos(t.id)} style={{flex:2,padding:"12px"}}>Take Order</button>
+            <button className="btn btn-d" onClick={clearT} style={{flex:1,padding:"12px"}}>Clear Table</button>
+          </div>
+        </div>}
       </div>}
+
+      {/* SPLIT BILL UI */}
+      {t.status==="occupied"&&paymentStep==="split"&&<div>
+        <div style={{background:"#f5f3ff",borderRadius:10,padding:12,marginBottom:12,border:"2px solid #7c3aed"}}>
+          <p style={{fontSize:12,fontWeight:700,color:"#7c3aed",marginBottom:4}}>SPLIT BILL - Total {fmt(total)}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Paid so far: {fmt(paidSplits.reduce((s,p)=>s+p.amount,0))} / Remaining: {fmt(total-paidSplits.reduce((s,p)=>s+p.amount,0))}</p>
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {[["amount","By People"],["item","By Item"],["mixed","Mixed Cash+Card"]].map(([k,l])=><button key={k} onClick={()=>setSplitMode(k)} style={{flex:1,padding:"9px 4px",fontSize:11,fontWeight:700,background:splitMode===k?"#1a1208":"#fff",color:splitMode===k?"#fff":"#1a1208",border:"2px solid "+(splitMode===k?"#1a1208":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+        </div>
+
+        {/* Split by amount */}
+        {splitMode==="amount"&&<>
+          <p style={{fontSize:11,fontWeight:700,color:"#8a8078",marginBottom:6}}>Number of people</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4,marginBottom:12}}>
+            {[2,3,4,5,6,8].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"10px 4px",fontSize:13,fontWeight:700,background:splitN===n?"#7c3aed":"#fff",color:splitN===n?"#fff":"#1a1208",border:"2px solid "+(splitN===n?"#7c3aed":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{n}</button>)}
+          </div>
+          <div style={{background:"#fafaf5",borderRadius:8,padding:12,marginBottom:12,textAlign:"center"}}>
+            <p style={{fontSize:11,color:"#8a8078"}}>Each person pays</p>
+            <p style={{fontSize:28,fontWeight:700,color:"#bf4626"}}>{fmt(total/splitN)}</p>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            <button className="btn btn-d" onClick={()=>paySplitPortion(total/splitN,"cash")} style={{padding:"12px",fontSize:13}}>Cash {fmt(total/splitN)}</button>
+            <button className="btn btn-p" onClick={()=>paySplitPortion(total/splitN,"card")} style={{padding:"12px",fontSize:13}}>Card {fmt(total/splitN)}</button>
+          </div>
+        </>}
+
+        {/* Split by item */}
+        {splitMode==="item"&&<>
+          <p style={{fontSize:11,fontWeight:700,color:"#8a8078",marginBottom:6}}>Tap items to select for this person</p>
+          <div style={{maxHeight:220,overflowY:"auto",border:"1px solid #ede8de",borderRadius:8,marginBottom:10}}>
+            {allItems.map((it,i)=><button key={i} onClick={()=>{
+              setItemSplit(s=>({...s,[i]:!s[i]}));
+            }} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:itemSplit[i]?"#f5f3ff":"#fff",border:"none",borderBottom:"1px solid #ede8de",cursor:"pointer",textAlign:"left"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{width:18,height:18,borderRadius:"50%",background:itemSplit[i]?"#7c3aed":"#ede8de",color:"#fff",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>{itemSplit[i]?EM.check:""}</span>
+                <span style={{fontWeight:600,fontSize:13}}>{it.name} x{it.qty}</span>
+              </div>
+              <span style={{fontWeight:700,fontSize:13}}>{fmt((+it.price||0)*it.qty)}</span>
+            </button>)}
+          </div>
+          {(()=>{
+            var selectedTotal=allItems.reduce((s,it,i)=>s+(itemSplit[i]?(+it.price||0)*it.qty:0),0);
+            return <>
+              <div style={{background:"#fafaf5",borderRadius:8,padding:10,marginBottom:10,textAlign:"center"}}>
+                <p style={{fontSize:11,color:"#8a8078"}}>This person pays</p>
+                <p style={{fontSize:22,fontWeight:700,color:"#bf4626"}}>{fmt(selectedTotal)}</p>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                <button className="btn btn-d" disabled={selectedTotal<=0} onClick={()=>{paySplitPortion(selectedTotal,"cash");setItemSplit({});}} style={{padding:"12px",fontSize:13}}>Cash {fmt(selectedTotal)}</button>
+                <button className="btn btn-p" disabled={selectedTotal<=0} onClick={()=>{paySplitPortion(selectedTotal,"card");setItemSplit({});}} style={{padding:"12px",fontSize:13}}>Card {fmt(selectedTotal)}</button>
+              </div>
+            </>;
+          })()}
+        </>}
+
+        {/* MIXED PAYMENT - Cash + Card for same customer */}
+        {splitMode==="mixed"&&(()=>{
+          var remaining=total-paidSplits.reduce((s,p)=>s+p.amount,0);
+          var amt=parseFloat(customAmount)||0;
+          var isValid=amt>0&&amt<=remaining+0.01;
+          return <>
+            <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:7,marginBottom:10,fontSize:11,color:"#92400e"}}>
+              <strong>Mixed Payment:</strong> Enter how much to take, then tap Cash or Card. Repeat until full amount is paid.
+            </div>
+            <div style={{background:"#fafaf5",borderRadius:8,padding:12,marginBottom:10,textAlign:"center"}}>
+              <p style={{fontSize:11,color:"#8a8078"}}>Remaining to pay</p>
+              <p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(remaining)}</p>
+            </div>
+            <label className="lbl">Amount to take now</label>
+            <input type="number" step="0.01" className="field" value={customAmount} onChange={e=>setCustomAmount(e.target.value)} placeholder="e.g. 50.00" style={{marginBottom:8,fontSize:18,padding:"12px",textAlign:"center",fontWeight:700}}/>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:10}}>
+              {[10,20,50,100].map(n=><button key={n} onClick={()=>setCustomAmount(String(Math.min(n,remaining)))} style={{padding:"9px 4px",fontSize:12,fontWeight:700,background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer"}}>{EM.pound}{n}</button>)}
+            </div>
+            <div style={{display:"flex",gap:6,marginBottom:6}}>
+              <button onClick={()=>setCustomAmount(String(remaining.toFixed(2)))} style={{flex:1,padding:"8px",fontSize:11,fontWeight:700,background:"#f5f3ff",color:"#7c3aed",border:"2px solid #e9d5ff",borderRadius:7,cursor:"pointer"}}>Use remaining {fmt(remaining)}</button>
+              <button onClick={()=>setCustomAmount(String((remaining/2).toFixed(2)))} style={{flex:1,padding:"8px",fontSize:11,fontWeight:700,background:"#f5f3ff",color:"#7c3aed",border:"2px solid #e9d5ff",borderRadius:7,cursor:"pointer"}}>Half {fmt(remaining/2)}</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+              <button className="btn btn-d" disabled={!isValid} onClick={()=>{paySplitPortion(amt,"cash");setCustomAmount("");}} style={{padding:"13px",fontSize:14}}>Cash {fmt(amt)}</button>
+              <button className="btn btn-p" disabled={!isValid} onClick={()=>{paySplitPortion(amt,"card");setCustomAmount("");}} style={{padding:"13px",fontSize:14}}>Card {fmt(amt)}</button>
+            </div>
+            {amt>remaining&&<p style={{color:"#dc2626",fontSize:11,marginTop:6,textAlign:"center",fontWeight:700}}>Amount exceeds remaining balance</p>}
+          </>;
+        })()}
+
+        {paidSplits.length>0&&<div style={{marginTop:12,padding:"8px 12px",background:"#d1fae5",borderRadius:7}}>
+          <p style={{fontSize:11,fontWeight:700,color:"#065f46",marginBottom:4}}>PAYMENTS RECEIVED</p>
+          {paidSplits.map((p,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#065f46"}}><span>{i+1}. {p.method} at {p.at}</span><span style={{fontWeight:700}}>{fmt(p.amount)}</span></div>)}
+        </div>}
+
+        <button onClick={()=>{setPaymentStep(null);setPaidSplits([]);setItemSplit({});setCustomAmount("");}} style={{marginTop:10,width:"100%",padding:"9px",fontSize:12,background:"none",color:"#8a8078",border:"1px solid #ede8de",borderRadius:7,cursor:"pointer",fontWeight:700}}>Cancel Split</button>
+      </div>}
+
+      {/* RESERVED TABLE */}
       {t.status==="reserved"&&<div style={{display:"flex",gap:7}}>
         <button className="btn btn-r" onClick={()=>seat(2)} style={{flex:2,padding:"12px"}}>Check in guests</button>
         <button className="btn btn-o" onClick={clearT} style={{flex:1,padding:"12px"}}>Cancel reservation</button>
@@ -2558,7 +2752,7 @@ export default function App(){
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
-      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch}/>}
+      {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{setView("pos");setTimeout(()=>{var el=document.querySelector("input[placeholder='Table #']");if(el)el.focus();},100);push({title:"Switched to POS",body:"Enter table "+tableId+" to continue",color:"#2563eb"});}}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
