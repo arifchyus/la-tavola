@@ -466,8 +466,71 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     }
     return "delivery";
   }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
+  var [addr,setAddr]=useState({line1:"",postcode:"",notes:""});
+  var [postcodeData,setPostcodeData]=useState(null); // {valid, distance, fee}
+  var [checkingPc,setCheckingPc]=useState(false);
+  var [dbDelivery,setDbDelivery]=useState(null); // delivery settings from DB
   var [slot,setSlot]=useState(null),[code,setCode]=useState(""),[disc,setDisc]=useState(null),[derr,setDerr]=useState("");
   var [last,setLast]=useState(null),[showPay,setPay]=useState(false);
+
+  // Load delivery settings from DB for this branch
+  useEffect(()=>{
+    if(!branch)return;
+    dbFetchAllDelivery().then(list=>{
+      var s=(list||[]).find(x=>x.branch_id===branch.id);
+      if(s){
+        setDbDelivery({
+          method:s.method,enabled:s.enabled,
+          minOrder:parseFloat(s.min_order||0),freeOver:parseFloat(s.free_over||0),
+          flatFee:parseFloat(s.flat_fee||0),maxRadius:s.max_radius||3,
+          zones:s.zones||[],postcodes:s.postcodes||[],
+          codEnabled:s.cod_enabled,
+          codMinOrder:parseFloat(s.cod_min_order||15),
+          codMaxMiles:s.cod_max_miles||3,
+        });
+      }
+    });
+  },[branch]);
+
+  // Check UK postcode and compute distance/fee when user enters it
+  var checkPostcode=async(pc)=>{
+    if(!pc||pc.length<5){setPostcodeData(null);return;}
+    setCheckingPc(true);
+    try{
+      var clean=pc.replace(/\s+/g,"").toUpperCase();
+      var res=await fetch("https://api.postcodes.io/postcodes/"+clean);
+      var data=await res.json();
+      if(!data||data.status!==200||!data.result){setPostcodeData({valid:false,reason:"Postcode not found"});setCheckingPc(false);return;}
+      var custLat=data.result.latitude,custLng=data.result.longitude;
+      // Calculate distance using Haversine
+      var R=3958.8; // miles
+      var dLat=(custLat-branch.lat)*Math.PI/180;
+      var dLng=(custLng-branch.lng)*Math.PI/180;
+      var a=Math.sin(dLat/2)**2+Math.cos(branch.lat*Math.PI/180)*Math.cos(custLat*Math.PI/180)*Math.sin(dLng/2)**2;
+      var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+      var miles=R*c;
+      // Determine fee based on delivery method
+      var d=dbDelivery;
+      if(!d||!d.enabled){setPostcodeData({valid:false,reason:"Delivery not available from this branch"});setCheckingPc(false);return;}
+      var fee=0,reason="",valid=true;
+      if(d.method==="radius"){
+        if(miles>d.maxRadius){valid=false;reason="Too far - we only deliver within "+d.maxRadius+" miles";}
+        else fee=d.flatFee||0;
+      }else if(d.method==="postcode"){
+        var pcEntry=(d.postcodes||[]).find(p=>clean.startsWith(p.prefix.toUpperCase()));
+        if(!pcEntry){valid=false;reason="We don't deliver to "+clean+" area";}
+        else fee=parseFloat(pcEntry.fee)||0;
+      }else if(d.method==="zone"){
+        var zone=(d.zones||[]).sort((a,b)=>(+a.maxMiles)-(+b.maxMiles)).find(z=>miles<=+z.maxMiles);
+        if(!zone){valid=false;reason="Too far - outside all zones";}
+        else fee=parseFloat(zone.fee)||0;
+      }
+      // Free over threshold
+      if(valid&&d.freeOver>0&&sub>=d.freeOver)fee=0;
+      setPostcodeData({valid,reason,fee,miles:miles.toFixed(1),town:data.result.admin_district||data.result.admin_ward,postcode:clean});
+    }catch(err){setPostcodeData({valid:false,reason:"Could not verify postcode"});}
+    setCheckingPc(false);
+  };
   var slots=getSlots(),busy=[slots[2],slots[5]];
   var items=Object.keys(cart).map(id=>{var m=menu.find(m=>String(m.id)===String(id));return m?{...m,qty:cart[id]}:null;}).filter(Boolean);
   var sub=items.reduce((s,i)=>s+(+i.price||0)*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
@@ -481,10 +544,12 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     var phone=type==="delivery"?(table||null):null;
     var tableId=type==="eatin"&&qrTable?parseInt(qrTable):null;
     var effectiveType=type==="eatin"?"dine-in":type;
-    // Determine payment method for pay-later orders
+    var deliveryFee=type==="delivery"&&postcodeData?postcodeData.fee:0;
+    var finalTotal=total+deliveryFee;
+    var address=type==="delivery"?{line1:addr.line1,postcode:addr.postcode,notes:addr.notes}:null;
     var payMethod=null;
     if(!paid){
-      if(type==="delivery")payMethod="cod"; // Cash on Delivery
+      if(type==="delivery")payMethod="cod";
       else if(type==="collection")payMethod="cash-at-counter";
       else if(type==="eatin")payMethod="pay-at-table";
     }
@@ -495,8 +560,11 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       customer,
       phone,
       tableId,
+      address,
       items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),
-      total,
+      subtotal:total,
+      deliveryFee,
+      total:finalTotal,
       status:"pending",
       time:nowT(),
       type:effectiveType,
@@ -509,7 +577,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     onOrder(o);
     setLast(o);
     setCart({});
-    push({title:"Order placed!",body:o.id+" - "+(paid?"Paid online":payMethod==="cod"?"Cash on delivery":"Pay later")+" - "+fmt(o.total),color:paid?"#059669":"#d4952a"});
+    push({title:"Order placed!",body:o.id+" - "+(paid?"Paid online":payMethod==="cod"?"Cash on delivery":"Pay later")+" - "+fmt(finalTotal),color:paid?"#059669":"#d4952a"});
     setStep(type==="collection"?"cdone":"done");
   };
 
@@ -544,7 +612,25 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         {type==="delivery"&&<div style={{marginBottom:5}}>
           <div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>
           <div style={{marginBottom:9}}><label className="lbl">Phone</label><input className="field" type="tel" value={table} onChange={e=>setTable(e.target.value)} placeholder="07700 900000"/></div>
-          <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:7,fontSize:11,color:"#92400e"}}><strong>Note:</strong> Delivery address and fee will be confirmed on next step. Payment required online.</div>
+          <div style={{marginBottom:9}}><label className="lbl">Delivery Address</label><input className="field" value={addr.line1} onChange={e=>setAddr({...addr,line1:e.target.value})} placeholder="123 Brick Lane"/></div>
+          <div style={{marginBottom:9}}><label className="lbl">Postcode</label>
+            <div style={{display:"flex",gap:6}}>
+              <input className="field" value={addr.postcode} onChange={e=>setAddr({...addr,postcode:e.target.value.toUpperCase()})} placeholder="E1 6QL" style={{flex:1}}/>
+              <button onClick={()=>checkPostcode(addr.postcode)} disabled={!addr.postcode||checkingPc} style={{padding:"9px 14px",fontSize:12,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer"}}>{checkingPc?"Checking...":"Check"}</button>
+            </div>
+          </div>
+          <div style={{marginBottom:9}}><label className="lbl">Delivery notes (optional)</label><input className="field" value={addr.notes} onChange={e=>setAddr({...addr,notes:e.target.value})} placeholder="Ring bell, flat 2..."/></div>
+          {postcodeData&&postcodeData.valid&&<div style={{padding:"10px 12px",background:"#d1fae5",borderRadius:7,fontSize:12,color:"#065f46",marginBottom:9}}>
+            <strong>{EM.check} We deliver here!</strong><br/>
+            {postcodeData.miles} miles - {postcodeData.fee>0?"Delivery fee "+fmt(postcodeData.fee):"FREE delivery"}
+            {postcodeData.town&&<><br/>Area: {postcodeData.town}</>}
+          </div>}
+          {postcodeData&&!postcodeData.valid&&<div style={{padding:"10px 12px",background:"#fee2e2",borderRadius:7,fontSize:12,color:"#991b1b",marginBottom:9}}>
+            <strong>{EM.cross}</strong> {postcodeData.reason}
+          </div>}
+          {dbDelivery&&dbDelivery.minOrder&&sub<dbDelivery.minOrder&&<div style={{padding:"9px 11px",background:"#fffbeb",borderRadius:7,fontSize:12,color:"#92400e",marginBottom:9}}>
+            Minimum order for delivery: {fmt(dbDelivery.minOrder)} - add {fmt(dbDelivery.minOrder-sub)} more
+          </div>}
         </div>}
         {type==="collection"&&<div><div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div><label className="lbl">Collection Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginTop:4}}>{slots.map(s=><button key={s} disabled={busy.includes(s)} onClick={()=>setSlot(s)} style={{padding:"8px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(slot===s?"#7c3aed":"#ede8de"),background:slot===s?"#f5f0ff":"#fff",color:slot===s?"#7c3aed":busy.includes(s)?"#ccc":"#1a1208",opacity:busy.includes(s)?.4:1,cursor:busy.includes(s)?"not-allowed":"pointer"}}>{s}</button>)}</div></div>}
       </div>
@@ -566,10 +652,26 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         }
         if(type==="delivery"){
           if(!cname||!table){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Enter name and phone to continue</button>;}
-          var codCheck=branch?checkCOD(branch,total,null):{ok:false,reason:"Loading..."};
+          if(!addr.line1||!addr.postcode){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Enter delivery address and postcode</button>;}
+          if(!postcodeData){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Click "Check" to verify postcode</button>;}
+          if(!postcodeData.valid){return <div style={{padding:"12px",background:"#fee2e2",color:"#991b1b",borderRadius:8,textAlign:"center",fontWeight:700}}>{postcodeData.reason}</div>;}
+          if(dbDelivery&&dbDelivery.minOrder&&sub<dbDelivery.minOrder){return <button disabled style={{width:"100%",padding:"12px",background:"#ccc",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"not-allowed"}}>Minimum {fmt(dbDelivery.minOrder)} required</button>;}
+          // Check COD using DB settings
+          var codOk=false,codReason="Cash on delivery not accepted";
+          if(dbDelivery&&dbDelivery.codEnabled){
+            if(total<dbDelivery.codMinOrder){codReason="Min "+fmt(dbDelivery.codMinOrder)+" for cash on delivery";}
+            else if(postcodeData.miles&&parseFloat(postcodeData.miles)>dbDelivery.codMaxMiles){codReason="COD only within "+dbDelivery.codMaxMiles+" miles";}
+            else codOk=true;
+          }
+          var finalTotal=total+(postcodeData.fee||0);
           return <div>
-            <button className="btn btn-r" onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:7}}>{EM.star} Pay Online - {fmt(total)}</button>
-            {codCheck.ok?<button className="btn btn-o" onClick={()=>finalize(false)} style={{width:"100%",padding:"12px",fontSize:13}}>{EM.pound} Cash on Delivery - {fmt(total)}</button>:<div style={{padding:"9px 11px",background:"#f5f0eb",borderRadius:7,fontSize:11,color:"#8a8078",textAlign:"center"}}>{EM.pound} Cash on Delivery: {codCheck.reason}</div>}
+            <div style={{padding:"10px 12px",background:"#fafaf5",borderRadius:7,marginBottom:9,fontSize:13}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span>Subtotal</span><span>{fmt(total)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivery</span><span style={{color:postcodeData.fee===0?"#059669":"#1a1208",fontWeight:700}}>{postcodeData.fee===0?"FREE":fmt(postcodeData.fee)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:15,marginTop:4,paddingTop:4,borderTop:"1px solid #ede8de"}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(finalTotal)}</span></div>
+            </div>
+            <button className="btn btn-r" onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:7}}>{EM.star} Pay Online - {fmt(finalTotal)}</button>
+            {codOk?<button className="btn btn-o" onClick={()=>finalize(false)} style={{width:"100%",padding:"12px",fontSize:13}}>{EM.pound} Cash on Delivery - {fmt(finalTotal)}</button>:<div style={{padding:"9px 11px",background:"#f5f0eb",borderRadius:7,fontSize:11,color:"#8a8078",textAlign:"center"}}>{EM.pound} Cash on Delivery: {codReason}</div>}
           </div>;
         }
         if(type==="collection"){
