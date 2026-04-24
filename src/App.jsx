@@ -136,6 +136,7 @@ var nowT=()=>new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-dig
 var uid=()=>"ORD-"+Math.floor(Math.random()*90000+10000);
 var rid=()=>"RES-"+Math.floor(Math.random()*9000+1000);
 
+// eslint-disable-next-line no-unused-vars
 var MENU=[
   {id:1,cat:"Starters",name:"Crispy Calamari",price:8.99,desc:"Lightly breaded with aioli",icon:"squid",avail:true,stock:20},
   {id:2,cat:"Starters",name:"Bruschetta",price:6.49,desc:"Tomato, basil and mozzarella",icon:"tomato",avail:true,stock:15},
@@ -203,10 +204,12 @@ var USERS=[
   {id:"s1",name:"Marco Rossi",email:"marco@staff.com",pw:"staff123",avatar:"MR",role:"owner"},
   {id:"s2",name:"Chef Paolo",email:"chef@staff.com",pw:"chef123",avatar:"CP",role:"kitchen"},
 ];
+// eslint-disable-next-line no-unused-vars
 var DISCOUNTS=[
   {code:"WELCOME10",type:"percent",value:10,desc:"10% off",active:true,uses:0,max:100},
   {code:"FLAT5",type:"fixed",value:5,desc:"5 off orders over 25",active:true,uses:0,max:500,minOrder:25},
 ];
+// eslint-disable-next-line no-unused-vars
 var ORDERS0=[
   {id:"ORD-1001",branchId:"b1",userId:"u1",customer:"Table 3",items:[{id:4,name:"Margherita Pizza",qty:2,price:13.99},{id:8,name:"Truffle Fries",qty:1,price:4.99}],total:32.97,status:"preparing",time:"12:45",type:"dine-in",paid:true,slot:null},
   {id:"ORD-1002",branchId:"b1",userId:"u2",customer:"John Smith",items:[{id:5,name:"Beef Burger",qty:1,price:14.99},{id:12,name:"Soft Drink",qty:2,price:2.99}],total:20.97,status:"ready",time:"12:50",type:"takeaway",paid:true,slot:null},
@@ -622,6 +625,7 @@ function KitchenV({orders,setOrders,push}){
 }
 
 // -- CATEGORIES ----------------------------------------------------------------
+// eslint-disable-next-line no-unused-vars
 var CATEGORIES0=[
   {id:"cat1",name:"Starters",icon:"soup",order:1},
   {id:"cat2",name:"Mains",icon:"pizza",order:2},
@@ -631,6 +635,7 @@ var CATEGORIES0=[
 ];
 
 // -- SET MEALS / COMBOS --------------------------------------------------------
+// eslint-disable-next-line no-unused-vars
 var SETMEALS0=[
   {id:"sm1",name:"Burger Combo",desc:"Any burger + fries + soft drink",price:19.99,itemIds:[5,8,12],avail:true,icon:"burger"},
   {id:"sm2",name:"Pizza Night",desc:"Pizza + salad + drink",price:18.99,itemIds:[4,9,12],avail:true,icon:"pizza"},
@@ -1294,6 +1299,7 @@ function ReportV({orders}){
 }
 
 // -- TABLES / FLOOR PLAN ---------------------------------------------------
+// eslint-disable-next-line no-unused-vars
 var TABLES0=[
   {id:1,seats:2,x:10,y:10,status:"free"},
   {id:2,seats:2,x:10,y:30,status:"occupied",since:"12:15",guests:2,orderId:"ORD-1001"},
@@ -1427,6 +1433,7 @@ function lookupPostcode(postcode, branchLat, branchLng){
 }
 
 // -- CUSTOMER DATABASE --------------------------------------------------------
+// eslint-disable-next-line no-unused-vars
 var CUSTOMERS0=[
   {id:"c1",phone:"07700900001",name:"John Smith",address:{line1:"45 Oxford Street",postcode:"E14 5AB",notes:"Flat 3B, buzzer broken"},distance:2.1,lastOrder:"ORD-1002",totalOrders:8,totalSpent:187.50,notes:"Allergic to nuts"},
   {id:"c2",phone:"07700900002",name:"Sarah Williams",address:{line1:"12 Camden Road",postcode:"N1 9AA",notes:"Green door"},distance:4.3,lastOrder:null,totalOrders:3,totalSpent:62.80,notes:"Prefers extra spicy"},
