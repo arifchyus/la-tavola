@@ -168,6 +168,48 @@ var BRANCHES=[
 ];
 
 // Check if COD is allowed for this branch + order
+// Check if QR table session is valid (not expired, table still active)
+// Returns {valid, table, branch, reason}
+function getQrSession(){
+  if(typeof window==="undefined")return{valid:false};
+  var params=new URLSearchParams(window.location.search);
+  var qrTable=params.get("table");
+  var qrBranch=params.get("branch");
+  if(!qrTable||!qrBranch)return{valid:false};
+  // Check session start time - expires after 2 hours
+  var sessionKey="qr_session_"+qrBranch+"_"+qrTable;
+  var savedStart=null;
+  try{savedStart=localStorage.getItem(sessionKey);}catch(e){}
+  var now=Date.now();
+  var TWO_HOURS=2*60*60*1000;
+  if(!savedStart){
+    // First visit - set start time
+    try{localStorage.setItem(sessionKey,now.toString());}catch(e){}
+    return{valid:true,table:qrTable,branch:qrBranch,fresh:true};
+  }
+  var started=parseInt(savedStart);
+  if(isNaN(started)||now-started>TWO_HOURS){
+    // Expired - clear
+    try{localStorage.removeItem(sessionKey);}catch(e){}
+    return{valid:false,reason:"expired"};
+  }
+  return{valid:true,table:qrTable,branch:qrBranch};
+}
+
+function clearQrSession(){
+  if(typeof window==="undefined")return;
+  var params=new URLSearchParams(window.location.search);
+  var qrTable=params.get("table");
+  var qrBranch=params.get("branch");
+  if(qrTable&&qrBranch){
+    try{localStorage.removeItem("qr_session_"+qrBranch+"_"+qrTable);}catch(e){}
+  }
+  // Also remove from URL
+  if(window.history&&window.history.replaceState){
+    window.history.replaceState({},"",window.location.pathname);
+  }
+}
+
 // eslint-disable-next-line no-unused-vars
 function checkCOD(branch,orderTotal,distance){
   var c=branch.cod;
@@ -461,10 +503,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState({}),[step,setStep]=useState("menu");
   var [type,setType]=useState(()=>{
-    if(typeof window!=="undefined"){
-      var params=new URLSearchParams(window.location.search);
-      if(params.get("table")&&params.get("branch"))return "eatin";
-    }
+    var sess=getQrSession();
+    if(sess.valid)return "eatin";
     return "delivery";
   }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
   var [addr,setAddr]=useState({line1:"",postcode:"",notes:""});
@@ -473,6 +513,26 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var [dbDelivery,setDbDelivery]=useState(null); // delivery settings from DB
   var [slot,setSlot]=useState(null),[code,setCode]=useState(""),[disc,setDisc]=useState(null),[derr,setDerr]=useState("");
   var [last,setLast]=useState(null),[showPay,setPay]=useState(false);
+
+  // Auto-clear QR session if table is no longer occupied (paid/cleared by staff)
+  useEffect(()=>{
+    var sess=getQrSession();
+    if(!sess.valid||!branch||branch.id!==sess.branch)return;
+    // Check table status every 30 sec - if available, customer has left
+    var checkInterval=setInterval(()=>{
+      dbFetchTables().then(dbTables=>{
+        var myTable=(dbTables||[]).find(t=>(t.branch_id===sess.branch)&&(String(t.table_number)===String(sess.table)||String(t.id)===String(sess.table)));
+        if(myTable&&myTable.status==="available"){
+          // Staff cleared this table - customer must have left
+          clearQrSession();
+          push({title:"Session ended",body:"Your table session has ended. Thanks for visiting!",color:"#059669"});
+          setType("delivery");
+        }
+      }).catch(e=>{});
+    },30000);
+    return()=>clearInterval(checkInterval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[branch]);
 
   // Load delivery settings from DB for this branch
   useEffect(()=>{
@@ -539,8 +599,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
   var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
   var finalize=paid=>{
-    var params=typeof window!=="undefined"?new URLSearchParams(window.location.search):null;
-    var qrTable=params?params.get("table"):null;
+    var sess=getQrSession();
+    var qrTable=sess.valid?sess.table:null;
     var customer=type==="eatin"&&qrTable?"Table "+qrTable:(cname||"Guest");
     var phone=type==="delivery"?(table||null):null;
     var tableId=type==="eatin"&&qrTable?parseInt(qrTable):null;
@@ -608,7 +668,10 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         {type==="eatin"&&<div style={{padding:"14px 16px",background:"#fffbeb",borderRadius:9,border:"2px solid #fde68a"}}>
           <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:5}}>{EM.cart} At the restaurant?</p>
           <p style={{fontSize:12,color:"#92400e",marginBottom:8}}>Scan the QR code on your table to order. A staff member can also take your order at the table.</p>
-          {(()=>{var params=new URLSearchParams(window.location.search);var qrTable=params.get("table");var qrBranch=params.get("branch");if(qrTable&&qrBranch){return <p style={{fontSize:13,fontWeight:700,color:"#059669",padding:"8px 10px",background:"#d1fae5",borderRadius:6}}>{EM.check} You are at Table {qrTable}. Your order will be delivered here.</p>;}return <button onClick={()=>setType("collection")} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:13}}>Switch to Collection Instead</button>;})()}
+          {(()=>{var sess=getQrSession();if(sess.valid){return <div>
+            <p style={{fontSize:13,fontWeight:700,color:"#059669",padding:"8px 10px",background:"#d1fae5",borderRadius:6,marginBottom:8}}>{EM.check} You are at Table {sess.table}. Your order will be delivered here.</p>
+            <button onClick={()=>{if(window.confirm("End your table session? If you have finished eating and are leaving, this will clear your QR session."))clearQrSession();window.location.reload();}} style={{width:"100%",padding:"7px",fontSize:11,background:"#f5f0eb",color:"#8a8078",border:"1px solid #ede8de",borderRadius:6,cursor:"pointer"}}>I'm leaving the restaurant</button>
+          </div>;}return <button onClick={()=>setType("collection")} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:13}}>Switch to Collection Instead</button>;})()}
         </div>}
         {type==="delivery"&&<div style={{marginBottom:5}}>
           <div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>
@@ -645,8 +708,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
       </div>
       {(()=>{
-        var params=typeof window!=="undefined"?new URLSearchParams(window.location.search):null;
-        var qrTable=params?params.get("table"):null;
+        var sess=getQrSession();
+        var qrTable=sess.valid?sess.table:null;
         var isEatInAtTable=type==="eatin"&&qrTable;
         if(type==="eatin"&&!qrTable){
           return <div style={{padding:"14px",background:"#fef3c7",borderRadius:9,textAlign:"center",fontSize:13,color:"#92400e",fontWeight:600}}>Please scan the QR code at your table, or switch to Delivery/Collection above.</div>;
