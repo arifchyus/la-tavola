@@ -3131,7 +3131,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,
+            tableId:o.table_id,stationProgress:o.station_progress||{},
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -3674,7 +3674,7 @@ export default function App(){
           slot:o.slot,
           takenBy:o.taken_by,
           source:o.source,
-          tableId:o.table_id,
+          tableId:o.table_id,stationProgress:o.station_progress||{},
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
@@ -3790,7 +3790,7 @@ export default function App(){
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,
+            tableId:o.table_id,stationProgress:o.station_progress||{},
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
