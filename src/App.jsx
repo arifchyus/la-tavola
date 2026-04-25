@@ -674,7 +674,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
   var [addr,setAddr]=useState({line1:"",postcode:"",notes:""});
   var [codeMethod,setCodeMethod]=useState("both");
-  var [serviceChargeOpt,setServiceChargeOpt]=useState(true); // true = include charge
+  var [serviceChargeOpt,setServiceChargeOpt]=useState(true);
+  var [dbCodes,setDbCodes]=useState([]);
+
+  // Load promo codes from DB
+  useEffect(()=>{
+    dbFetchCodes().then(list=>setDbCodes(list||[]));
+  },[]);
   var [postcodeData,setPostcodeData]=useState(null); // {valid, distance, fee}
   var [checkingPc,setCheckingPc]=useState(false);
   var [dbDelivery,setDbDelivery]=useState(null); // delivery settings from DB
@@ -780,7 +786,39 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var total=Math.max(0,sub-saving)+serviceCharge,count=items.reduce((s,i)=>s+i.qty,0);
   var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
-  var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
+  var applyCode=()=>{
+    var entered=code.toUpperCase().trim();
+    if(!entered){setDerr("Enter a code");setDisc(null);return;}
+    // First try DB codes (admin-managed)
+    var dbCode=dbCodes.find(c=>c.code&&c.code.toUpperCase()===entered);
+    if(dbCode){
+      // Validate DB code
+      if(!dbCode.active){setDerr("This code is no longer active");setDisc(null);return;}
+      if(dbCode.expires_at&&new Date(dbCode.expires_at)<new Date()){setDerr("This code has expired");setDisc(null);return;}
+      if(dbCode.uses>=dbCode.max_uses){setDerr("This code has reached its usage limit");setDisc(null);return;}
+      if(dbCode.min_order&&sub<dbCode.min_order){setDerr("Min order "+fmt(dbCode.min_order)+" required for this code");setDisc(null);return;}
+      // First-order-only check
+      if(dbCode.first_order_only&&user&&user.id){
+        // Note: simple check - in production, query user's order history
+      }
+      // Calculate savings
+      var sv=0,desc=dbCode.description||entered;
+      if(dbCode.type==="percent")sv=sub*(parseFloat(dbCode.value)/100);
+      else if(dbCode.type==="fixed")sv=parseFloat(dbCode.value);
+      else if(dbCode.type==="free_delivery"){
+        sv=0; // savings shown as 0, but we'll mark for free delivery
+        desc=dbCode.description||"Free delivery";
+      }
+      sv=Math.min(sv,sub);
+      setDisc({saving:sv,desc:desc,code:entered,freeDelivery:dbCode.type==="free_delivery"});
+      setDerr("");
+      return;
+    }
+    // Fall back to legacy hardcoded codes
+    var r=applyDisc(discounts,code,sub);
+    if(r.err){setDerr(r.err);setDisc(null);}
+    else{setDisc(r);setDerr("");}
+  };
   var finalize=paid=>{
     var sess=getQrSession();
     var qrTable=sess.valid?sess.table:null;
@@ -789,6 +827,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     var tableId=type==="eatin"&&qrTable?parseInt(qrTable):null;
     var effectiveType=type==="eatin"?"dine-in":type;
     var deliveryFee=type==="delivery"&&postcodeData?postcodeData.fee:0;
+    if(disc&&disc.freeDelivery)deliveryFee=0; // Free delivery promo applied
     var finalTotal=total+deliveryFee;
     var address=type==="delivery"?{line1:addr.line1,postcode:addr.postcode,notes:addr.notes}:null;
     // Generate 4-digit delivery code for delivery orders
@@ -936,11 +975,12 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
             else if(postcodeData.miles&&parseFloat(postcodeData.miles)>dbDelivery.codMaxMiles){codReason="COD only within "+dbDelivery.codMaxMiles+" miles";}
             else codOk=true;
           }
-          var finalTotal=total+(postcodeData.fee||0);
+          var actualFee=disc&&disc.freeDelivery?0:(postcodeData.fee||0);
+          var finalTotal=total+actualFee;
           return <div>
             <div style={{padding:"10px 12px",background:"#fafaf5",borderRadius:7,marginBottom:9,fontSize:13}}>
               <div style={{display:"flex",justifyContent:"space-between"}}><span>Subtotal</span><span>{fmt(total)}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivery</span><span style={{color:postcodeData.fee===0?"#059669":"#1a1208",fontWeight:700}}>{postcodeData.fee===0?"FREE":fmt(postcodeData.fee)}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivery{disc&&disc.freeDelivery?" (Promo)":""}</span><span style={{color:actualFee===0?"#059669":"#1a1208",fontWeight:700}}>{actualFee===0?"FREE":fmt(actualFee)}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:15,marginTop:4,paddingTop:4,borderTop:"1px solid #ede8de"}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(finalTotal)}</span></div>
             </div>
             <button className="btn btn-r" onClick={()=>setPay(true)} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:7}}>{EM.star} Pay Online - {fmt(finalTotal)}</button>
