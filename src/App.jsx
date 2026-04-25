@@ -2813,6 +2813,20 @@ var TABLES0=[
 ];
 
 function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
+  var [tablesDeliv,setTablesDeliv]=useState(null);
+  useEffect(()=>{
+    if(!branch)return;
+    dbFetchAllDelivery().then(list=>{
+      var s=(list||[]).find(x=>x.branch_id===branch.id);
+      if(s){
+        setTablesDeliv({
+          serviceChargeEnabled:s.service_charge_enabled||false,
+          serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+          serviceChargeMandatory:s.service_charge_mandatory||false,
+        });
+      }
+    });
+  },[branch]);
   var [selected,setSelected]=useState(null);
   var [guestCount,setGuestCount]=useState(2);
   var [paymentStep,setPaymentStep]=useState(null);
@@ -2835,8 +2849,9 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
     else allItems.push({...it,orderId:o.id});
   });});
   var subtotal=allItems.reduce((s,i)=>s+(+i.price||0)*i.qty,0);
+  var serviceChargeT=(tablesDeliv&&tablesDeliv.serviceChargeEnabled)?subtotal*((tablesDeliv.serviceChargePercent||0)/100):0;
   var vat=subtotal-subtotal/1.2;
-  var total=subtotal;
+  var total=subtotal+serviceChargeT;
 
   var updateTable=(id,updates)=>{
     // Match by BOTH branch_id AND table_number to avoid updating same-numbered tables in other branches
@@ -2986,6 +3001,9 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
             <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0 2px",fontSize:12,color:"#8a8078"}}>
               <span>Subtotal</span><span>{fmt(subtotal)}</span>
             </div>
+            {serviceChargeT>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:12,color:"#7c3aed",fontWeight:700}}>
+              <span>Service ({tablesDeliv.serviceChargePercent}%)</span><span>+ {fmt(serviceChargeT)}</span>
+            </div>}
             <div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:11,color:"#8a8078"}}>
               <span>VAT incl. 20%</span><span>{fmt(vat)}</span>
             </div>
@@ -2999,7 +3017,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
               var win=window.open("","","width=300,height=500");
               if(!win)return;
               var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
-              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div><div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
               win.document.close();
               setTimeout(()=>win.print(),200);
             }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
@@ -4002,11 +4020,28 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
   var [lastOrder,setLastOrder]=useState(null);
+  var [posDeliv,setPosDeliv]=useState(null); // delivery settings for service charge
+  useEffect(()=>{
+    if(!branch)return;
+    dbFetchAllDelivery().then(list=>{
+      var s=(list||[]).find(x=>x.branch_id===branch.id);
+      if(s){
+        setPosDeliv({
+          serviceChargeEnabled:s.service_charge_enabled||false,
+          serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+          serviceChargeMandatory:s.service_charge_mandatory||false,
+        });
+      }
+    });
+  },[branch]);
   var rawSub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   var discAmt=rawSub*(discPct/100);
   var afterDisc=rawSub-discAmt;
+  // Service charge: only on dine-in, only if enabled in branch settings
+  var posServiceApplies=type==="dine-in"&&posDeliv&&posDeliv.serviceChargeEnabled;
+  var serviceCharge=posServiceApplies?afterDisc*((posDeliv.serviceChargePercent||0)/100):0;
   var vat=afterDisc-afterDisc/1.2;
-  var total=afterDisc+tip;
+  var total=afterDisc+serviceCharge+tip;
   var perSplit=total/Math.max(splitN,1);
   var count=cart.reduce((s,i)=>s+i.qty,0);
   var [flashId,setFlashId]=useState(null);
@@ -4054,7 +4089,7 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
       }
     }
     var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
-    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:"staff"};
+    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:"staff"};
     onOrder(o);setLastOrder(o);push({title:paid?"Paid by "+method:"Sent to kitchen",body:o.id+" - "+fmt(o.total),color:paid?"#059669":"#2563eb"});
     // Auto-update table status when dine-in order placed
     if(tableId&&setTables&&tables){
@@ -4225,6 +4260,7 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
           {/* Totals */}
           <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:2}}><span>Subtotal</span><span>{fmt(rawSub)}</span></div>
           {discAmt>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#dc2626",marginBottom:2,fontWeight:700}}><span>Discount ({discPct}%)</span><span>- {fmt(discAmt)}</span></div>}
+          {posServiceApplies&&serviceCharge>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#7c3aed",marginBottom:2,fontWeight:700}}><span>Service ({posDeliv.serviceChargePercent}%)</span><span>+ {fmt(serviceCharge)}</span></div>}
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#8a8078",marginBottom:2}}><span>VAT incl. 20%</span><span>{fmt(vat)}</span></div>
           {tip>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#d4952a",marginBottom:2,fontWeight:700}}><span>Tip</span><span>+ {fmt(tip)}</span></div>}
           <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:18,marginBottom:6,paddingTop:6,borderTop:"1px solid #ede8de"}}><span>TOTAL</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
