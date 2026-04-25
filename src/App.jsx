@@ -215,14 +215,19 @@ function clearQrSession(){
 function getItemPrice(item,orderType){
   if(!item)return 0;
   var base=parseFloat(item.price)||0;
+  // Helper - returns null if value is empty/zero/invalid, otherwise the parsed number
+  var p=v=>{var n=parseFloat(v);return(isNaN(n)||n<=0)?null:n;};
   if(orderType==="dine-in"||orderType==="eatin"){
-    return parseFloat(item.priceDineIn)||base;
+    var v=p(item.priceDineIn);
+    return v!==null?v:base;
   }
   if(orderType==="collection"||orderType==="takeaway"){
-    return parseFloat(item.priceTakeaway)||base;
+    var v2=p(item.priceTakeaway);
+    return v2!==null?v2:base;
   }
   if(orderType==="delivery"){
-    return parseFloat(item.priceDelivery)||base;
+    var v3=p(item.priceDelivery);
+    return v3!==null?v3:base;
   }
   return base;
 }
@@ -677,6 +682,15 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   var [serviceChargeOpt,setServiceChargeOpt]=useState(true);
   var [dbCodes,setDbCodes]=useState([]);
 
+  // Ensure type stays "eatin" while QR session is active (handles edge cases)
+  useEffect(()=>{
+    var sess=getQrSession();
+    if(sess.valid&&type!=="eatin"){
+      setType("eatin");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   // Load promo codes from DB
   useEffect(()=>{
     dbFetchCodes().then(list=>setDbCodes(list||[]));
@@ -1004,7 +1018,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     {(()=>{var sess=getQrSession();if(!sess.valid)return null;return <div style={{background:"linear-gradient(135deg,#d1fae5,#a7f3d0)",border:"2px solid #059669",borderRadius:12,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
       <div>
         <p style={{fontSize:13,fontWeight:700,color:"#065f46",marginBottom:2}}>{EM.check} Seated at Table {sess.table}</p>
-        <p style={{fontSize:11,color:"#047857"}}>Your order will be delivered to your table</p>
+        <p style={{fontSize:11,color:"#047857"}}>Dine-in prices apply - your order comes to your table</p>
       </div>
       <button onClick={()=>{if(window.confirm("End your table session? Only click this if you have finished eating and are leaving the restaurant."))clearQrSession();window.location.reload();}} style={{padding:"7px 12px",fontSize:11,background:"#fff",color:"#065f46",border:"1px solid #059669",borderRadius:7,cursor:"pointer",fontWeight:700}}>End Session / Leaving</button>
     </div>;})()}
