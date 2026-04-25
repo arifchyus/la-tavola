@@ -40,6 +40,8 @@ export async function saveOrderToDb(order) {
     source: order.source || 'online',
     notes: order.notes || null,
     table_id: order.tableId || null,
+    delivery_code: order.deliveryCode || null,
+    code_method: order.codeMethod || 'app',
   }).select().single();
   if (error) console.error('saveOrderToDb error:', error);
   return { data, error };
@@ -650,4 +652,58 @@ export async function updateStationProgress(orderId, stationName, isReady) {
     .update({ station_progress: progress })
     .eq('order_number', orderId);
   return { error, progress };
+}
+
+// ---- DELIVERY CODES + CASH RECONCILIATION -----------------------------------
+export async function verifyDeliveryCode(orderId, code, driverName) {
+  const { data: order } = await supabase.from('orders')
+    .select('delivery_code,total,pay_method,paid')
+    .eq('order_number', orderId).maybeSingle();
+  if (!order) return { ok: false, reason: 'Order not found' };
+  if (!order.delivery_code) return { ok: false, reason: 'No code set on this order' };
+  if (String(order.delivery_code) !== String(code)) return { ok: false, reason: 'Code does not match' };
+  // Mark as delivered
+  await supabase.from('orders').update({
+    status: 'delivered',
+    delivered_at: new Date().toISOString(),
+    delivered_by: driverName,
+  }).eq('order_number', orderId);
+  return { ok: true, isCOD: order.pay_method === 'cod' && !order.paid, total: parseFloat(order.total) };
+}
+
+export async function recordCashCollected(orderId, amount, driverName) {
+  const { error } = await supabase.from('orders').update({
+    paid: true,
+    pay_method: 'cash',
+    cash_collected: amount,
+    delivered_by: driverName,
+  }).eq('order_number', orderId);
+  return { error };
+}
+
+export async function fetchCashHandovers(branchId) {
+  let q = supabase.from('cash_handovers').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data, error } = await q.order('created_at', { ascending: false });
+  if (error) console.error('fetchCashHandovers:', error);
+  return data || [];
+}
+
+export async function recordCashHandover(handover) {
+  const { data, error } = await supabase.from('cash_handovers').insert({
+    restaurant_id: RESTAURANT_ID,
+    branch_id: handover.branchId || null,
+    driver_name: handover.driverName,
+    manager_name: handover.managerName,
+    amount: parseFloat(handover.amount),
+    order_ids: handover.orderIds || [],
+    expected_amount: parseFloat(handover.expectedAmount || handover.amount),
+    notes: handover.notes || null,
+  }).select().single();
+  // Mark associated orders with handover id
+  if (data && handover.orderIds && handover.orderIds.length) {
+    await supabase.from('orders').update({ cash_handover_id: data.id })
+      .in('order_number', handover.orderIds);
+  }
+  return { data, error };
 }

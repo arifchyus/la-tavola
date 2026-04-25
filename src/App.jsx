@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -640,6 +640,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     return "delivery";
   }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
   var [addr,setAddr]=useState({line1:"",postcode:"",notes:""});
+  var [codeMethod,setCodeMethod]=useState("both");
   var [postcodeData,setPostcodeData]=useState(null); // {valid, distance, fee}
   var [checkingPc,setCheckingPc]=useState(false);
   var [dbDelivery,setDbDelivery]=useState(null); // delivery settings from DB
@@ -740,6 +741,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     var deliveryFee=type==="delivery"&&postcodeData?postcodeData.fee:0;
     var finalTotal=total+deliveryFee;
     var address=type==="delivery"?{line1:addr.line1,postcode:addr.postcode,notes:addr.notes}:null;
+    // Generate 4-digit delivery code for delivery orders
+    var deliveryCode=type==="delivery"?String(Math.floor(1000+Math.random()*9000)):null;
     var payMethod=null;
     if(!paid){
       if(type==="delivery")payMethod="cod";
@@ -766,6 +769,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       slot:type==="collection"?slot:null,
       discCode:disc?.code||null,
       source:type==="eatin"?"qr-table":"online",
+      deliveryCode,
+      codeMethod:type==="delivery"?codeMethod:null,
     };
     onOrder(o);
     setLast(o);
@@ -781,10 +786,16 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:14}}><button className="btn btn-r" onClick={()=>{setStep("menu");setSlot(null);setDisc(null);setCode("");}}>Order Again</button><button className="btn btn-o" onClick={()=>printR(last,branch)}>Receipt</button></div>
   </div>;
 
-  if(step==="done") return <div className="page fadeup" style={{maxWidth:380,textAlign:"center"}}>
+  if(step==="done") return <div className="page fadeup" style={{maxWidth:430,textAlign:"center"}}>
     <p style={{fontSize:48,marginBottom:10}}>{EM.party}</p>
     <h2 style={{fontSize:24,marginBottom:4}}>Order Confirmed!</h2>
     <p style={{color:"#8a8078",marginBottom:4}}>ID: <strong>{last?.id}</strong></p>
+    {last?.deliveryCode&&<div style={{background:"linear-gradient(135deg,#1e40af,#2563eb)",color:"#fff",borderRadius:14,padding:"18px 16px",margin:"14px auto",maxWidth:300}}>
+      <p style={{fontSize:11,letterSpacing:2,fontWeight:700,marginBottom:6,opacity:.85}}>DELIVERY CODE</p>
+      <p style={{fontSize:42,fontWeight:700,letterSpacing:8,fontFamily:"'Courier New',monospace",marginBottom:6}}>{last.deliveryCode}</p>
+      <p style={{fontSize:11,opacity:.85}}>Show this code to driver on arrival</p>
+    </div>}
+    {last?.deliveryCode&&last?.codeMethod&&last.codeMethod!=="app"&&<p style={{fontSize:11,color:"#8a8078",marginBottom:8}}>{last.codeMethod==="sms"?"Sent by SMS":last.codeMethod==="email"?"Sent by email":"Sent by SMS and email"} (when available)</p>}
     <p style={{color:"#8a8078",fontSize:13,marginBottom:20}}>We will have it ready soon.</p>
     <button className="btn btn-r" onClick={()=>setStep("menu")}>Order Again</button>
   </div>;
@@ -827,6 +838,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
           {dbDelivery&&dbDelivery.minOrder&&sub<dbDelivery.minOrder&&<div style={{padding:"9px 11px",background:"#fffbeb",borderRadius:7,fontSize:12,color:"#92400e",marginBottom:9}}>
             Minimum order for delivery: {fmt(dbDelivery.minOrder)} - add {fmt(dbDelivery.minOrder-sub)} more
           </div>}
+          <div style={{padding:"10px 12px",background:"#eff6ff",borderRadius:7,marginBottom:9}}>
+            <p style={{fontSize:12,fontWeight:700,color:"#1e40af",marginBottom:6}}>How to receive delivery code?</p>
+            <p style={{fontSize:10,color:"#1e3a8a",marginBottom:7}}>4-digit code to give the driver - proves correct delivery</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:5}}>
+              {[["sms","Text (SMS)"],["email","Email"],["both","Both"],["app","Show in app only"]].map(([k,l])=><button key={k} onClick={()=>setCodeMethod(k)} style={{padding:"8px 4px",fontSize:11,fontWeight:700,background:codeMethod===k?"#2563eb":"#fff",color:codeMethod===k?"#fff":"#1e3a8a",border:"2px solid "+(codeMethod===k?"#2563eb":"#bfdbfe"),borderRadius:6,cursor:"pointer"}}>{l}</button>)}
+            </div>
+          </div>
         </div>}
         {type==="collection"&&<div><div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div><label className="lbl">Collection Time</label><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginTop:4}}>{slots.map(s=><button key={s} disabled={busy.includes(s)} onClick={()=>setSlot(s)} style={{padding:"8px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(slot===s?"#7c3aed":"#ede8de"),background:slot===s?"#f5f0ff":"#fff",color:slot===s?"#7c3aed":busy.includes(s)?"#ccc":"#1a1208",opacity:busy.includes(s)?.4:1,cursor:busy.includes(s)?"not-allowed":"pointer"}}>{s}</button>)}</div></div>}
       </div>
@@ -1848,6 +1866,14 @@ function TableEditor({table,onSave,onClose,existingTables}){
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
+  var [cashHandovers,setCashHandovers]=useState([]);
+  var [handoverDriver,setHandoverDriver]=useState("");
+  var [handoverAmount,setHandoverAmount]=useState("");
+
+  // Load cash handover history on mount + when admin tab opened
+  useEffect(()=>{
+    dbFetchHandovers().then(list=>setCashHandovers(list||[]));
+  },[]);
   var [delivSettings,setDelivSettings]=useState({});
   var [promoCodes,setPromoCodes]=useState([]);
   var [autoDiscs,setAutoDiscs]=useState([]);
@@ -2015,7 +2041,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -2288,6 +2314,106 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>}
       </>})()}
     </div>}
+    {tab==="cash"&&(()=>{
+      // Find all delivered orders with cash collected but not yet handed over
+      var unsettled=orders.filter(o=>{
+        if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+        return o.type==="delivery"&&o.status==="delivered"&&o.payMethod==="cash"&&o.paid&&!o.cashHandoverId;
+      });
+      // Group by driver
+      var byDriver={};
+      unsettled.forEach(o=>{
+        var d=o.deliveredBy||"Unknown";
+        if(!byDriver[d])byDriver[d]={driver:d,orders:[],total:0};
+        byDriver[d].orders.push(o);
+        byDriver[d].total+=parseFloat(o.cashCollected||o.total||0);
+      });
+      var driverList=Object.values(byDriver);
+
+      var doHandover=(group)=>{
+        var amt=parseFloat(handoverAmount||group.total);
+        if(!amt||amt<=0){alert("Enter cash amount received");return;}
+        var orderIds=group.orders.map(o=>o.id);
+        var handover={branchId:branch?.id,driverName:group.driver,managerName:user?.name||"Manager",amount:amt,expectedAmount:group.total,orderIds:orderIds};
+        dbRecordHandover(handover).then(r=>{
+          if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+          // Update local orders to mark as handed over
+          setOrders(os=>os.map(o=>orderIds.includes(o.id)?{...o,cashHandoverId:r.data?.id||"local"}:o));
+          // Refresh handover list
+          dbFetchHandovers().then(list=>setCashHandovers(list||[]));
+          var diff=amt-group.total;
+          var msg=diff===0?"Exact":(diff>0?"Over by "+fmt(diff):"Short by "+fmt(Math.abs(diff)));
+          push({title:"Cash received from "+group.driver,body:fmt(amt)+" - "+msg,color:diff===0?"#059669":"#d4952a"});
+          setHandoverAmount("");setHandoverDriver("");
+        });
+      };
+
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+          <div><h3 style={{fontSize:16,marginBottom:2}}>Cash Reconciliation</h3><p style={{fontSize:11,color:"#8a8078"}}>Receive cash from drivers - {branch?.name}</p></div>
+          <select value={adminBranch} onChange={e=>setAdminBranch(e.target.value)} style={{padding:"7px 10px",fontSize:12,border:"2px solid #ede8de",borderRadius:8,fontWeight:700,cursor:"pointer"}}>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8,marginBottom:14}}>
+          <div className="card" style={{padding:13,textAlign:"center",background:"#fef3c7"}}>
+            <p style={{fontSize:11,color:"#92400e",fontWeight:700}}>OUTSTANDING</p>
+            <p style={{fontSize:24,fontWeight:700,color:"#92400e"}}>{fmt(unsettled.reduce((s,o)=>s+(o.cashCollected||o.total||0),0))}</p>
+            <p style={{fontSize:10,color:"#92400e"}}>{unsettled.length} orders awaiting handover</p>
+          </div>
+          <div className="card" style={{padding:13,textAlign:"center",background:"#d1fae5"}}>
+            <p style={{fontSize:11,color:"#065f46",fontWeight:700}}>RECEIVED TODAY</p>
+            <p style={{fontSize:24,fontWeight:700,color:"#065f46"}}>{fmt(cashHandovers.filter(h=>{var d=new Date(h.created_at);return d.toDateString()===new Date().toDateString();}).reduce((s,h)=>s+parseFloat(h.amount||0),0))}</p>
+            <p style={{fontSize:10,color:"#065f46"}}>{cashHandovers.filter(h=>{var d=new Date(h.created_at);return d.toDateString()===new Date().toDateString();}).length} handovers today</p>
+          </div>
+        </div>
+
+        <h4 style={{fontSize:13,fontWeight:700,marginBottom:8,color:"#8a8078",letterSpacing:1}}>DRIVERS WITH CASH OWED</h4>
+        {driverList.length===0?<div className="card" style={{textAlign:"center",padding:24}}>
+          <p style={{fontSize:30,marginBottom:6}}>{EM.check}</p>
+          <p style={{fontSize:13,color:"#8a8078"}}>All cash reconciled - no drivers owe money</p>
+        </div>:driverList.map(g=><div key={g.driver} className="card" style={{padding:14,marginBottom:9,borderLeft:"4px solid #f59e0b"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9,flexWrap:"wrap",gap:6}}>
+            <div>
+              <p style={{fontWeight:700,fontSize:15}}>{g.driver}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{g.orders.length} delivered orders - cash to collect</p>
+            </div>
+            <p style={{fontSize:22,fontWeight:700,color:"#bf4626"}}>{fmt(g.total)}</p>
+          </div>
+          <details style={{marginBottom:9}}>
+            <summary style={{cursor:"pointer",fontSize:11,color:"#8a8078",fontWeight:700}}>Show {g.orders.length} order{g.orders.length!==1?"s":""}</summary>
+            <div style={{marginTop:7,background:"#fafaf5",borderRadius:6,padding:"7px 10px",fontSize:11}}>
+              {g.orders.map(o=><div key={o.id} style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>{o.id} - {o.customer}</span><span style={{fontWeight:700}}>{fmt(o.cashCollected||o.total)}</span></div>)}
+            </div>
+          </details>
+          <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:8,border:"2px solid #fde68a"}}>
+            <p style={{fontSize:11,fontWeight:700,color:"#92400e",marginBottom:7}}>Receive cash from {g.driver}</p>
+            <div style={{display:"flex",gap:6}}>
+              <input type="number" step="0.01" value={handoverDriver===g.driver?handoverAmount:""} onFocus={()=>setHandoverDriver(g.driver)} onChange={e=>{setHandoverDriver(g.driver);setHandoverAmount(e.target.value);}} placeholder={fmt(g.total)} style={{flex:1,padding:"10px",fontSize:14,fontWeight:700,textAlign:"center",border:"2px solid #f59e0b",borderRadius:7}}/>
+              <button onClick={()=>doHandover(g)} style={{padding:"10px 14px",background:"#059669",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:13}}>{EM.check} Confirm Received</button>
+            </div>
+            <p style={{fontSize:10,color:"#92400e",marginTop:5}}>Tip: leave blank to confirm exact expected amount</p>
+          </div>
+        </div>)}
+
+        <h4 style={{fontSize:13,fontWeight:700,marginTop:18,marginBottom:8,color:"#8a8078",letterSpacing:1}}>RECENT HANDOVER HISTORY</h4>
+        {cashHandovers.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No handovers recorded yet</p>:<div style={{display:"grid",gap:6}}>
+          {cashHandovers.slice(0,15).map(h=>{
+            var diff=parseFloat(h.amount)-parseFloat(h.expected_amount||h.amount);
+            return <div key={h.id} className="card" style={{padding:"9px 12px",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+              <div>
+                <p style={{fontWeight:700}}>{h.driver_name} {String.fromCharCode(0x2192)} {h.manager_name}</p>
+                <p style={{fontSize:10,color:"#8a8078"}}>{new Date(h.created_at).toLocaleString("en-GB")} - {(h.order_ids||[]).length} orders</p>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{fontWeight:700,fontSize:14}}>{fmt(parseFloat(h.amount))}</p>
+                {diff!==0&&<p style={{fontSize:10,color:diff>0?"#059669":"#dc2626",fontWeight:700}}>{diff>0?"Over by ":"Short by "}{fmt(Math.abs(diff))}</p>}
+              </div>
+            </div>;
+          })}
+        </div>}
+      </div>;
+    })()}
+
     {tab==="stations"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
         <div><h3 style={{fontSize:16,marginBottom:2}}>Kitchen Stations & Printers</h3><p style={{fontSize:11,color:"#8a8078"}}>Configure each station's printer (browser, PrintNode, or none)</p></div>
@@ -3188,6 +3314,120 @@ function StaffBookingsV({branch,push}){
 
 
 // -- INCOMING ONLINE ORDERS PANEL ------------------------------------------
+// -- DRIVER VIEW: Active deliveries, code verification, cash collection ------
+function DriverV({orders,setOrders,push,user,branch}){
+  var [codeInput,setCodeInput]=useState({});
+  var [collectInput,setCollectInput]=useState({});
+  var driverName=user?.name||"Driver";
+
+  // Active deliveries: ready or out for delivery, type=delivery
+  var myDeliveries=orders.filter(o=>{
+    if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+    if(o.type!=="delivery")return false;
+    return o.status==="ready"||o.status==="out_for_delivery"||(o.status==="delivered"&&o.payMethod==="cod"&&!o.paid);
+  });
+  var todayDelivered=orders.filter(o=>{
+    if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+    if(o.type!=="delivery"||o.status!=="delivered")return false;
+    if(o.deliveredBy&&o.deliveredBy!==driverName)return false;
+    return true;
+  });
+  var cashOwed=todayDelivered.filter(o=>o.payMethod==="cash"&&o.paid&&!o.cashHandoverId).reduce((s,o)=>s+(o.cashCollected||o.total||0),0);
+
+  var verifyCode=(o)=>{
+    var entered=codeInput[o.id]||"";
+    if(!entered||entered.length<4){alert("Enter the 4-digit code from customer");return;}
+    if(String(entered)!==String(o.deliveryCode)){
+      push({title:"Wrong code",body:"Code does not match for "+o.id,color:"#dc2626"});
+      return;
+    }
+    // Code matches - mark delivered
+    setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"delivered",deliveredAt:new Date().toISOString(),deliveredBy:driverName}:x));
+    dbUpdateOrderStatus(o.id,"delivered").catch(e=>{});
+    push({title:"Delivered!",body:o.id+" - confirmed by code",color:"#059669"});
+    setCodeInput(c=>({...c,[o.id]:""}));
+  };
+
+  var pickup=(o)=>{
+    setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"out_for_delivery"}:x));
+    dbUpdateOrderStatus(o.id,"out_for_delivery").catch(e=>{});
+    push({title:"Out for delivery",body:o.id,color:"#2563eb"});
+  };
+
+  var collectCash=(o)=>{
+    var amt=parseFloat(collectInput[o.id]||o.total||0);
+    if(!amt||amt<=0){alert("Enter cash amount");return;}
+    setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:"cash",cashCollected:amt,deliveredBy:driverName}:x));
+    dbRecordCash(o.id,amt,driverName).catch(e=>console.log("Cash record save:",e));
+    push({title:"Cash collected",body:fmt(amt)+" from "+o.id,color:"#059669"});
+    setCollectInput(c=>({...c,[o.id]:""}));
+  };
+
+  return <div className="page">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div>
+        <h2 style={{fontSize:22,marginBottom:2}}>Driver View</h2>
+        <p style={{color:"#8a8078",fontSize:12}}>{driverName} - {branch?.name}</p>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <div style={{padding:"8px 12px",background:"#dbeafe",color:"#1e40af",borderRadius:9,fontSize:12,fontWeight:700}}>{myDeliveries.length} active</div>
+        <div style={{padding:"8px 12px",background:cashOwed>0?"#fef3c7":"#d1fae5",color:cashOwed>0?"#92400e":"#065f46",borderRadius:9,fontSize:12,fontWeight:700}}>Cash owed: {fmt(cashOwed)}</div>
+      </div>
+    </div>
+
+    {myDeliveries.length===0?<div className="card" style={{textAlign:"center",padding:30}}>
+      <p style={{fontSize:40,marginBottom:10}}>{EM.bag}</p>
+      <p style={{fontSize:14,color:"#8a8078"}}>No active deliveries</p>
+    </div>:myDeliveries.map(o=>{
+      var addrLine=o.address?(typeof o.address==="string"?o.address:[o.address.line1,o.address.postcode].filter(Boolean).join(", ")):"No address";
+      var isCOD=o.payMethod==="cod"&&!o.paid;
+      var needsCashStep=o.status==="delivered"&&isCOD;
+      var fullyDone=o.status==="delivered"&&!isCOD;
+      return <div key={o.id} className="card" style={{marginBottom:11,padding:14,borderLeft:"5px solid "+(fullyDone?"#10b981":needsCashStep?"#f59e0b":o.status==="out_for_delivery"?"#2563eb":"#bf4626")}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontWeight:700,fontSize:16,marginBottom:3}}>{o.customer||"Guest"}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{o.id} - {fmt(o.total)} - {o.payMethod==="cod"?"COD":o.paid?"PAID":"UNPAID"}</p>
+            <p style={{fontSize:13,marginTop:6,fontWeight:600}}>{EM.pin} {addrLine}</p>
+            {o.address?.notes&&<p style={{fontSize:11,color:"#8a8078",marginTop:2,fontStyle:"italic"}}>Note: {o.address.notes}</p>}
+            {o.phone&&<p style={{fontSize:13,marginTop:4}}>{EM.phone} <a href={"tel:"+o.phone} style={{color:"#2563eb",fontWeight:700}}>{o.phone}</a></p>}
+          </div>
+          <span style={{padding:"3px 9px",background:fullyDone?"#d1fae5":needsCashStep?"#fef3c7":o.status==="out_for_delivery"?"#dbeafe":"#fee2e2",color:fullyDone?"#065f46":needsCashStep?"#92400e":o.status==="out_for_delivery"?"#1e40af":"#991b1b",borderRadius:5,fontSize:10,fontWeight:700}}>{fullyDone?"DONE":needsCashStep?"COLLECT CASH":o.status==="out_for_delivery"?"EN ROUTE":"READY TO PICKUP"}</span>
+        </div>
+
+        <div style={{background:"#fafaf5",borderRadius:6,padding:"7px 10px",marginBottom:10,fontSize:11}}>
+          {(o.items||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><span>{it.name} x{it.qty}</span><span>{fmt((+it.price||0)*it.qty)}</span></div>)}
+          <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid #ede8de",marginTop:5,paddingTop:5,fontWeight:700}}><span>Total</span><span>{fmt(o.total)}</span></div>
+        </div>
+
+        {o.status==="ready"&&<button className="btn btn-r" onClick={()=>pickup(o)} style={{width:"100%",padding:"12px",fontSize:14}}>Pick Up Order - Set Out for Delivery</button>}
+
+        {o.status==="out_for_delivery"&&<div style={{padding:"12px",background:"#fff7ed",borderRadius:9,border:"2px dashed #f59e0b"}}>
+          <p style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>At customer's door? Ask for delivery code</p>
+          <div style={{display:"flex",gap:6}}>
+            <input value={codeInput[o.id]||""} onChange={e=>setCodeInput(c=>({...c,[o.id]:e.target.value.replace(/[^0-9]/g,"").slice(0,4)}))} placeholder="0000" maxLength={4} style={{flex:1,padding:"14px",fontSize:24,fontWeight:700,textAlign:"center",letterSpacing:8,fontFamily:"'Courier New',monospace",border:"2px solid #f59e0b",borderRadius:8}}/>
+            <button onClick={()=>verifyCode(o)} style={{padding:"14px 16px",background:"#059669",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>{EM.check} Verify</button>
+          </div>
+        </div>}
+
+        {needsCashStep&&<div style={{padding:"12px",background:"#fef3c7",borderRadius:9,border:"2px solid #f59e0b",marginTop:8}}>
+          <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>{EM.pound} COLLECT {fmt(o.total)} CASH</p>
+          <div style={{display:"flex",gap:6}}>
+            <input type="number" step="0.01" value={collectInput[o.id]||o.total||""} onChange={e=>setCollectInput(c=>({...c,[o.id]:e.target.value}))} placeholder="0.00" style={{flex:1,padding:"11px",fontSize:16,fontWeight:700,textAlign:"center",border:"2px solid #f59e0b",borderRadius:8}}/>
+            <button onClick={()=>collectCash(o)} style={{padding:"11px 14px",background:"#059669",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>{EM.check} Confirm Cash</button>
+          </div>
+        </div>}
+      </div>;
+    })}
+
+    {todayDelivered.length>0&&<div className="card" style={{padding:14,marginTop:14,background:"#f0fdf4"}}>
+      <p style={{fontWeight:700,fontSize:14,marginBottom:8,color:"#065f46"}}>{EM.check} Delivered Today: {todayDelivered.length}</p>
+      <p style={{fontSize:11,color:"#065f46"}}>Cash collected (not yet handed over): {fmt(cashOwed)}</p>
+      {cashOwed>0&&<p style={{fontSize:11,color:"#92400e",marginTop:6,fontWeight:700}}>{EM.star} Hand cash to manager - they will mark received in Admin tab</p>}
+    </div>}
+  </div>;
+}
+
 function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTables,stations,menu}){
   var [filter,setFilter]=useState("new");
   var [soundOn,setSoundOn]=useState(()=>{
@@ -3308,7 +3548,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -3874,7 +4114,7 @@ export default function App(){
           slot:o.slot,
           takenBy:o.taken_by,
           source:o.source,
-          tableId:o.table_id,stationProgress:o.station_progress||{},
+          tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
@@ -3996,7 +4236,7 @@ export default function App(){
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -4051,9 +4291,9 @@ export default function App(){
   };
   useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
   var isStaff=user&&user.role!=="customer";
-  var tabs=isStaff?["pos","phone","tables","bookings","incoming","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
-  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming"};
-  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag"};
+  var tabs=isStaff?["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
+  var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag",driver:"pin"};
 
   if(!branch) return <>
     <style>{CSS}</style>
@@ -4104,6 +4344,7 @@ export default function App(){
       }}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
       {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables} stations={stations} menu={menu}/>}
+      {view==="driver"&&<DriverV orders={orders} setOrders={setOrders} push={push} user={user} branch={branch}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
