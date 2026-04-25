@@ -240,7 +240,6 @@ function buildTicketHtml(order,station,branch,format){
     showAllSummary=true;
   }
   var typeLabel=order.type==="dine-in"?"DINE-IN":order.type==="delivery"?"DELIVERY":order.type==="collection"?"COLLECTION":(order.type||"ORDER").toUpperCase();
-  var divider=isThermal?"================================":"------------------------------------------------------";
   var copies=parseInt(station?.copies)||1;
   var copyText=copies>1?" ("+copies+" copies)":"";
   var html="<html><head><title>Order "+order.id+"</title><style>"+
