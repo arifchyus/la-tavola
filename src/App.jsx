@@ -1956,6 +1956,11 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
   var [cashHandovers,setCashHandovers]=useState([]);
   var [handoverDriver,setHandoverDriver]=useState("");
+  var [menuSearch,setMenuSearch]=useState("");
+  var [menuSort,setMenuSort]=useState("az");
+  var [menuFilterCat,setMenuFilterCat]=useState("all");
+  var [menuFilterStation,setMenuFilterStation]=useState("all");
+  var [menuFilterStatus,setMenuFilterStatus]=useState("all");
   var [handoverAmount,setHandoverAmount]=useState("");
 
   // Load cash handover history on mount + when admin tab opened
@@ -2140,25 +2145,104 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0}}>{l}</button>)}</div>
     {tab==="orders"&&allSt.map(st=>{var grp=fil.filter(o=>o.status===st);if(!grp.length)return null;return <div key={st} style={{marginBottom:14}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span className="bdg" style={{background:SB[st],color:SC[st]}}>{SL[st]}</span><span style={{color:"#8a8078",fontSize:11}}>{grp.length}</span></div><div className="ag">{grp.map(o=><div key={o.id} className="card" style={{padding:"11px 13px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p><span style={{fontSize:10,color:o.paid?"#059669":"#dc2626",fontWeight:600}}>{o.paid?"Paid":"Unpaid"}</span></div></div><p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{o.items.map(i=>i.name+"x"+i.qty).join(", ")}</p><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}</div><button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button></div>)}</div></div>;})}
     {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(del.length?rev/del.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
-    {tab==="menu"&&<div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
-        <div><h3 style={{fontSize:16}}>Menu Items ({menu.length})</h3><p style={{fontSize:11,color:"#8a8078"}}>Tap a card to edit, or add new items</p></div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button onClick={()=>setShowImport(true)} style={{padding:"8px 14px",fontSize:13,fontWeight:700,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,cursor:"pointer"}}>{EM.party} Import with AI</button>
-          <button className="btn btn-r" onClick={()=>setEditItem({})} style={{padding:"8px 16px",fontSize:13}}>+ Add New Item</button>
+    {tab==="menu"&&(()=>{
+      // Apply filters
+      var q=menuSearch.trim().toLowerCase();
+      var filtered=menu.filter(item=>{
+        if(menuFilterCat!=="all"&&item.cat!==menuFilterCat)return false;
+        if(menuFilterStation!=="all"){
+          if(menuFilterStation==="none"&&item.station)return false;
+          else if(menuFilterStation!=="none"&&item.station!==menuFilterStation)return false;
+        }
+        if(menuFilterStatus==="available"&&!item.avail)return false;
+        if(menuFilterStatus==="unavailable"&&item.avail)return false;
+        if(menuFilterStatus==="lowstock"&&(item.stock>5||item.stock===0))return false;
+        if(menuFilterStatus==="soldout"&&item.stock!==0)return false;
+        if(q){
+          var hay=(item.name+" "+(item.desc||"")+" "+(item.cat||"")).toLowerCase();
+          if(!hay.includes(q))return false;
+        }
+        return true;
+      });
+      // Apply sort
+      filtered=[...filtered].sort((a,b)=>{
+        if(menuSort==="az")return a.name.localeCompare(b.name);
+        if(menuSort==="za")return b.name.localeCompare(a.name);
+        if(menuSort==="cheap")return (+a.price||0)-(+b.price||0);
+        if(menuSort==="expensive")return (+b.price||0)-(+a.price||0);
+        if(menuSort==="cat")return (a.cat||"").localeCompare(b.cat||"")||a.name.localeCompare(b.name);
+        return 0;
+      });
+
+      // Highlight match in name
+      var hl=(text)=>{
+        if(!q||!text)return text;
+        var idx=text.toLowerCase().indexOf(q);
+        if(idx<0)return text;
+        return <>{text.slice(0,idx)}<mark style={{background:"#fef3c7",padding:0}}>{text.slice(idx,idx+q.length)}</mark>{text.slice(idx+q.length)}</>;
+      };
+
+      var hasActiveFilter=q||menuFilterCat!=="all"||menuFilterStation!=="all"||menuFilterStatus!=="all";
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+          <div><h3 style={{fontSize:16}}>Menu Items <span style={{color:"#8a8078",fontWeight:400}}>({filtered.length}{filtered.length!==menu.length?" of "+menu.length:""})</span></h3><p style={{fontSize:11,color:"#8a8078"}}>Tap a card to edit, or add new items</p></div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <button onClick={()=>setShowImport(true)} style={{padding:"8px 14px",fontSize:13,fontWeight:700,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,cursor:"pointer"}}>{EM.party} Import with AI</button>
+            <button className="btn btn-r" onClick={()=>setEditItem({})} style={{padding:"8px 16px",fontSize:13}}>+ Add New Item</button>
+          </div>
         </div>
-      </div>
-      <div className="ag">{menu.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5,cursor:"pointer",transition:"transform .15s"}} onClick={()=>setEditItem(item)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div>
-        <p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{item.name}</p>
-        <p style={{fontSize:10,color:"#8a8078",marginBottom:6}}>{item.cat} - Stock: {item.stock}</p>
-        {item.allergens&&item.allergens.length>0&&<p style={{fontSize:9,color:"#7c3aed",marginBottom:6,fontWeight:600}}>{item.allergens.length} dietary tag{item.allergens.length>1?"s":""}</p>}
-        <div style={{display:"flex",gap:4}}>
-          <button onClick={e=>{e.stopPropagation();setMenu(ms=>ms.map(m=>m.id===item.id?{...m,avail:!m.avail}:m));}} style={{flex:1,padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:item.avail?"#059669":"#ede8de",background:item.avail?"#d1fae5":"#f7f3ee",color:item.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{item.avail?"Available":"86'd"}</button>
-          <button onClick={e=>{e.stopPropagation();setEditItem(item);}} style={{padding:"6px 10px",borderRadius:7,background:"#1a1208",color:"#fff",border:"none",fontWeight:700,fontSize:11,cursor:"pointer"}}>Edit</button>
+
+        <div className="card" style={{padding:12,marginBottom:12}}>
+          <div style={{position:"relative",marginBottom:8}}>
+            <input value={menuSearch} onChange={e=>setMenuSearch(e.target.value)} placeholder="Search by name, description, or category..." className="field" style={{paddingLeft:36,paddingRight:menuSearch?36:12,fontSize:13}}/>
+            <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#8a8078",pointerEvents:"none"}}>{String.fromCharCode(0x1F50D >> 10) + String.fromCharCode(0x1F50D & 0x3FF)}</span>
+            {menuSearch&&<button onClick={()=>setMenuSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"#ede8de",border:"none",width:24,height:24,borderRadius:12,cursor:"pointer",fontWeight:700,color:"#8a8078"}}>x</button>}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:6}}>
+            <select value={menuSort} onChange={e=>setMenuSort(e.target.value)} className="field" style={{fontSize:12}}>
+              <option value="az">Sort: A to Z</option>
+              <option value="za">Sort: Z to A</option>
+              <option value="cat">Sort: by Category</option>
+              <option value="cheap">Sort: Price low-high</option>
+              <option value="expensive">Sort: Price high-low</option>
+            </select>
+            <select value={menuFilterCat} onChange={e=>setMenuFilterCat(e.target.value)} className="field" style={{fontSize:12}}>
+              <option value="all">All Categories</option>
+              {[...new Set(menu.map(m=>m.cat).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={menuFilterStation} onChange={e=>setMenuFilterStation(e.target.value)} className="field" style={{fontSize:12}}>
+              <option value="all">All Stations</option>
+              <option value="none">No Station Set</option>
+              {(stations||[]).filter(s=>s.active!==false).map(s=><option key={s.dbId} value={s.name}>{s.name}</option>)}
+            </select>
+            <select value={menuFilterStatus} onChange={e=>setMenuFilterStatus(e.target.value)} className="field" style={{fontSize:12}}>
+              <option value="all">All Status</option>
+              <option value="available">Available</option>
+              <option value="unavailable">Unavailable (86'd)</option>
+              <option value="lowstock">Low Stock (1-5)</option>
+              <option value="soldout">Sold Out (0)</option>
+            </select>
+          </div>
+          {hasActiveFilter&&<button onClick={()=>{setMenuSearch("");setMenuFilterCat("all");setMenuFilterStation("all");setMenuFilterStatus("all");}} style={{marginTop:8,padding:"6px 11px",fontSize:11,fontWeight:700,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer"}}>Clear all filters</button>}
         </div>
-      </div>)}</div>
-    </div>}
+
+        {filtered.length===0?<div className="card" style={{textAlign:"center",padding:40}}>
+          <p style={{fontSize:36,marginBottom:9}}>{EM.cross}</p>
+          <p style={{fontSize:14,fontWeight:700,marginBottom:4}}>No items match your search</p>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:11}}>Try a different search or clear filters</p>
+          {hasActiveFilter&&<button onClick={()=>{setMenuSearch("");setMenuFilterCat("all");setMenuFilterStation("all");setMenuFilterStatus("all");}} className="btn btn-r" style={{padding:"8px 16px",fontSize:12}}>Clear All Filters</button>}
+        </div>:<div className="ag">{filtered.map(item=><div key={item.id} className="card" style={{opacity:item.avail?1:.5,cursor:"pointer",transition:"transform .15s"}} onClick={()=>setEditItem(item)} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:26}}>{EM[item.icon]||""}</span><span style={{fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span></div>
+          <p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{hl(item.name)}</p>
+          <p style={{fontSize:10,color:"#8a8078",marginBottom:6}}>{item.cat}{item.station?" - "+item.station:""} - Stock: {item.stock}</p>
+          {item.allergens&&item.allergens.length>0&&<p style={{fontSize:9,color:"#7c3aed",marginBottom:6,fontWeight:600}}>{item.allergens.length} dietary tag{item.allergens.length>1?"s":""}</p>}
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={e=>{e.stopPropagation();setMenu(ms=>ms.map(m=>m.id===item.id?{...m,avail:!m.avail}:m));}} style={{flex:1,padding:"6px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid",borderColor:item.avail?"#059669":"#ede8de",background:item.avail?"#d1fae5":"#f7f3ee",color:item.avail?"#065f46":"#8a8078",cursor:"pointer"}}>{item.avail?"Available":"86'd"}</button>
+            <button onClick={e=>{e.stopPropagation();setEditItem(item);}} style={{padding:"6px 10px",borderRadius:7,background:"#1a1208",color:"#fff",border:"none",fontWeight:700,fontSize:11,cursor:"pointer"}}>Edit</button>
+          </div>
+        </div>)}</div>}
+      </div>;
+    })()}
 
     {tab==="combos"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
