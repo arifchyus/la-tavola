@@ -735,7 +735,6 @@ export async function awardLoyaltyPoints(customerId, points, orderId, descriptio
   if (!cust) return { error: 'Customer not found' };
   const newPoints = (cust.loyalty_points || 0) + points;
   // Determine tier
-  const newSpent = (parseFloat(cust.total_spent) || 0) + (orderId ? 0 : 0); // spent updated separately
   let tier = 'bronze';
   if (newPoints >= 2000) tier = 'gold';
   else if (newPoints >= 500) tier = 'silver';
