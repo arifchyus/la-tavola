@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,incrementDiscountUse as dbIncrementCodeUse,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,incrementDiscountUse as dbIncrementCodeUse,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1026,29 +1026,156 @@ function ChatV({messages,setMessages,user,onAuth}){
   </div>;
 }
 
-function KitchenV({orders,setOrders,push}){
-  var active=orders.filter(o=>o.status==="pending"||o.status==="preparing");
-  var adv=id=>{
-    var order=orders.find(o=>o.id===id);
+function KitchenV({orders,setOrders,push,stations,menu}){
+  // Persisted in localStorage: chef's selected station view
+  var [view,setView]=useState(()=>{try{return localStorage.getItem("kitchen_view")||"";}catch(e){return "";}});
+  var changeView=v=>{setView(v);try{localStorage.setItem("kitchen_view",v);}catch(e){}};
+
+  var activeStations=(stations||[]).filter(s=>s.active!==false);
+  var allOrders=orders.filter(o=>o.status==="pending"||o.status==="preparing");
+
+  // Helper: find station for menu item
+  var stationForItem=(itemId,itemName)=>{
+    var m=menu.find(x=>String(x.id)===String(itemId)||x.name===itemName);
+    return m?.station||null;
+  };
+
+  // Filter items per view
+  var getOrderItems=(o,filterStation)=>{
+    if(!filterStation||filterStation==="all"||filterStation==="manager")return o.items;
+    return (o.items||[]).filter(it=>stationForItem(it.id,it.name)===filterStation);
+  };
+
+  // Mark a station's items ready for an order
+  var markStationReady=(orderId,stationName)=>{
+    var order=orders.find(o=>o.id===orderId);
     if(!order)return;
-    var next=order.status==="pending"?"preparing":"ready";
-    setOrders(os=>os.map(o=>o.id===id?{...o,status:next}:o));
-    push({title:id,body:"-> "+next,color:next==="ready"?"#059669":"#2563eb"});
-    // Persist to database so customer can see update
-    dbUpdateOrderStatus(id,next).catch(e=>console.log("Kitchen status save failed:",e));
+    var progress={...(order.stationProgress||{})};
+    progress[stationName]=true;
+    setOrders(os=>os.map(o=>o.id===orderId?{...o,stationProgress:progress}:o));
+    dbUpdateStationProgress(orderId,stationName,true).catch(e=>console.log("Station progress save:",e));
+    // Check if ALL stations needed by this order are now ready
+    var stationsInOrder=new Set();
+    (order.items||[]).forEach(it=>{var st=stationForItem(it.id,it.name);if(st)stationsInOrder.add(st);});
+    var allReady=[...stationsInOrder].every(st=>progress[st]);
+    if(allReady&&stationsInOrder.size>0){
+      setOrders(os=>os.map(o=>o.id===orderId?{...o,status:"ready"}:o));
+      dbUpdateOrderStatus(orderId,"ready").catch(e=>{});
+      push({title:"Order Ready!",body:orderId+" - all stations done",color:"#059669"});
+    }else{
+      push({title:stationName+" done",body:orderId,color:"#2563eb"});
+    }
+  };
+
+  var startAll=id=>{
+    setOrders(os=>os.map(o=>o.id===id?{...o,status:"preparing"}:o));
+    dbUpdateOrderStatus(id,"preparing").catch(e=>{});
+    push({title:id,body:"-> preparing",color:"#2563eb"});
   };
   var cancel=id=>{
     setOrders(os=>os.map(x=>x.id===id?{...x,status:"cancelled"}:x));
-    dbUpdateOrderStatus(id,"cancelled").catch(e=>console.log("Cancel save failed:",e));
+    dbUpdateOrderStatus(id,"cancelled").catch(e=>{});
   };
+
+  // STATION PICKER (first time)
+  if(!view&&activeStations.length>0){
+    return <div className="kbg" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{maxWidth:600,width:"100%"}}>
+        <h1 style={{color:"#fff",fontSize:28,marginBottom:6,textAlign:"center"}}>Kitchen Display</h1>
+        <p style={{color:"#888",fontSize:14,marginBottom:24,textAlign:"center"}}>Choose your station</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:14}}>
+          {activeStations.map(s=><button key={s.dbId} onClick={()=>changeView(s.name)} style={{padding:"24px 14px",background:s.color,color:"#fff",border:"none",borderRadius:14,cursor:"pointer",fontWeight:700,fontSize:16,boxShadow:"0 4px 14px rgba(0,0,0,.3)"}}>{s.name}</button>)}
+        </div>
+        <button onClick={()=>changeView("manager")} style={{width:"100%",padding:"16px",background:"#1a1208",color:"#d4952a",border:"2px solid #d4952a",borderRadius:12,cursor:"pointer",fontWeight:700,fontSize:14}}>Manager View - See All Stations</button>
+        <button onClick={()=>changeView("all")} style={{width:"100%",padding:"12px",background:"transparent",color:"#888",border:"none",cursor:"pointer",fontWeight:600,fontSize:12,marginTop:6}}>Or show everything (legacy mode)</button>
+      </div>
+    </div>;
+  }
+
+  // MANAGER MODE - shows all stations grouped per order
+  if(view==="manager"){
+    return <div className="kbg"><div style={{maxWidth:1200,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div>
+          <h2 style={{color:"#fff",fontSize:18}}>Manager Kitchen View</h2>
+          <p style={{color:"#666",fontSize:11}}>{allOrders.length} active orders - all stations</p>
+        </div>
+        <button onClick={()=>changeView("")} style={{padding:"6px 12px",background:"transparent",color:"#888",border:"1px solid #444",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>Change Station</button>
+      </div>
+      {allOrders.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><p style={{fontSize:32,marginBottom:7}}>OK</p><p>All caught up!</p></div>:<div className="ag">
+        {allOrders.map(o=>{
+          var prog=o.stationProgress||{};
+          var stationsInOrder=new Set();
+          (o.items||[]).forEach(it=>{var st=stationForItem(it.id,it.name);if(st)stationsInOrder.add(st);else stationsInOrder.add("Unassigned");});
+          return <div key={o.id} style={{background:"#0f0a06",border:"2px solid #d97706",borderRadius:12,padding:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <div><p style={{color:"#fff",fontWeight:700,fontSize:15}}>{o.id}</p><p style={{color:"#888",fontSize:11}}>{o.customer} - {o.time}</p></div>
+              <span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{SL[o.status]}</span>
+            </div>
+            {[...stationsInOrder].map(stName=>{
+              var stItems=(o.items||[]).filter(it=>(stationForItem(it.id,it.name)||"Unassigned")===stName);
+              var stObj=activeStations.find(s=>s.name===stName);
+              var ready=prog[stName];
+              return <div key={stName} style={{borderLeft:"3px solid "+(stObj?.color||"#666"),paddingLeft:9,marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                  <p style={{color:stObj?.color||"#888",fontSize:11,fontWeight:700,letterSpacing:1}}>{stName.toUpperCase()}</p>
+                  <span style={{fontSize:10,color:ready?"#10b981":"#666",fontWeight:700}}>{ready?"READY":"WAITING"}</span>
+                </div>
+                {stItems.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#fff",padding:"2px 0"}}><span>{it.name}</span><span style={{color:"#f59e0b",fontWeight:700}}>x{it.qty}</span></div>)}
+              </div>;
+            })}
+            <div style={{display:"flex",gap:5,marginTop:9}}>
+              {o.status==="pending"&&<button onClick={()=>startAll(o.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",cursor:"pointer"}}>Start All</button>}
+              <button onClick={()=>cancel(o.id)} style={{padding:"7px 12px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>Cancel</button>
+            </div>
+          </div>;
+        })}
+      </div>}
+    </div></div>;
+  }
+
+  // STATION OR ALL VIEW
+  var stationFilter=view==="all"?null:view;
+  var relevantOrders=allOrders.filter(o=>{
+    if(!stationFilter)return true;
+    return (o.items||[]).some(it=>stationForItem(it.id,it.name)===stationFilter);
+  });
+  var stationObj=activeStations.find(s=>s.name===view);
+
   return <div className="kbg"><div style={{maxWidth:940,margin:"0 auto"}}>
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}><h2 style={{color:"#fff",fontSize:18,fontFamily:"'Inter',sans-serif"}}>Kitchen Display</h2><span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/><span style={{color:"#666",fontSize:11}}>{active.length} tickets</span></div>
-    {active.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><p style={{fontSize:32,marginBottom:7}}>OK</p><p style={{fontSize:14}}>All caught up!</p></div>}
-    <div className="ag">{active.map(o=><div key={o.id} style={{background:o.status==="pending"?"#1a0a06":"#06101a",border:"2px solid "+(o.status==="pending"?"#d97706":"#2563eb"),borderRadius:12,padding:13}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div><p style={{color:"#fff",fontWeight:700,fontSize:14}}>{o.id}</p><p style={{color:"#666",fontSize:10}}>{o.customer} - {o.time}{o.slot?" | Collect "+o.slot:""}</p></div><span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{SL[o.status]}</span></div>
-      {o.items.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,.07)",fontSize:13}}><span style={{color:"#fff",fontWeight:600}}>{it.name}</span><span style={{color:"#f59e0b",fontWeight:700,fontSize:15}}>x{it.qty}</span></div>)}
-      <div style={{display:"flex",gap:5,marginTop:10}}><button onClick={()=>adv(o.id)} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:o.status==="pending"?"#2563eb":"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{o.status==="pending"?"Start":"Mark Ready"}</button><button onClick={()=>cancel(o.id)} style={{padding:"7px 9px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>X</button></div>
-    </div>)}</div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {stationObj&&<div style={{width:10,height:30,background:stationObj.color,borderRadius:3}}/>}
+        <div>
+          <h2 style={{color:"#fff",fontSize:18}}>{view==="all"?"All Items":(stationObj?.name||view)+" Station"}</h2>
+          <p style={{color:"#666",fontSize:11}}>{relevantOrders.length} orders need attention</p>
+        </div>
+      </div>
+      <button onClick={()=>changeView("")} style={{padding:"6px 12px",background:"transparent",color:"#888",border:"1px solid #444",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>Change Station</button>
+    </div>
+    {relevantOrders.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><p style={{fontSize:32,marginBottom:7}}>OK</p><p style={{fontSize:14}}>No items for {view==="all"?"any station":view} right now</p></div>}
+    <div className="ag">{relevantOrders.map(o=>{
+      var myItems=getOrderItems(o,stationFilter);
+      if(myItems.length===0&&stationFilter)return null;
+      var alreadyReady=stationFilter&&(o.stationProgress||{})[stationFilter];
+      return <div key={o.id} style={{background:o.status==="pending"?"#1a0a06":"#06101a",border:"2px solid "+(alreadyReady?"#10b981":(o.status==="pending"?"#d97706":"#2563eb")),borderRadius:12,padding:13,opacity:alreadyReady?.5:1}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+          <div><p style={{color:"#fff",fontWeight:700,fontSize:14}}>{o.id}</p><p style={{color:"#666",fontSize:10}}>{o.customer} - {o.time}{o.slot?" | "+o.slot:""}{o.tableId?" | Table "+o.tableId:""}</p></div>
+          <span className="bdg" style={{background:SB[o.status],color:SC[o.status]}}>{alreadyReady?"DONE":SL[o.status]}</span>
+        </div>
+        {myItems.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid rgba(255,255,255,.07)",fontSize:13}}><span style={{color:"#fff",fontWeight:600}}>{it.name}</span><span style={{color:"#f59e0b",fontWeight:700,fontSize:15}}>x{it.qty}</span></div>)}
+        <div style={{display:"flex",gap:5,marginTop:10}}>
+          {!alreadyReady&&stationFilter&&stationFilter!=="all"&&<button onClick={()=>markStationReady(o.id,stationFilter)} style={{flex:1,padding:"8px",borderRadius:7,fontSize:12,fontWeight:700,background:"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{EM.check} {stationFilter} Ready</button>}
+          {(!stationFilter||view==="all")&&<button onClick={()=>{
+            var order=orders.find(x=>x.id===o.id);
+            var next=order.status==="pending"?"preparing":"ready";
+            setOrders(os=>os.map(x=>x.id===o.id?{...x,status:next}:x));
+            dbUpdateOrderStatus(o.id,next).catch(e=>{});
+          }} style={{flex:1,padding:"7px",borderRadius:7,fontSize:11,fontWeight:700,background:o.status==="pending"?"#2563eb":"#059669",color:"#fff",border:"none",cursor:"pointer"}}>{o.status==="pending"?"Start":"Mark Ready"}</button>}
+          <button onClick={()=>cancel(o.id)} style={{padding:"7px 9px",borderRadius:7,border:"1px solid #dc2626",color:"#dc2626",background:"transparent",fontWeight:700,fontSize:11,cursor:"pointer"}}>X</button>
+        </div>
+      </div>;
+    })}</div>
   </div></div>;
 }
 
@@ -1121,7 +1248,7 @@ var ICON_KEYS=[
 ];
 
 // -- MENU ITEM EDITOR MODAL ----------------------------------------------------
-function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories}){
+function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}){
   var isNew=!item||!item.id;
   var [f,setF]=useState({
     id:item?.id||Date.now(),
@@ -1132,6 +1259,7 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories}){
     icon:item?.icon||"cart",
     avail:item?.avail!==false,
     stock:item?.stock??20,
+    station:item?.station||"",
     allergens:item?.allergens||[],
     sizes:item?.sizes||[],
     extras:item?.extras||[],
@@ -1176,6 +1304,13 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories}){
           </select>
         </div>
         <div><label className="lbl">Stock</label><input type="number" className="field" value={f.stock} onChange={e=>update("stock",e.target.value)}/></div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Kitchen Station <span style={{color:"#8a8078",fontWeight:400}}>(which chef makes this?)</span></label>
+        <select className="field" value={f.station||""} onChange={e=>update("station",e.target.value)}>
+          <option value="">-- Not assigned --</option>
+          {(stations||[]).filter(s=>s.active!==false).map(s=><option key={s.dbId} value={s.name}>{s.name}</option>)}
+        </select>
       </div>
 
       {/* Sizes */}
@@ -1583,7 +1718,7 @@ function TableEditor({table,onSave,onClose,existingTables}){
   </div>;
 }
 
-function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch}){
+function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1");
   var [delivSettings,setDelivSettings]=useState({});
@@ -1753,7 +1888,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -1824,7 +1959,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       </div>
     </div>}
 
-    {editItem&&<MenuEditor item={editItem} onSave={saveItem} onClose={()=>setEditItem(null)} onDelete={deleteItem} modifiers={MODIFIERS0} categories={categories}/>}
+    {editItem&&<MenuEditor item={editItem} onSave={saveItem} onClose={()=>setEditItem(null)} onDelete={deleteItem} modifiers={MODIFIERS0} categories={categories} stations={stations}/>}
     {editMeal&&<SetMealEditor meal={editMeal} menu={menu} onSave={saveMeal} onClose={()=>setEditMeal(null)} onDelete={deleteMeal}/>}
     {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
     {showImport&&<MenuImportModal onClose={()=>setShowImport(false)} onImport={bulkImport} categories={categories}/>}
@@ -1958,6 +2093,66 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>}
       </>})()}
     </div>}
+    {tab==="stations"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div><h3 style={{fontSize:16,marginBottom:2}}>Kitchen Stations</h3><p style={{fontSize:11,color:"#8a8078"}}>Each menu item is assigned to a station so the right chef sees it</p></div>
+        <button className="btn btn-r" onClick={()=>{
+          var name=prompt("Station name (e.g. Pizza, Sushi, Grill):");
+          if(!name)return;
+          var newStation={name,icon:"cook",color:"#bf4626",sortOrder:(stations||[]).length+1,active:true};
+          dbSaveStation(newStation).then(r=>{
+            if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+            var saved={...newStation,dbId:r.data.id};
+            setStations(s=>[...(s||[]),saved]);
+            push({title:"Station added",body:name,color:"#059669"});
+          });
+        }} style={{padding:"7px 14px",fontSize:12}}>+ Add Station</button>
+      </div>
+      {(!stations||stations.length===0)?<div className="card" style={{textAlign:"center",padding:30}}>
+        <p style={{fontSize:40,marginBottom:10}}>{EM.cook}</p>
+        <p style={{fontSize:14,color:"#8a8078"}}>No stations yet. Click "+ Add Station" or run the migration SQL.</p>
+      </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:9}}>
+        {stations.map(s=><div key={s.dbId} className="card" style={{padding:13,borderLeft:"5px solid "+s.color}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <p style={{fontWeight:700,fontSize:15}}>{s.name}</p>
+            <span style={{padding:"2px 7px",background:s.active?"#d1fae5":"#f5f5f5",color:s.active?"#065f46":"#8a8078",borderRadius:4,fontSize:10,fontWeight:700}}>{s.active?"ACTIVE":"OFF"}</span>
+          </div>
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:9}}>{menu.filter(m=>m.station===s.name).length} menu items assigned</p>
+          <div style={{display:"flex",gap:5}}>
+            <button onClick={()=>{
+              var newName=prompt("Rename station:",s.name);
+              if(!newName||newName===s.name)return;
+              var oldName=s.name;
+              var updated={...s,name:newName};
+              dbSaveStation(updated).then(r=>{
+                if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+                setStations(ls=>ls.map(x=>x.dbId===s.dbId?updated:x));
+                // Also update menu items that referenced old name
+                setMenu(ms=>ms.map(m=>m.station===oldName?{...m,station:newName}:m));
+                menu.filter(m=>m.station===oldName).forEach(m=>{
+                  if(m.dbId)dbSaveMenuItem({...m,station:newName}).catch(()=>{});
+                });
+                push({title:"Renamed",body:oldName+" -> "+newName,color:"#059669"});
+              });
+            }} style={{flex:1,padding:"6px",fontSize:11,fontWeight:700,background:"#f7f3ee",border:"none",borderRadius:6,cursor:"pointer"}}>Rename</button>
+            <button onClick={()=>{
+              var newColor=prompt("Color hex (e.g. #dc2626):",s.color);
+              if(!newColor)return;
+              var updated={...s,color:newColor};
+              dbSaveStation(updated).then(()=>setStations(ls=>ls.map(x=>x.dbId===s.dbId?updated:x)));
+            }} style={{padding:"6px 9px",fontSize:11,background:s.color,color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>Color</button>
+            <button onClick={()=>{
+              var inUse=menu.filter(m=>m.station===s.name).length;
+              if(inUse>0){if(!window.confirm("This station has "+inUse+" menu items assigned. Delete anyway? (Items will become unassigned.)"))return;}
+              else{if(!window.confirm("Delete station "+s.name+"?"))return;}
+              setStations(ls=>ls.filter(x=>x.dbId!==s.dbId));
+              dbDeleteStation(s.dbId).then(()=>push({title:"Deleted",body:s.name,color:"#dc2626"}));
+            }} style={{padding:"6px 10px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
+          </div>
+        </div>)}
+      </div>}
+    </div>}
+
     {tab==="delivery"&&(()=>{
       var ds=delivSettings[adminBranch]||{method:"radius",enabled:true,minOrder:15,freeOver:25,flatFee:2.50,maxRadius:3,zones:[],postcodes:[],codEnabled:true,codMinOrder:15,codMaxMiles:3};
       var update=(key,val)=>{setDelivSettings(s=>({...s,[adminBranch]:{...ds,[key]:val}}));};
@@ -3421,6 +3616,7 @@ export default function App(){
   var [setMeals,setSetMeals]=useState([]);
   var [categories,setCategories]=useState([]);
   var [customers,setCustomers]=useState([]);
+  var [stations,setStations]=useState([]);
   // Restore user and branch from localStorage so refresh doesn't log out
   var [user,setUser]=useState(()=>{try{var u=localStorage.getItem("latavola_user");return u?JSON.parse(u):null;}catch(e){return null;}});
   var [branch,setBranch]=useState(()=>{try{var b=localStorage.getItem("latavola_branch");return b?JSON.parse(b):null;}catch(e){return null;}});
@@ -3502,6 +3698,7 @@ export default function App(){
           sizes:m.sizes||[],
           extras:m.extras||[],
           cookingOpts:m.cooking_opts||[],
+          station:m.station||null,
         }));
         setMenu(formatted);
       }
@@ -3568,6 +3765,16 @@ export default function App(){
         setTables(formatted);
       }
     }).catch(e=>console.log("Tables load failed:",e));
+
+    // Load kitchen stations
+    dbFetchStations().then(list=>{
+      if(list&&list.length){
+        setStations(list.map(s=>({
+          dbId:s.id,name:s.name,icon:s.icon,color:s.color,
+          sortOrder:s.sort_order,active:s.active,
+        })));
+      }
+    }).catch(e=>console.log("Stations load failed:",e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -3696,8 +3903,8 @@ export default function App(){
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
-      {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push}/>}
-      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch}/>}
+      {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push} stations={stations} menu={menu}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch} stations={stations} setStations={setStations}/>}
       {view==="report"  &&<ReportV  orders={orders}/>}
     </main>
   </div>;

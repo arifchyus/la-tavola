@@ -149,6 +149,7 @@ export async function saveMenuItem(item) {
     extras: item.extras || [],
     cooking_opts: item.cookingOpts || [],
     category_name: item.cat || 'Mains',
+    station: item.station || null,
   };
   
   // If item has a UUID id (from database), update. Otherwise insert.
@@ -596,4 +597,51 @@ export async function saveAutoDiscount(ad) {
 export async function deleteAutoDiscount(dbId) {
   const { error } = await supabase.from('auto_discounts').delete().eq('id', dbId);
   return { error };
+}
+
+// ---- KITCHEN STATIONS -------------------------------------------------------
+export async function fetchStations() {
+  const { data, error } = await supabase.from('kitchen_stations')
+    .select('*').eq('restaurant_id', RESTAURANT_ID)
+    .order('sort_order', { ascending: true });
+  if (error) console.error('fetchStations:', error);
+  return data || [];
+}
+
+export async function saveStation(s) {
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    name: s.name,
+    icon: s.icon || 'cook',
+    color: s.color || '#bf4626',
+    sort_order: parseInt(s.sortOrder) || 0,
+    active: s.active !== false,
+  };
+  if (s.dbId) {
+    const { data, error } = await supabase.from('kitchen_stations')
+      .update(payload).eq('id', s.dbId).select().single();
+    return { data, error };
+  } else {
+    const { data, error } = await supabase.from('kitchen_stations')
+      .insert(payload).select().single();
+    return { data, error };
+  }
+}
+
+export async function deleteStation(dbId) {
+  const { error } = await supabase.from('kitchen_stations').delete().eq('id', dbId);
+  return { error };
+}
+
+export async function updateStationProgress(orderId, stationName, isReady) {
+  // Get current order
+  const { data: order } = await supabase.from('orders')
+    .select('station_progress')
+    .eq('order_number', orderId).maybeSingle();
+  const progress = (order && order.station_progress) || {};
+  progress[stationName] = isReady;
+  const { error } = await supabase.from('orders')
+    .update({ station_progress: progress })
+    .eq('order_number', orderId);
+  return { error, progress };
 }
