@@ -212,6 +212,12 @@ function clearQrSession(){
 
 // eslint-disable-next-line no-unused-vars
 function checkCOD(branch,orderTotal,distance){
+  var c=branch?.cod;
+  if(!c||!c.enabled)return{ok:false,reason:"Cash on delivery not accepted here"};
+  if(c.minOrder&&orderTotal<c.minOrder)return{ok:false,reason:"Min order "+(c.minOrder)+" for cash on delivery"};
+  if(c.maxMiles&&distance!=null&&distance>c.maxMiles)return{ok:false,reason:"Cash on delivery only within "+c.maxMiles+" miles"};
+  return{ok:true};
+}
 
 // ---- KITCHEN PRINTING -------------------------------------------------------
 // Build HTML for a print ticket
@@ -328,7 +334,6 @@ function printViaPrintNode(order,station,branch,apiKey){
 }
 
 // Main print dispatcher - routes to correct method based on station config
-// eslint-disable-next-line no-unused-vars
 function dispatchPrint(order,station,branch){
   if(!station)return printTicket(order,null,branch);
   var method=station.printerMethod||"browser";
@@ -340,12 +345,6 @@ function dispatchPrint(order,station,branch){
   }
   // Default: browser print
   return printTicket(order,station,branch);
-}
-  var c=branch.cod;
-  if(!c||!c.enabled)return{ok:false,reason:"Cash on delivery not accepted here"};
-  if(c.minOrder&&orderTotal<c.minOrder)return{ok:false,reason:"Min order "+fmt(c.minOrder)+" for cash on delivery"};
-  if(c.maxMiles&&distance!=null&&distance>c.maxMiles)return{ok:false,reason:"Cash on delivery only within "+c.maxMiles+" miles"};
-  return{ok:true};
 }
 
 // Delivery helper - checks if an address is deliverable and returns fee
