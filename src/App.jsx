@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1292,13 +1292,36 @@ function ReviewsV({reviews,setReviews,user,onAuth}){
 
 function AccountV({user,orders,reviews,reservations,onAuth,branches}){
   var [tab,setTab]=useState("orders");
+  var [diet,setDiet]=useState([]);
+  var [loyaltyData,setLoyaltyData]=useState({points:0,tier:"bronze"});
+  var [loyaltyHistory,setLoyaltyHistory]=useState([]);
+
+  // Load dietary prefs + loyalty data when user logs in
+  useEffect(()=>{
+    if(!user||!user.id)return;
+    dbFetchPrefs(user.id).then(p=>setDiet(p||[]));
+    dbFetchLoyalty(user.id).then(d=>{
+      setLoyaltyData({points:d.loyalty_points||0,tier:d.loyalty_tier||"bronze"});
+    });
+    dbLoyaltyHistory(user.id).then(h=>setLoyaltyHistory(h||[]));
+  },[user]);
+
+  var toggleDiet=(id)=>{
+    var newDiet=diet.includes(id)?diet.filter(x=>x!==id):[...diet,id];
+    setDiet(newDiet);
+    if(user&&user.id)dbSavePrefs(user.id,newDiet);
+  };
+
   if(!user) return <div className="page" style={{maxWidth:360,textAlign:"center",paddingTop:50}}>
     <p style={{fontSize:48,marginBottom:10}}>{EM.person}</p>
     <h2 style={{fontSize:24,marginBottom:6}}>Your Account</h2>
     <p style={{color:"#8a8078",marginBottom:18,fontSize:13}}>Sign in to view orders and loyalty points.</p>
     <button className="btn btn-r" onClick={onAuth} style={{padding:"11px 28px"}}>Sign In</button>
   </div>;
-  var mine=orders.filter(o=>o.userId===user.id),spent=mine.filter(o=>o.paid).reduce((s,o)=>s+o.total,0),pts=Math.floor(spent*10),tier=getTier(pts),next=TIERS.find(t=>t.min>pts),prog=next?Math.round(((pts-tier.min)/(next.min-tier.min))*100):100;
+  var mine=orders.filter(o=>o.userId===user.id),spent=mine.filter(o=>o.paid).reduce((s,o)=>s+o.total,0);
+  // Use DB loyalty points if available, otherwise calculate
+  var pts=loyaltyData.points>0?loyaltyData.points:Math.floor(spent*10);
+  var tier=getTier(pts),next=TIERS.find(t=>t.min>pts),prog=next?Math.round(((pts-tier.min)/(next.min-tier.min))*100):100;
   return <div className="page" style={{maxWidth:600}}>
     <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",borderRadius:16,padding:"18px 20px",marginBottom:14,display:"flex",gap:12,alignItems:"center"}}>
       <div className="av" style={{width:50,height:50,fontSize:18}}>{user.avatar}</div>
@@ -1308,12 +1331,30 @@ function AccountV({user,orders,reviews,reservations,onAuth,branches}){
     <div className="card" style={{marginBottom:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><p style={{fontWeight:700,fontSize:14}}>Loyalty Points</p><span className="bdg" style={{background:tier.bg,color:tier.color}}>{tier.name}</span></div>
       {next&&<><div className="lbar" style={{marginBottom:5}}><div className="lfill" style={{width:prog+"%",background:tier.color}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#8a8078"}}><span>{pts} pts</span><span>{next.min-pts} pts to {next.name}</span></div></>}
+      <p style={{fontSize:11,color:"#8a8078",marginTop:8}}>Earn 10 points per {EM.pound}1 spent. Redeem 100 points for {EM.pound}1 off any order.</p>
     </div>
     <div className="g3" style={{marginBottom:12}}>{[["Orders",mine.length,"#bf4626"],["Spent",fmt(spent),"#059669"],["Points",pts.toLocaleString(),"#d4952a"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:12,padding:"12px 8px",textAlign:"center",border:"1px solid #ede8de"}}><div style={{fontWeight:700,fontSize:17,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600,textTransform:"uppercase"}}>{l}</div></div>)}</div>
-    <div style={{display:"flex",gap:5,marginBottom:12,overflowX:"auto",paddingBottom:2}}>{[["orders","Orders"],["reviews","Reviews"],["book","Bookings"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"6px 14px",borderRadius:8,fontWeight:600,fontSize:12,border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>{l}</button>)}</div>
+    <div style={{display:"flex",gap:5,marginBottom:12,overflowX:"auto",paddingBottom:2}}>{[["orders","Orders"],["reviews","Reviews"],["book","Bookings"],["dietary","Dietary"],["loyalty","Loyalty"]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"6px 14px",borderRadius:8,fontWeight:600,fontSize:12,border:"2px solid",borderColor:tab===k?"#1a1208":"#ede8de",background:tab===k?"#1a1208":"#fff",color:tab===k?"#fff":"#1a1208",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>{l}</button>)}</div>
     {tab==="orders"&&<>{mine.length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No orders yet!</div>}{mine.map(o=><div key={o.id} className="card fadeup" style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{color:"#8a8078",fontSize:11}}>{o.time} - {o.type}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626"}}>{fmt(o.total)}</p><span className="bdg" style={{background:SB[o.status],color:SC[o.status],marginTop:2}}>{SL[o.status]}</span></div></div><p style={{fontSize:11,color:"#8a8078"}}>{o.items.map(i=>i.name+" x"+i.qty).join(", ")}</p></div>)}</>}
     {tab==="reviews"&&<>{reviews.filter(r=>r.userId===user.id).length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No reviews yet</div>}{reviews.filter(r=>r.userId===user.id).map(r=><div key={r.id} className="card fadeup" style={{marginBottom:9}}><p style={{fontSize:13}}>{r.comment}</p><p style={{fontSize:11,color:"#8a8078",marginTop:3}}>{r.date}</p></div>)}</>}
     {tab==="book"&&<>{reservations.filter(r=>r.userId===user.id).length===0&&<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No reservations yet</div>}{reservations.filter(r=>r.userId===user.id).map(r=><div key={r.id} className="card fadeup" style={{marginBottom:9,borderLeft:"4px solid #059669"}}><p style={{fontWeight:700,fontSize:13,marginBottom:1}}>{(branches.find(b=>b.id===r.branchId)||{}).name}</p><p style={{color:"#8a8078",fontSize:12}}>{r.date} at {r.time} - {r.guests} guests</p></div>)}</>}
+    {tab==="dietary"&&<div className="card" style={{padding:14}}>
+      <p style={{fontWeight:700,fontSize:14,marginBottom:5}}>Dietary Preferences & Allergies</p>
+      <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Tap your dietary needs. Menu items containing your allergens will show warnings.</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {[["al-gluten","Gluten Free","#dc2626"],["al-dairy","Dairy Free","#2563eb"],["al-nuts","Nut Free","#d97706"],["al-shellfish","Shellfish Free","#7c3aed"],["al-veggie","Vegetarian","#059669"],["al-vegan","Vegan","#10b981"]].map(([id,label,color])=><button key={id} onClick={()=>toggleDiet(id)} style={{padding:"9px 14px",borderRadius:9,fontWeight:700,fontSize:12,background:diet.includes(id)?color:"#fff",color:diet.includes(id)?"#fff":color,border:"2px solid "+color,cursor:"pointer"}}>{diet.includes(id)?EM.check+" ":""}{label}</button>)}
+      </div>
+      {diet.length>0&&<p style={{fontSize:11,color:"#059669",marginTop:11,fontWeight:700}}>{EM.check} Saved - menu will respect your preferences</p>}
+    </div>}
+    {tab==="loyalty"&&<div>
+      <div className="card" style={{padding:14,marginBottom:9,background:"linear-gradient(135deg,"+tier.color+",#d4952a)",color:"#fff"}}>
+        <p style={{fontSize:11,opacity:.85,letterSpacing:2,fontWeight:700,marginBottom:4}}>{tier.name.toUpperCase()} TIER</p>
+        <p style={{fontSize:32,fontWeight:700,marginBottom:3}}>{pts.toLocaleString()} points</p>
+        <p style={{fontSize:11,opacity:.9}}>= {EM.pound}{(pts/100).toFixed(2)} potential discount</p>
+      </div>
+      <p style={{fontSize:13,fontWeight:700,marginBottom:6}}>Recent Activity</p>
+      {loyaltyHistory.length===0?<div className="card" style={{textAlign:"center",padding:24,color:"#8a8078"}}>No loyalty activity yet</div>:loyaltyHistory.map(h=><div key={h.id} className="card" style={{padding:"10px 12px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><p style={{fontSize:12,fontWeight:600}}>{h.description||(h.type==="earn"?"Order rewards":"Discount redeemed")}</p><p style={{fontSize:10,color:"#8a8078"}}>{new Date(h.created_at).toLocaleDateString("en-GB")}{h.order_id?" - "+h.order_id:""}</p></div><p style={{fontWeight:700,color:h.points>0?"#059669":"#dc2626",fontSize:14}}>{h.points>0?"+":""}{h.points}</p></div>)}
+    </div>}
   </div>;
 }
 
@@ -4725,6 +4766,17 @@ export default function App(){
           console.log("DB save failed, but order is in memory:",result.error);
         }else{
           console.log("Order saved to database:",o.id);
+          // Award loyalty points if user has account (10 points per pound spent)
+          if(o.userId&&o.userId!=="guest"&&o.userId!=="staff"&&o.paid){
+            var pts=Math.floor((o.subtotal||o.total||0)*10);
+            if(pts>0){
+              dbAwardPoints(o.userId,pts,o.id,"Order rewards").then(r=>{
+                if(r&&r.points){
+                  push({title:"Loyalty rewards!",body:"+"+pts+" points - now "+r.points+" total",color:"#d4952a"});
+                }
+              }).catch(e=>console.log("Loyalty award failed:",e));
+            }
+          }
         }
       }).catch(e=>console.log("DB error:",e));
     }

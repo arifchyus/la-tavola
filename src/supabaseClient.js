@@ -718,3 +718,161 @@ export async function recordCashHandover(handover) {
   }
   return { data, error };
 }
+
+// ---- LOYALTY POINTS ---------------------------------------------------------
+export async function fetchCustomerLoyalty(customerId) {
+  const { data, error } = await supabase.from('customers')
+    .select('loyalty_points,total_spent,loyalty_tier')
+    .eq('id', customerId).maybeSingle();
+  if (error) console.error('fetchCustomerLoyalty:', error);
+  return data || { loyalty_points: 0, total_spent: 0, loyalty_tier: 'bronze' };
+}
+
+export async function awardLoyaltyPoints(customerId, points, orderId, description) {
+  // Get current points
+  const { data: cust } = await supabase.from('customers')
+    .select('loyalty_points,total_spent').eq('id', customerId).maybeSingle();
+  if (!cust) return { error: 'Customer not found' };
+  const newPoints = (cust.loyalty_points || 0) + points;
+  // Determine tier
+  const newSpent = (parseFloat(cust.total_spent) || 0) + (orderId ? 0 : 0); // spent updated separately
+  let tier = 'bronze';
+  if (newPoints >= 2000) tier = 'gold';
+  else if (newPoints >= 500) tier = 'silver';
+  // Update customer
+  await supabase.from('customers').update({
+    loyalty_points: newPoints,
+    loyalty_tier: tier,
+  }).eq('id', customerId);
+  // Log transaction
+  await supabase.from('loyalty_transactions').insert({
+    restaurant_id: RESTAURANT_ID,
+    customer_id: customerId,
+    type: 'earn',
+    points: points,
+    order_id: orderId,
+    description: description || 'Order rewards',
+  });
+  return { points: newPoints, tier };
+}
+
+export async function redeemLoyaltyPoints(customerId, points, orderId, description) {
+  const { data: cust } = await supabase.from('customers')
+    .select('loyalty_points').eq('id', customerId).maybeSingle();
+  if (!cust) return { error: 'Customer not found' };
+  if ((cust.loyalty_points || 0) < points) return { error: 'Not enough points' };
+  const newPoints = cust.loyalty_points - points;
+  await supabase.from('customers').update({ loyalty_points: newPoints }).eq('id', customerId);
+  await supabase.from('loyalty_transactions').insert({
+    restaurant_id: RESTAURANT_ID,
+    customer_id: customerId,
+    type: 'redeem',
+    points: -points,
+    order_id: orderId,
+    description: description || 'Discount redeemed',
+  });
+  return { points: newPoints };
+}
+
+export async function fetchLoyaltyHistory(customerId) {
+  const { data, error } = await supabase.from('loyalty_transactions')
+    .select('*').eq('customer_id', customerId)
+    .order('created_at', { ascending: false }).limit(20);
+  if (error) console.error('fetchLoyaltyHistory:', error);
+  return data || [];
+}
+
+// ---- DIETARY PREFERENCES ----------------------------------------------------
+export async function fetchDietaryPrefs(customerId) {
+  const { data } = await supabase.from('customers')
+    .select('dietary_prefs').eq('id', customerId).maybeSingle();
+  return data?.dietary_prefs || [];
+}
+
+export async function saveDietaryPrefs(customerId, prefs) {
+  const { error } = await supabase.from('customers').update({
+    dietary_prefs: prefs || [],
+  }).eq('id', customerId);
+  return { error };
+}
+
+// ---- STAFF SCHEDULING -------------------------------------------------------
+export async function fetchSchedules(branchId, fromDate, toDate) {
+  let q = supabase.from('staff_schedules').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (branchId) q = q.eq('branch_id', branchId);
+  if (fromDate) q = q.gte('shift_date', fromDate);
+  if (toDate) q = q.lte('shift_date', toDate);
+  const { data, error } = await q.order('shift_date').order('shift_start');
+  if (error) console.error('fetchSchedules:', error);
+  return data || [];
+}
+
+export async function saveSchedule(schedule) {
+  const payload = {
+    restaurant_id: RESTAURANT_ID,
+    branch_id: schedule.branchId || null,
+    staff_id: schedule.staffId,
+    staff_name: schedule.staffName,
+    staff_role: schedule.staffRole || 'staff',
+    shift_date: schedule.shiftDate,
+    shift_start: schedule.shiftStart,
+    shift_end: schedule.shiftEnd,
+    notes: schedule.notes || null,
+  };
+  if (schedule.id) {
+    const { error } = await supabase.from('staff_schedules').update(payload).eq('id', schedule.id);
+    return { error };
+  }
+  const { data, error } = await supabase.from('staff_schedules').insert(payload).select().single();
+  return { data, error };
+}
+
+export async function deleteSchedule(id) {
+  const { error } = await supabase.from('staff_schedules').delete().eq('id', id);
+  return { error };
+}
+
+// ---- STAFF CLOCK IN/OUT -----------------------------------------------------
+export async function clockIn(staffId, staffName, branchId) {
+  // Check if already clocked in
+  const { data: open } = await supabase.from('staff_clock_records')
+    .select('*').eq('staff_id', staffId).is('clock_out', null).maybeSingle();
+  if (open) return { error: 'Already clocked in', record: open };
+  const { data, error } = await supabase.from('staff_clock_records').insert({
+    restaurant_id: RESTAURANT_ID,
+    branch_id: branchId || null,
+    staff_id: staffId,
+    staff_name: staffName,
+  }).select().single();
+  return { data, error };
+}
+
+export async function clockOut(staffId) {
+  const { data: open } = await supabase.from('staff_clock_records')
+    .select('*').eq('staff_id', staffId).is('clock_out', null)
+    .order('clock_in', { ascending: false }).limit(1).maybeSingle();
+  if (!open) return { error: 'Not clocked in' };
+  const clockOutTime = new Date();
+  const minutes = Math.round((clockOutTime - new Date(open.clock_in)) / 60000);
+  const { error } = await supabase.from('staff_clock_records').update({
+    clock_out: clockOutTime.toISOString(),
+    total_minutes: minutes,
+  }).eq('id', open.id);
+  return { error, minutes };
+}
+
+export async function fetchClockRecords(staffId, fromDate) {
+  let q = supabase.from('staff_clock_records').select('*').eq('restaurant_id', RESTAURANT_ID);
+  if (staffId) q = q.eq('staff_id', staffId);
+  if (fromDate) q = q.gte('clock_in', fromDate);
+  const { data, error } = await q.order('clock_in', { ascending: false }).limit(50);
+  if (error) console.error('fetchClockRecords:', error);
+  return data || [];
+}
+
+export async function fetchCurrentlyClockedIn(branchId) {
+  let q = supabase.from('staff_clock_records').select('*').is('clock_out', null);
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data } = await q;
+  return data || [];
+}
