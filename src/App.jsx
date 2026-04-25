@@ -3205,24 +3205,90 @@ function StaffBookingsV({branch,push}){
   var [bookings,setBookings]=useState([]);
   var [filter,setFilter]=useState("today");
   var [loading,setLoading]=useState(true);
+  var seenBookingIdsRef=useRef(new Set());
+  var initialBookingLoadRef=useRef(true);
+  var [soundOn,setSoundOn]=useState(()=>{try{return localStorage.getItem("booking_sound")!=="0";}catch(e){return true;}});
   var today=new Date().toISOString().split("T")[0];
   var tomorrow=new Date(Date.now()+86400000).toISOString().split("T")[0];
   var weekAhead=new Date(Date.now()+7*86400000).toISOString().split("T")[0];
 
-  var refresh=useCallback(()=>{
-    setLoading(true);
+  // Sound for new bookings
+  var playBookingDing=useCallback(()=>{
+    if(!soundOn)return;
+    try{
+      var AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)return;
+      var ctx=new AudioCtx();
+      var osc=ctx.createOscillator();
+      var gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type="sine";
+      osc.frequency.setValueAtTime(660,ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880,ctx.currentTime+0.2);
+      gain.gain.setValueAtTime(0.3,ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime+0.5);
+    }catch(e){}
+  },[soundOn]);
+
+  var refresh=useCallback((isAuto)=>{
+    if(!isAuto)setLoading(true);
     var from=today,to=today;
     if(filter==="tomorrow"){from=tomorrow;to=tomorrow;}
     else if(filter==="week"){from=today;to=weekAhead;}
     else if(filter==="past"){from="2020-01-01";to=today;}
     dbFetchReservations(branch?.id,from,to).then(data=>{
-      setBookings(data||[]);
+      var fresh=data||[];
+      // Detect new bookings (by ID we've never seen)
+      if(initialBookingLoadRef.current){
+        fresh.forEach(b=>seenBookingIdsRef.current.add(b.id));
+        initialBookingLoadRef.current=false;
+      }else{
+        var newOnes=fresh.filter(b=>!seenBookingIdsRef.current.has(b.id));
+        if(newOnes.length>0){
+          newOnes.forEach(b=>seenBookingIdsRef.current.add(b.id));
+          playBookingDing();
+          var latest=newOnes[0];
+          push({title:"New booking!",body:latest.customer_name+" - "+latest.guests+" guests at "+latest.reservation_time,color:"#7c3aed"});
+          // Browser notification
+          if(typeof window!=="undefined"&&"Notification" in window&&Notification.permission==="granted"){
+            try{
+              var n=new Notification(String.fromCharCode(0xD83D,0xDCC5)+" New Booking - La Tavola",{
+                body:latest.customer_name+" booked "+latest.guests+" guests at "+latest.reservation_time,
+                tag:"booking-"+latest.id,
+              });
+              setTimeout(()=>n.close(),8000);
+            }catch(e){}
+          }
+        }
+      }
+      setBookings(fresh);
       setLoading(false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[branch,filter]);
+  },[branch,filter,playBookingDing,push]);
 
   useEffect(()=>{refresh();},[refresh]);
+
+  // Auto-refresh every 15 seconds to catch new bookings
+  useEffect(()=>{
+    var interval=setInterval(()=>refresh(true),15000);
+    return()=>clearInterval(interval);
+  },[refresh]);
+
+  // Request notification permission once
+  useEffect(()=>{
+    if(typeof window!=="undefined"&&"Notification" in window&&Notification.permission==="default"){
+      Notification.requestPermission();
+    }
+  },[]);
+
+  var toggleSound=()=>{
+    var v=!soundOn;setSoundOn(v);
+    try{localStorage.setItem("booking_sound",v?"1":"0");}catch(e){}
+    if(v)playBookingDing();
+  };
 
   var checkIn=b=>{
     dbUpdateReservationStatus(b.id,"arrived").then(r=>{
@@ -3260,8 +3326,11 @@ function StaffBookingsV({branch,push}){
 
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
-      <div><h2 style={{fontSize:22,marginBottom:2}}>Bookings</h2><p style={{color:"#8a8078",fontSize:12}}>{branch?.name}</p></div>
-      <button onClick={refresh} style={{padding:"8px 14px",fontSize:12,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Refresh</button>
+      <div><h2 style={{fontSize:22,marginBottom:2}}>Bookings</h2><p style={{color:"#8a8078",fontSize:12}}>{branch?.name} - auto-refreshes every 15 sec</p></div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <button onClick={toggleSound} title={soundOn?"Sound on":"Sound off"} style={{padding:"8px 11px",fontSize:14,background:soundOn?"#d1fae5":"#f5f5f5",color:soundOn?"#065f46":"#999",border:"2px solid "+(soundOn?"#059669":"#ddd"),borderRadius:8,cursor:"pointer",fontWeight:700}}>{soundOn?String.fromCharCode(0xD83D,0xDD0A):String.fromCharCode(0xD83D,0xDD07)}</button>
+        <button onClick={()=>refresh(false)} style={{padding:"8px 14px",fontSize:12,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Refresh</button>
+      </div>
     </div>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
