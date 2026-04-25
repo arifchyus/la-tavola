@@ -862,6 +862,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       address,
       items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),
       subtotal:sub,
+      discount:saving,
       serviceCharge:serviceCharge,
       deliveryFee,
       total:finalTotal,
@@ -2895,17 +2896,33 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
 
   // Get all unpaid orders for selected table
   var tableOrders=t&&orders?orders.filter(o=>(o.tableId===t.id||o.tableId===+t.id)&&!o.paid&&o.status!=="cancelled"):[];
-  // Aggregate items across all orders for this table
+  // Aggregate items across all orders for this table (for display)
   var allItems=[];
   tableOrders.forEach(o=>{(o.items||[]).forEach(it=>{
     var ex=allItems.find(x=>x.name===it.name&&x.price===it.price);
     if(ex)ex.qty+=it.qty;
     else allItems.push({...it,orderId:o.id});
   });});
-  var subtotal=allItems.reduce((s,i)=>s+(+i.price||0)*i.qty,0);
-  var serviceChargeT=(tablesDeliv&&tablesDeliv.serviceChargeEnabled)?subtotal*((tablesDeliv.serviceChargePercent||0)/100):0;
+  // CRITICAL: Use saved order totals (already include discount + service charge)
+  // not re-calculated from items - that would lose the customer's promo discount
+  var subtotal=tableOrders.reduce((s,o)=>s+parseFloat(o.subtotal||o.items?.reduce((x,i)=>x+(+i.price||0)*i.qty,0)||0),0);
+  var totalDiscount=tableOrders.reduce((s,o)=>s+parseFloat(o.discount||0),0);
+  var totalServiceCharge=tableOrders.reduce((s,o)=>s+parseFloat(o.serviceCharge||0),0);
+  // If service charge wasn't on order, calculate it now (for staff-taken orders that didn't have it)
+  if(totalServiceCharge===0&&tablesDeliv&&tablesDeliv.serviceChargeEnabled){
+    totalServiceCharge=Math.max(0,subtotal-totalDiscount)*((tablesDeliv.serviceChargePercent||0)/100);
+  }
+  var serviceChargeT=totalServiceCharge;
   var vat=subtotal-subtotal/1.2;
-  var total=subtotal+serviceChargeT;
+  // Total is sum of saved order totals (already correct)
+  var total=tableOrders.reduce((s,o)=>{
+    var t=parseFloat(o.total||0);
+    if(t>0)return s+t;
+    // Fallback if total wasn't saved
+    return s+(parseFloat(o.subtotal||0)-parseFloat(o.discount||0)+parseFloat(o.serviceCharge||0));
+  },0);
+  // If no orders had totals saved, fall back to calculated
+  if(total===0)total=subtotal-totalDiscount+serviceChargeT;
 
   var updateTable=(id,updates)=>{
     // Match by BOTH branch_id AND table_number to avoid updating same-numbered tables in other branches
@@ -3055,6 +3072,9 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
             <div style={{display:"flex",justifyContent:"space-between",padding:"7px 0 2px",fontSize:12,color:"#8a8078"}}>
               <span>Subtotal</span><span>{fmt(subtotal)}</span>
             </div>
+            {totalDiscount>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:12,color:"#dc2626",fontWeight:700}}>
+              <span>Discount</span><span>- {fmt(totalDiscount)}</span>
+            </div>}
             {serviceChargeT>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:12,color:"#7c3aed",fontWeight:700}}>
               <span>Service ({tablesDeliv.serviceChargePercent}%)</span><span>+ {fmt(serviceChargeT)}</span>
             </div>}
@@ -3071,7 +3091,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
               var win=window.open("","","width=300,height=500");
               if(!win)return;
               var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
-              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
               win.document.close();
               setTimeout(()=>win.print(),200);
             }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
@@ -3885,7 +3905,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -4471,7 +4491,7 @@ export default function App(){
           slot:o.slot,
           takenBy:o.taken_by,
           source:o.source,
-          tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
+          tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
@@ -4599,7 +4619,7 @@ export default function App(){
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
