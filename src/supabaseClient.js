@@ -42,6 +42,7 @@ export async function saveOrderToDb(order) {
     table_id: order.tableId || null,
     delivery_code: order.deliveryCode || null,
     code_method: order.codeMethod || 'app',
+    service_charge: parseFloat(order.serviceCharge) || 0,
   }).select().single();
   if (error) console.error('saveOrderToDb error:', error);
   return { data, error };
@@ -152,6 +153,12 @@ export async function saveMenuItem(item) {
     cooking_opts: item.cookingOpts || [],
     category_name: item.cat || 'Mains',
     station: item.station || null,
+    price_dinein: item.priceDineIn || null,
+    price_takeaway: item.priceTakeaway || null,
+    price_delivery: item.priceDelivery || null,
+    avail_dinein: item.availDineIn !== false,
+    avail_takeaway: item.availTakeaway !== false,
+    avail_delivery: item.availDelivery !== false,
   };
   
   // If item has a UUID id (from database), update. Otherwise insert.
@@ -499,6 +506,10 @@ export async function saveDeliverySettings(branchId, settings) {
     cod_enabled: settings.codEnabled !== false,
     cod_min_order: settings.codMinOrder || 15,
     cod_max_miles: settings.codMaxMiles || 3,
+    service_charge_enabled: settings.serviceChargeEnabled || false,
+    service_charge_percent: parseFloat(settings.serviceChargePercent) || 12.5,
+    service_charge_mandatory: settings.serviceChargeMandatory || false,
+    service_charge_group_size: parseInt(settings.serviceChargeGroupSize) || 6,
     updated_at: new Date().toISOString(),
   };
   

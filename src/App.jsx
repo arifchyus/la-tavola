@@ -210,6 +210,39 @@ function clearQrSession(){
   }
 }
 
+// Get the right price for a menu item based on order type
+// Falls back to base price if specific not set
+function getItemPrice(item,orderType){
+  if(!item)return 0;
+  var base=parseFloat(item.price)||0;
+  if(orderType==="dine-in"||orderType==="eatin"){
+    return parseFloat(item.priceDineIn)||base;
+  }
+  if(orderType==="collection"||orderType==="takeaway"){
+    return parseFloat(item.priceTakeaway)||base;
+  }
+  if(orderType==="delivery"){
+    return parseFloat(item.priceDelivery)||base;
+  }
+  return base;
+}
+
+// Check if item is available for the order type
+function isItemAvailable(item,orderType){
+  if(!item)return false;
+  if(item.avail===false)return false; // master availability
+  if(orderType==="dine-in"||orderType==="eatin"){
+    return item.availDineIn!==false;
+  }
+  if(orderType==="collection"||orderType==="takeaway"){
+    return item.availTakeaway!==false;
+  }
+  if(orderType==="delivery"){
+    return item.availDelivery!==false;
+  }
+  return true;
+}
+
 // eslint-disable-next-line no-unused-vars
 function checkCOD(branch,orderTotal,distance){
   var c=branch?.cod;
@@ -641,6 +674,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
   }),[cname,setCname]=useState(user?.name||""),[table,setTable]=useState("");
   var [addr,setAddr]=useState({line1:"",postcode:"",notes:""});
   var [codeMethod,setCodeMethod]=useState("both");
+  var [serviceChargeOpt,setServiceChargeOpt]=useState(true); // true = include charge
   var [postcodeData,setPostcodeData]=useState(null); // {valid, distance, fee}
   var [checkingPc,setCheckingPc]=useState(false);
   var [dbDelivery,setDbDelivery]=useState(null); // delivery settings from DB
@@ -681,6 +715,10 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
           codEnabled:s.cod_enabled,
           codMinOrder:parseFloat(s.cod_min_order||15),
           codMaxMiles:s.cod_max_miles||3,
+          serviceChargeEnabled:s.service_charge_enabled||false,
+          serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+          serviceChargeMandatory:s.service_charge_mandatory||false,
+          serviceChargeGroupSize:s.service_charge_group_size||6,
         });
       }
     });
@@ -726,8 +764,20 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
     setCheckingPc(false);
   };
   var slots=getSlots(),busy=[slots[2],slots[5]];
-  var items=Object.keys(cart).map(id=>{var m=menu.find(m=>String(m.id)===String(id));return m?{...m,qty:cart[id]}:null;}).filter(Boolean);
-  var sub=items.reduce((s,i)=>s+(+i.price||0)*i.qty,0),saving=disc?.saving||0,total=Math.max(0,sub-saving),count=items.reduce((s,i)=>s+i.qty,0);
+  var items=Object.keys(cart).map(id=>{
+    var m=menu.find(m=>String(m.id)===String(id));
+    if(!m)return null;
+    var typePrice=getItemPrice(m,type);
+    return {...m,qty:cart[id],price:typePrice,basePrice:m.price};
+  }).filter(Boolean);
+  var sub=items.reduce((s,i)=>s+(+i.price||0)*i.qty,0),saving=disc?.saving||0;
+  // Service charge: only on dine-in/eat-in if enabled in branch settings
+  var isDineInLike=type==="dine-in"||type==="eatin";
+  var serviceChargeApplies=isDineInLike&&dbDelivery&&dbDelivery.serviceChargeEnabled;
+  var canRemove=serviceChargeApplies&&!dbDelivery.serviceChargeMandatory;
+  var includeCharge=serviceChargeApplies&&(serviceChargeOpt||!canRemove);
+  var serviceCharge=includeCharge?Math.max(0,sub-saving)*((dbDelivery.serviceChargePercent||0)/100):0;
+  var total=Math.max(0,sub-saving)+serviceCharge,count=items.reduce((s,i)=>s+i.qty,0);
   var add=id=>setCart(c=>({...c,[id]:(c[id]||0)+1}));
   var rem=id=>setCart(c=>{var n={...c};n[id]>1?n[id]--:delete n[id];return n;});
   var applyCode=()=>{var r=applyDisc(discounts,code,sub);if(r.err){setDerr(r.err);setDisc(null);}else{setDisc(r);setDerr("");}};
@@ -758,7 +808,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       tableId,
       address,
       items:items.map(i=>({id:i.id,name:i.name,qty:i.qty,price:i.price})),
-      subtotal:total,
+      subtotal:sub,
+      serviceCharge:serviceCharge,
       deliveryFee,
       total:finalTotal,
       status:"pending",
@@ -855,6 +906,14 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         <div className="hr"/>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#8a8078",marginBottom:3}}><span>Subtotal</span><span>{fmt(sub)}</span></div>
         {saving>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#059669",marginBottom:3}}><span>Discount</span><span>- {fmt(saving)}</span></div>}
+        {serviceChargeApplies&&includeCharge&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#7c3aed",marginBottom:3,alignItems:"center"}}>
+          <span>Service charge ({dbDelivery.serviceChargePercent}%){canRemove&&<button onClick={()=>setServiceChargeOpt(false)} style={{marginLeft:6,fontSize:10,color:"#dc2626",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>Remove</button>}</span>
+          <span>+ {fmt(serviceCharge)}</span>
+        </div>}
+        {serviceChargeApplies&&!includeCharge&&canRemove&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:3}}>
+          <span>Service charge removed</span>
+          <button onClick={()=>setServiceChargeOpt(true)} style={{fontSize:10,color:"#7c3aed",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>Add back</button>
+        </div>}
         <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
       </div>
       {(()=>{
@@ -925,7 +984,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"7px 14px",borderRadius:50,fontWeight:600,fontSize:12,border:"2px solid "+(cat===c?"#bf4626":"#ede8de"),background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",flexShrink:0,cursor:"pointer",transition:"all .18s"}}>{c}</button>)}
     </div>
     <div className="ag" style={{marginBottom:88}}>
-      {menu.filter(i=>i.cat===cat&&i.avail).map(item=><div key={item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
+      {menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <span style={{fontSize:32,lineHeight:1}}>{EM[item.icon]||""}</span>
           <div>{item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}{item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}</div>
@@ -933,10 +992,10 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
         <h3 style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontWeight:700}}>{item.name}</h3>
         <p style={{fontSize:12,color:"#8a8078",lineHeight:1.5,flex:1}}>{item.desc}</p>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontSize:15,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</span>
+          <span style={{fontSize:15,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</span>
           {item.stock>0&&(cart[item.id]?<div style={{display:"flex",alignItems:"center",gap:8,background:"#f7f3ee",borderRadius:50,padding:"3px 12px",border:"1px solid #ede8de"}}><button onClick={()=>rem(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>-</button><span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{cart[item.id]}</span><button onClick={()=>add(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>+</button></div>:<button onClick={()=>add(item.id)} style={{background:"#1a1208",color:"#fff",borderRadius:"50%",width:32,height:32,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background="#bf4626"} onMouseLeave={e=>e.currentTarget.style.background="#1a1208"}>+</button>)}
         </div>
-      </div>)}
+      </div>;})}
     </div>
     {count>0&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:300}}>
       <button className="btn btn-d" onClick={()=>setStep("checkout")} style={{padding:"12px 24px",borderRadius:50,fontSize:13,boxShadow:"0 8px 28px rgba(0,0,0,.3)",gap:8,minWidth:190}}>
@@ -1405,6 +1464,12 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
     avail:item?.avail!==false,
     stock:item?.stock??20,
     station:item?.station||"",
+    priceDineIn:item?.priceDineIn||"",
+    priceTakeaway:item?.priceTakeaway||"",
+    priceDelivery:item?.priceDelivery||"",
+    availDineIn:item?.availDineIn!==false,
+    availTakeaway:item?.availTakeaway!==false,
+    availDelivery:item?.availDelivery!==false,
     allergens:item?.allergens||[],
     sizes:item?.sizes||[],
     extras:item?.extras||[],
@@ -1456,6 +1521,29 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
           <option value="">-- Not assigned --</option>
           {(stations||[]).filter(s=>s.active!==false).map(s=><option key={s.dbId} value={s.name}>{s.name}</option>)}
         </select>
+      </div>
+
+      <div style={{padding:"11px 13px",background:"#fafaf5",borderRadius:9,marginBottom:12,border:"1px solid #ede8de"}}>
+        <p style={{fontWeight:700,fontSize:13,marginBottom:6}}>Per-Type Pricing</p>
+        <p style={{fontSize:10,color:"#8a8078",marginBottom:9}}>Leave blank to use the base price ({EM.pound}{f.price||"0.00"}) for that order type</p>
+        <div className="g3" style={{gap:6}}>
+          <div>
+            <label className="lbl" style={{fontSize:10}}>Dine-in {EM.pound}</label>
+            <input type="number" step="0.01" className="field" value={f.priceDineIn} onChange={e=>update("priceDineIn",e.target.value)} placeholder={f.price||"0.00"}/>
+          </div>
+          <div>
+            <label className="lbl" style={{fontSize:10}}>Takeaway {EM.pound}</label>
+            <input type="number" step="0.01" className="field" value={f.priceTakeaway} onChange={e=>update("priceTakeaway",e.target.value)} placeholder={f.price||"0.00"}/>
+          </div>
+          <div>
+            <label className="lbl" style={{fontSize:10}}>Delivery {EM.pound}</label>
+            <input type="number" step="0.01" className="field" value={f.priceDelivery} onChange={e=>update("priceDelivery",e.target.value)} placeholder={f.price||"0.00"}/>
+          </div>
+        </div>
+        <p style={{fontWeight:700,fontSize:13,marginTop:11,marginBottom:6}}>Available For</p>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {[["availDineIn","Dine-in"],["availTakeaway","Takeaway / Collection"],["availDelivery","Delivery"]].map(([k,l])=><button key={k} onClick={()=>update(k,!f[k])} style={{padding:"7px 11px",fontSize:11,fontWeight:700,background:f[k]?"#059669":"#fee2e2",color:f[k]?"#fff":"#991b1b",border:"none",borderRadius:7,cursor:"pointer"}}>{f[k]?EM.check:EM.cross} {l}</button>)}
+        </div>
       </div>
 
       {/* Sizes */}
@@ -1890,6 +1978,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         flatFee:parseFloat(s.flat_fee||0),maxRadius:s.max_radius||3,
         zones:s.zones||[],postcodes:s.postcodes||[],
         codEnabled:s.cod_enabled,codMinOrder:parseFloat(s.cod_min_order||15),codMaxMiles:s.cod_max_miles||3,
+        serviceChargeEnabled:s.service_charge_enabled||false,
+        serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+        serviceChargeMandatory:s.service_charge_mandatory||false,
+        serviceChargeGroupSize:s.service_charge_group_size||6,
       };});
       setDelivSettings(map);
     });
@@ -2521,6 +2613,25 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div><label className="lbl">Min order for COD</label><input type="number" step="0.01" className="field" value={ds.codMinOrder||15} onChange={e=>update("codMinOrder",+e.target.value)}/></div>
             <div><label className="lbl">Max miles for COD</label><input type="number" className="field" value={ds.codMaxMiles||3} onChange={e=>update("codMaxMiles",+e.target.value)}/></div>
           </div>}
+        </div>
+
+        <div className="card" style={{padding:16,marginBottom:10}}>
+          <p style={{fontSize:14,fontWeight:700,marginBottom:4}}>Service Charge (Dine-in)</p>
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:9}}>Optional gratuity added to dine-in bills. Not applied to delivery or collection.</p>
+          <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,cursor:"pointer"}}>
+            <input type="checkbox" checked={ds.serviceChargeEnabled||false} onChange={e=>update("serviceChargeEnabled",e.target.checked)} style={{width:18,height:18,cursor:"pointer"}}/>
+            <span style={{fontWeight:700}}>Add service charge to dine-in bills</span>
+          </label>
+          {ds.serviceChargeEnabled&&<>
+            <div className="g2" style={{marginBottom:9}}>
+              <div><label className="lbl">Percentage %</label><input type="number" step="0.5" className="field" value={ds.serviceChargePercent||12.5} onChange={e=>update("serviceChargePercent",+e.target.value)}/></div>
+              <div><label className="lbl">Auto-apply for groups of</label><input type="number" className="field" value={ds.serviceChargeGroupSize||6} onChange={e=>update("serviceChargeGroupSize",+e.target.value)}/></div>
+            </div>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+              <input type="checkbox" checked={ds.serviceChargeMandatory||false} onChange={e=>update("serviceChargeMandatory",e.target.checked)} style={{width:16,height:16,cursor:"pointer"}}/>
+              <span style={{fontSize:13}}>Mandatory (customer cannot remove)</span>
+            </label>
+          </>}
         </div>
 
         <button className="btn btn-r" onClick={save} style={{width:"100%",padding:"13px",fontSize:14}}>Save Delivery Settings</button>
@@ -3617,7 +3728,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -4183,7 +4294,7 @@ export default function App(){
           slot:o.slot,
           takenBy:o.taken_by,
           source:o.source,
-          tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
+          tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
@@ -4208,6 +4319,12 @@ export default function App(){
           extras:m.extras||[],
           cookingOpts:m.cooking_opts||[],
           station:m.station||null,
+          priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
+          priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
+          priceDelivery:m.price_delivery?parseFloat(m.price_delivery):null,
+          availDineIn:m.avail_dinein!==false,
+          availTakeaway:m.avail_takeaway!==false,
+          availDelivery:m.avail_delivery!==false,
         }));
         setMenu(formatted);
       }
@@ -4305,7 +4422,7 @@ export default function App(){
             deliveryFee:parseFloat(o.delivery_fee||0),total:parseFloat(o.total||0),
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
-            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,
+            tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
