@@ -1863,7 +1863,7 @@ function TableEditor({table,onSave,onClose,existingTables}){
   </div>;
 }
 
-function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations}){
+function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations,user}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
   var [cashHandovers,setCashHandovers]=useState([]);
@@ -4351,7 +4351,7 @@ export default function App(){
       {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push} stations={stations} menu={menu}/>}
-      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch} stations={stations} setStations={setStations}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch} stations={stations} setStations={setStations} user={user}/>}
       {view==="report"  &&<ReportV  orders={orders}/>}
     </main>
   </div>;
