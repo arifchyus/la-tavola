@@ -984,7 +984,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"7px 14px",borderRadius:50,fontWeight:600,fontSize:12,border:"2px solid "+(cat===c?"#bf4626":"#ede8de"),background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",flexShrink:0,cursor:"pointer",transition:"all .18s"}}>{c}</button>)}
     </div>
     <div className="ag" style={{marginBottom:88}}>
-      {menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
+      {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{var key=i.dbId||i.id;if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.dbId||item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <span style={{fontSize:32,lineHeight:1}}>{EM[item.icon]||""}</span>
           <div>{item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}{item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}</div>
@@ -995,7 +995,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
           <span style={{fontSize:15,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</span>
           {item.stock>0&&(cart[item.id]?<div style={{display:"flex",alignItems:"center",gap:8,background:"#f7f3ee",borderRadius:50,padding:"3px 12px",border:"1px solid #ede8de"}}><button onClick={()=>rem(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>-</button><span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{cart[item.id]}</span><button onClick={()=>add(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>+</button></div>:<button onClick={()=>add(item.id)} style={{background:"#1a1208",color:"#fff",borderRadius:"50%",width:32,height:32,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background="#bf4626"} onMouseLeave={e=>e.currentTarget.style.background="#1a1208"}>+</button>)}
         </div>
-      </div>;})}
+      </div>;});})()}
     </div>
     {count>0&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:300}}>
       <button className="btn btn-d" onClick={()=>setStep("checkout")} style={{padding:"12px 24px",borderRadius:50,fontSize:13,boxShadow:"0 8px 28px rgba(0,0,0,.3)",gap:8,minWidth:190}}>
@@ -4012,15 +4012,16 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
   var [showPicker,setShowPicker]=useState(false);
   var cartRef=useRef(null);
   var add=it=>{
+    var typePrice=getItemPrice(it,type);
     setCart(c=>{
       var ex=c.find(x=>x.id===it.id);
       if(ex){
         // If item already in cart, increment qty and move to top
         var others=c.filter(x=>x.id!==it.id);
-        return [{...ex,qty:ex.qty+1},...others];
+        return [{...ex,qty:ex.qty+1,price:typePrice},...others];
       }
       // New item goes to top
-      return [{id:it.id,name:it.name,qty:1,price:it.price},...c];
+      return [{id:it.id,name:it.name,qty:1,price:typePrice},...c];
     });
     setFlashId(it.id);
     setTimeout(()=>setFlashId(null),600);
@@ -4137,7 +4138,7 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
     <div style={{background:"#1a1208",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       <p style={{color:"#d4952a",fontWeight:700,fontSize:14}}>POS</p>
       <div style={{display:"flex",gap:4}}>
-        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>setType(tp)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));var newPrice=m?getItemPrice(m,tp):it.price;return{...it,price:newPrice};}));}} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
       {type==="dine-in"&&<>
         <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"5px 8px",border:"none",borderRadius:6,fontSize:13,fontWeight:700,textAlign:"center",background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208"}}/>
