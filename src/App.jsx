@@ -984,7 +984,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"7px 14px",borderRadius:50,fontWeight:600,fontSize:12,border:"2px solid "+(cat===c?"#bf4626":"#ede8de"),background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",flexShrink:0,cursor:"pointer",transition:"all .18s"}}>{c}</button>)}
     </div>
     <div className="ag" style={{marginBottom:88}}>
-      {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{var key=i.dbId||i.id;if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.dbId||item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
+      {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{var key=(i.name||"").toLowerCase().trim()+"|"+(i.cat||"");if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.dbId||item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <span style={{fontSize:32,lineHeight:1}}>{EM[item.icon]||""}</span>
           <div>{item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}{item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}</div>
@@ -3353,13 +3353,14 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
           {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"6px 12px",borderRadius:7,fontWeight:700,fontSize:12,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",cursor:"pointer",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7}}>
-          {menu.filter(i=>i.cat===cat&&i.avail).map(item=>{
+          {menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,orderType)).map(item=>{
             var inCart=cart.find(c=>c.id===item.id);
+            var displayPrice=getItemPrice(item,orderType);
             return <button key={item.id} onClick={()=>addItem(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:9,padding:9,cursor:"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 12px rgba(191,70,38,.2)":"0 2px 6px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative",minHeight:100}}>
               {inCart&&<div style={{position:"absolute",top:-5,right:-5,background:"#bf4626",color:"#fff",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
               <span style={{fontSize:24}}>{EM[item.icon]||""}</span>
               <p style={{fontSize:10,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
-              <p style={{fontSize:12,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
+              <p style={{fontSize:12,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</p>
             </button>;
           })}
         </div>
@@ -4154,13 +4155,14 @@ function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
           {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"10px 16px",borderRadius:8,fontWeight:700,fontSize:13,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",flexShrink:0,cursor:"pointer",boxShadow:cat===c?"0 3px 10px rgba(0,0,0,.2)":"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
         </div>
         <div className="pos-grid">
-          {menu.filter(i=>i.cat===cat&&i.avail).map(item=>{
+          {menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).map(item=>{
             var inCart=cart.find(c=>c.id===item.id);
+            var displayPrice=getItemPrice(item,type);
             return <button key={item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:10,padding:10,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 16px rgba(191,70,38,.25)":"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:115,transition:"all .15s",position:"relative"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.93)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} onTouchStart={e=>e.currentTarget.style.transform="scale(.93)"} onTouchEnd={e=>e.currentTarget.style.transform="scale(1)"}>
               {inCart&&<div style={{position:"absolute",top:-6,right:-6,background:"#bf4626",color:"#fff",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,boxShadow:"0 2px 8px rgba(191,70,38,.5)",border:"2px solid #fff"}}>{inCart.qty}</div>}
               <span style={{fontSize:28}}>{EM[item.icon]||""}</span>
               <p style={{fontSize:11,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
-              <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(item.price)}</p>
+              <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</p>
             </button>;
           })}
         </div>
