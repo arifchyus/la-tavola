@@ -212,6 +212,135 @@ function clearQrSession(){
 
 // eslint-disable-next-line no-unused-vars
 function checkCOD(branch,orderTotal,distance){
+
+// ---- KITCHEN PRINTING -------------------------------------------------------
+// Build HTML for a print ticket
+function buildTicketHtml(order,station,branch,format){
+  var isThermal=format==="thermal";
+  var w=isThermal?"80mm":"210mm";
+  var p=isThermal?"4mm":"15mm";
+  var fontSize=isThermal?"11px":"13px";
+  var headerSize=isThermal?"14px":"22px";
+  var stationName=station?station.name:"";
+  var items=order.items||[];
+  // Filter items if station_only
+  var content=station?(station.printContent||"station_only"):"full_order";
+  var displayItems=items;
+  var showAllSummary=false;
+  if(station&&content==="station_only"){
+    // We don't have menu lookup here, so this is best-effort filter via items[].station if set
+    displayItems=items.filter(it=>!it.station||it.station===station.name);
+  }else if(station&&content==="station_with_full_summary"){
+    showAllSummary=true;
+  }
+  var typeLabel=order.type==="dine-in"?"DINE-IN":order.type==="delivery"?"DELIVERY":order.type==="collection"?"COLLECTION":(order.type||"ORDER").toUpperCase();
+  var divider=isThermal?"================================":"------------------------------------------------------";
+  var copies=parseInt(station?.copies)||1;
+  var copyText=copies>1?" ("+copies+" copies)":"";
+  var html="<html><head><title>Order "+order.id+"</title><style>"+
+    "@media print{@page{size:"+w+" auto;margin:0}body{margin:0}}"+
+    "body{font-family:'Courier New',monospace;font-size:"+fontSize+";padding:"+p+";width:"+w+";color:#000}"+
+    "h1{font-size:"+headerSize+";text-align:center;margin:0 0 8px}"+
+    ".divider{border-top:1px dashed #000;margin:6px 0}"+
+    ".big{font-size:"+(isThermal?"16px":"18px")+";font-weight:bold}"+
+    ".item{display:flex;justify-content:space-between;margin:2px 0}"+
+    ".section{font-weight:bold;text-decoration:underline;margin:6px 0 3px;text-transform:uppercase}"+
+    "</style></head><body>";
+  html+="<h1>"+(branch?branch.name:"LA TAVOLA")+"</h1>";
+  if(stationName)html+="<div style='text-align:center;font-weight:bold;font-size:"+(isThermal?"13px":"16px")+"'>"+stationName.toUpperCase()+" STATION"+copyText+"</div>";
+  html+="<div class='divider'></div>";
+  html+="<div class='big'>ORDER "+order.id+"</div>";
+  html+="<div>"+order.time+" - "+typeLabel+"</div>";
+  if(order.tableId)html+="<div class='big'>TABLE "+order.tableId+"</div>";
+  if(order.customer)html+="<div>Customer: "+order.customer+"</div>";
+  if(order.phone)html+="<div>Phone: "+order.phone+"</div>";
+  if(order.address)html+="<div>Address: "+(typeof order.address==="string"?order.address:(order.address.line1||"")+" "+(order.address.postcode||""))+"</div>";
+  if(order.slot)html+="<div>Collect at: "+order.slot+"</div>";
+  html+="<div class='divider'></div>";
+  if(stationName&&content==="station_only"){
+    html+="<div class='section'>"+stationName+" Items</div>";
+  }else{
+    html+="<div class='section'>Items</div>";
+  }
+  displayItems.forEach(it=>{
+    html+="<div class='item'><span class='big'>"+(it.qty||1)+"x "+it.name+"</span></div>";
+    if(it.notes)html+="<div style='padding-left:20px;font-style:italic'>Note: "+it.notes+"</div>";
+    if(it.size)html+="<div style='padding-left:20px'>Size: "+it.size+"</div>";
+  });
+  if(showAllSummary){
+    html+="<div class='divider'></div><div class='section'>Full Order Summary</div>";
+    items.forEach(it=>{html+="<div class='item'><span>"+(it.qty||1)+"x "+it.name+"</span></div>";});
+  }
+  html+="<div class='divider'></div>";
+  if(order.total)html+="<div class='item big'><span>TOTAL</span><span>"+(order.total?"\u00A3"+order.total.toFixed(2):"")+"</span></div>";
+  if(order.payMethod==="cod")html+="<div style='text-align:center;font-weight:bold;border:2px solid #000;padding:4px;margin-top:6px'>** CASH ON DELIVERY **<br>COLLECT \u00A3"+(order.total||0).toFixed(2)+"</div>";
+  if(!order.paid&&order.payMethod!=="cod")html+="<div style='text-align:center;font-weight:bold'>** UNPAID - COLLECT PAYMENT **</div>";
+  html+="<div class='divider'></div>";
+  html+="<div style='text-align:center;font-size:10px;margin-top:8px'>"+new Date().toLocaleString("en-GB")+"</div>";
+  html+="</body></html>";
+  return html;
+}
+
+// Print using browser
+function printTicket(order,station,branch){
+  var format=station?(station.printerFormat||"thermal"):"thermal";
+  var html=buildTicketHtml(order,station,branch,format);
+  var win=window.open("","print_"+order.id,"width=400,height=600");
+  if(!win){alert("Pop-up blocked! Allow pop-ups to print.");return false;}
+  win.document.write(html);
+  win.document.close();
+  // Trigger print after small delay so styles load
+  setTimeout(()=>{try{win.focus();win.print();setTimeout(()=>win.close(),500);}catch(e){console.log("Print error:",e);}},250);
+  return true;
+}
+
+// PrintNode integration (requires server-side or CORS proxy in real use)
+function printViaPrintNode(order,station,branch,apiKey){
+  // Note: PrintNode API requires HTTP Basic Auth, browser CORS may block direct calls.
+  // For production, route through a server endpoint to avoid exposing apiKey.
+  if(!station.printnodeId||!apiKey){
+    alert("PrintNode not configured. Set printer ID and API key in Admin > Stations.");
+    return false;
+  }
+  var format=station.printerFormat||"thermal";
+  var html=buildTicketHtml(order,station,branch,format);
+  // Convert HTML to base64
+  var b64=btoa(unescape(encodeURIComponent(html)));
+  var payload={
+    printerId:parseInt(station.printnodeId),
+    title:"Order "+order.id,
+    contentType:"raw_base64",
+    content:b64,
+    source:"La Tavola POS",
+    options:{copies:parseInt(station.copies)||1},
+  };
+  fetch("https://api.printnode.com/printjobs",{
+    method:"POST",
+    headers:{"Authorization":"Basic "+btoa(apiKey+":"),"Content-Type":"application/json"},
+    body:JSON.stringify(payload),
+  }).then(r=>r.json()).then(data=>{
+    console.log("PrintNode result:",data);
+  }).catch(e=>{
+    console.log("PrintNode failed (likely CORS):",e);
+    alert("PrintNode call failed. Production setup requires server-side proxy.");
+  });
+  return true;
+}
+
+// Main print dispatcher - routes to correct method based on station config
+// eslint-disable-next-line no-unused-vars
+function dispatchPrint(order,station,branch){
+  if(!station)return printTicket(order,null,branch);
+  var method=station.printerMethod||"browser";
+  if(method==="none")return false;
+  if(method==="printnode"){
+    var apiKey=null;
+    try{apiKey=localStorage.getItem("printnode_api_key");}catch(e){}
+    return printViaPrintNode(order,station,branch,apiKey);
+  }
+  // Default: browser print
+  return printTicket(order,station,branch);
+}
   var c=branch.cod;
   if(!c||!c.enabled)return{ok:false,reason:"Cash on delivery not accepted here"};
   if(c.minOrder&&orderTotal<c.minOrder)return{ok:false,reason:"Min order "+fmt(c.minOrder)+" for cash on delivery"};
@@ -1720,7 +1849,7 @@ function TableEditor({table,onSave,onClose,existingTables}){
 
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
-  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1");
+  var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
   var [delivSettings,setDelivSettings]=useState({});
   var [promoCodes,setPromoCodes]=useState([]);
   var [autoDiscs,setAutoDiscs]=useState([]);
@@ -2006,6 +2135,74 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>
       </div>
     </div>}
+    {editStation&&<div onClick={()=>setEditStation(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:540,padding:22,maxHeight:"92vh",overflowY:"auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h2 style={{fontSize:20}}>{editStation.dbId?"Edit Station":"New Station"}</h2>
+          <button onClick={()=>setEditStation(null)} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+        </div>
+        <div className="g2" style={{marginBottom:10}}>
+          <div><label className="lbl">Station Name</label><input className="field" value={editStation.name||""} onChange={e=>setEditStation({...editStation,name:e.target.value})} placeholder="Tandoor"/></div>
+          <div><label className="lbl">Color</label><div style={{display:"flex",gap:5}}>
+            <input type="color" value={editStation.color||"#bf4626"} onChange={e=>setEditStation({...editStation,color:e.target.value})} style={{width:46,height:38,border:"2px solid #ede8de",borderRadius:7,cursor:"pointer"}}/>
+            <input className="field" value={editStation.color||""} onChange={e=>setEditStation({...editStation,color:e.target.value})} placeholder="#bf4626" style={{flex:1}}/>
+          </div></div>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}}>
+          <input type="checkbox" checked={editStation.active!==false} onChange={e=>setEditStation({...editStation,active:e.target.checked})} style={{width:16,height:16,cursor:"pointer"}}/>
+          <span style={{fontWeight:700}}>Active</span>
+        </label>
+
+        <div style={{padding:"11px 13px",background:"#fafaf5",borderRadius:9,marginBottom:10}}>
+          <p style={{fontWeight:700,fontSize:13,marginBottom:8}}>Printer Setup</p>
+          <label className="lbl">Print Method</label>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:9}}>
+            {[["none","No Printer"],["browser","Browser Print"],["printnode","PrintNode (auto)"]].map(([k,l])=><button key={k} onClick={()=>setEditStation({...editStation,printerMethod:k})} style={{padding:"9px 4px",fontSize:11,fontWeight:700,background:editStation.printerMethod===k?"#bf4626":"#fff",color:editStation.printerMethod===k?"#fff":"#1a1208",border:"2px solid "+(editStation.printerMethod===k?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+          </div>
+
+          {editStation.printerMethod&&editStation.printerMethod!=="none"&&<>
+            <label className="lbl">Paper Format</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:9}}>
+              {[["thermal","Thermal 80mm"],["a4","A4 Standard"]].map(([k,l])=><button key={k} onClick={()=>setEditStation({...editStation,printerFormat:k})} style={{padding:"9px 4px",fontSize:11,fontWeight:700,background:editStation.printerFormat===k?"#7c3aed":"#fff",color:editStation.printerFormat===k?"#fff":"#1a1208",border:"2px solid "+(editStation.printerFormat===k?"#7c3aed":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+            </div>
+
+            <label className="lbl">What to print</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:5,marginBottom:9}}>
+              {[["station_only","Only this station's items"],["full_order","Full order (all items)"],["station_with_full_summary","Station items + summary of full order"]].map(([k,l])=><button key={k} onClick={()=>setEditStation({...editStation,printContent:k})} style={{padding:"8px 10px",fontSize:11,fontWeight:700,background:editStation.printContent===k?"#1a1208":"#fff",color:editStation.printContent===k?"#fff":"#1a1208",border:"2px solid "+(editStation.printContent===k?"#1a1208":"#ede8de"),borderRadius:7,cursor:"pointer",textAlign:"left"}}>{l}</button>)}
+            </div>
+
+            <div className="g2" style={{marginBottom:9}}>
+              <div><label className="lbl">Copies</label><input type="number" min="1" max="5" className="field" value={editStation.copies||1} onChange={e=>setEditStation({...editStation,copies:+e.target.value})}/></div>
+              <div>
+                <label className="lbl">Auto-print</label>
+                <button onClick={()=>setEditStation({...editStation,autoPrint:!editStation.autoPrint})} style={{width:"100%",padding:"9px",fontSize:12,fontWeight:700,background:editStation.autoPrint?"#059669":"#fff",color:editStation.autoPrint?"#fff":"#1a1208",border:"2px solid "+(editStation.autoPrint?"#059669":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{editStation.autoPrint?"ON - Print on accept":"OFF - Manual print"}</button>
+              </div>
+            </div>
+
+            {editStation.printerMethod==="printnode"&&<div>
+              <label className="lbl">PrintNode Printer ID</label>
+              <input className="field" value={editStation.printnodeId||""} onChange={e=>setEditStation({...editStation,printnodeId:e.target.value})} placeholder="123456 (find in printnode.com dashboard)"/>
+              <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>API key set globally in Stations tab. Direct browser calls may fail due to CORS - production should proxy via server.</p>
+            </div>}
+          </>}
+        </div>
+
+        <div style={{display:"flex",gap:7}}>
+          <button className="btn btn-o" onClick={()=>setEditStation(null)} style={{flex:1,padding:"11px"}}>Cancel</button>
+          <button className="btn btn-r" onClick={()=>{
+            if(!editStation.name){alert("Name required");return;}
+            dbSaveStation(editStation).then(r=>{
+              if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
+              var saved={...editStation,dbId:r.data?.id||editStation.dbId};
+              setStations(ls=>editStation.dbId?ls.map(x=>x.dbId===editStation.dbId?saved:x):[...(ls||[]),saved]);
+              push({title:"Station saved",body:editStation.name,color:"#059669"});
+              setEditStation(null);
+            });
+          }} style={{flex:2,padding:"11px"}}>Save Station</button>
+        </div>
+      </div>
+    </div>}
+
     {editAuto&&<div onClick={()=>setEditAuto(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:460,padding:22,maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -2095,62 +2292,44 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
     {tab==="stations"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-        <div><h3 style={{fontSize:16,marginBottom:2}}>Kitchen Stations</h3><p style={{fontSize:11,color:"#8a8078"}}>Each menu item is assigned to a station so the right chef sees it</p></div>
-        <button className="btn btn-r" onClick={()=>{
-          var name=prompt("Station name (e.g. Pizza, Sushi, Grill):");
-          if(!name)return;
-          var newStation={name,icon:"cook",color:"#bf4626",sortOrder:(stations||[]).length+1,active:true};
-          dbSaveStation(newStation).then(r=>{
-            if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
-            var saved={...newStation,dbId:r.data.id};
-            setStations(s=>[...(s||[]),saved]);
-            push({title:"Station added",body:name,color:"#059669"});
-          });
-        }} style={{padding:"7px 14px",fontSize:12}}>+ Add Station</button>
+        <div><h3 style={{fontSize:16,marginBottom:2}}>Kitchen Stations & Printers</h3><p style={{fontSize:11,color:"#8a8078"}}>Configure each station's printer (browser, PrintNode, or none)</p></div>
+        <button className="btn btn-r" onClick={()=>setEditStation({name:"",icon:"cook",color:"#bf4626",sortOrder:(stations||[]).length+1,active:true,printerMethod:"none",printerFormat:"thermal",printContent:"station_only",autoPrint:false,copies:1})} style={{padding:"7px 14px",fontSize:12}}>+ Add Station</button>
       </div>
       {(!stations||stations.length===0)?<div className="card" style={{textAlign:"center",padding:30}}>
         <p style={{fontSize:40,marginBottom:10}}>{EM.cook}</p>
         <p style={{fontSize:14,color:"#8a8078"}}>No stations yet. Click "+ Add Station" or run the migration SQL.</p>
-      </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:9}}>
+      </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:9}}>
         {stations.map(s=><div key={s.dbId} className="card" style={{padding:13,borderLeft:"5px solid "+s.color}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <p style={{fontWeight:700,fontSize:15}}>{s.name}</p>
             <span style={{padding:"2px 7px",background:s.active?"#d1fae5":"#f5f5f5",color:s.active?"#065f46":"#8a8078",borderRadius:4,fontSize:10,fontWeight:700}}>{s.active?"ACTIVE":"OFF"}</span>
           </div>
-          <p style={{fontSize:11,color:"#8a8078",marginBottom:9}}>{menu.filter(m=>m.station===s.name).length} menu items assigned</p>
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{menu.filter(m=>m.station===s.name).length} menu items</p>
+          <div style={{padding:"7px 9px",background:"#f7f3ee",borderRadius:6,marginBottom:9,fontSize:11}}>
+            <div style={{marginBottom:2}}><strong>Printer:</strong> {s.printerMethod==="none"?"None":s.printerMethod==="browser"?"Browser print":s.printerMethod==="printnode"?"PrintNode auto":(s.printerMethod||"none")}</div>
+            {s.printerMethod&&s.printerMethod!=="none"&&<>
+              <div style={{marginBottom:2}}><strong>Format:</strong> {s.printerFormat==="a4"?"A4":"Thermal 80mm"}</div>
+              <div style={{marginBottom:2}}><strong>Content:</strong> {s.printContent==="full_order"?"Full order":s.printContent==="station_with_full_summary"?"Station + summary":"Station items only"}</div>
+              <div><strong>Auto-print:</strong> {s.autoPrint?"Yes":"No"} - {s.copies||1} cop{(s.copies||1)>1?"ies":"y"}</div>
+            </>}
+          </div>
           <div style={{display:"flex",gap:5}}>
-            <button onClick={()=>{
-              var newName=prompt("Rename station:",s.name);
-              if(!newName||newName===s.name)return;
-              var oldName=s.name;
-              var updated={...s,name:newName};
-              dbSaveStation(updated).then(r=>{
-                if(r.error){push({title:"Save failed",body:r.error.message,color:"#dc2626"});return;}
-                setStations(ls=>ls.map(x=>x.dbId===s.dbId?updated:x));
-                // Also update menu items that referenced old name
-                setMenu(ms=>ms.map(m=>m.station===oldName?{...m,station:newName}:m));
-                menu.filter(m=>m.station===oldName).forEach(m=>{
-                  if(m.dbId)dbSaveMenuItem({...m,station:newName}).catch(()=>{});
-                });
-                push({title:"Renamed",body:oldName+" -> "+newName,color:"#059669"});
-              });
-            }} style={{flex:1,padding:"6px",fontSize:11,fontWeight:700,background:"#f7f3ee",border:"none",borderRadius:6,cursor:"pointer"}}>Rename</button>
-            <button onClick={()=>{
-              var newColor=prompt("Color hex (e.g. #dc2626):",s.color);
-              if(!newColor)return;
-              var updated={...s,color:newColor};
-              dbSaveStation(updated).then(()=>setStations(ls=>ls.map(x=>x.dbId===s.dbId?updated:x)));
-            }} style={{padding:"6px 9px",fontSize:11,background:s.color,color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>Color</button>
+            <button onClick={()=>setEditStation(s)} style={{flex:2,padding:"7px",fontSize:11,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Edit Settings</button>
             <button onClick={()=>{
               var inUse=menu.filter(m=>m.station===s.name).length;
-              if(inUse>0){if(!window.confirm("This station has "+inUse+" menu items assigned. Delete anyway? (Items will become unassigned.)"))return;}
-              else{if(!window.confirm("Delete station "+s.name+"?"))return;}
+              if(inUse>0){if(!window.confirm("This station has "+inUse+" menu items. Delete anyway?"))return;}
+              else{if(!window.confirm("Delete "+s.name+"?"))return;}
               setStations(ls=>ls.filter(x=>x.dbId!==s.dbId));
               dbDeleteStation(s.dbId).then(()=>push({title:"Deleted",body:s.name,color:"#dc2626"}));
-            }} style={{padding:"6px 10px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
+            }} style={{padding:"7px 11px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontWeight:700}}>x</button>
           </div>
         </div>)}
       </div>}
+      <div className="card" style={{padding:12,marginTop:12,background:"#fffbeb",borderLeft:"4px solid #d97706"}}>
+        <p style={{fontSize:12,fontWeight:700,marginBottom:6,color:"#92400e"}}>{EM.star} PrintNode Setup (optional, for true auto-print)</p>
+        <p style={{fontSize:11,color:"#92400e",marginBottom:7}}>If using PrintNode, install client at printnode.com and paste your API key below. It is stored only in this browser.</p>
+        <input type="password" className="field" placeholder="PrintNode API key" defaultValue={(()=>{try{return localStorage.getItem("printnode_api_key")||"";}catch(e){return "";}})()} onChange={e=>{try{localStorage.setItem("printnode_api_key",e.target.value);}catch(err){}}} style={{fontSize:11}}/>
+      </div>
     </div>}
 
     {tab==="delivery"&&(()=>{
@@ -3011,7 +3190,7 @@ function StaffBookingsV({branch,push}){
 
 
 // -- INCOMING ONLINE ORDERS PANEL ------------------------------------------
-function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTables}){
+function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTables,stations,menu}){
   var [filter,setFilter]=useState("new");
   var [soundOn,setSoundOn]=useState(()=>{
     try{return localStorage.getItem("latavola_sound")!=="0";}catch(e){return true;}
@@ -3170,7 +3349,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
     setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"preparing"}:x));
     push({title:"Order accepted",body:o.id+" - sent to kitchen",color:"#059669"});
     dbUpdateOrderStatus(o.id,"preparing").catch(e=>console.log("Status save failed:",e));
-    // If this is a QR eat-in order (has tableId), auto-occupy the table
+    // Auto-occupy table for QR/eat-in orders
     if(o.tableId&&tables&&setTables){
       var tbl=tables.find(t=>(t.id===o.tableId||t.id===+o.tableId||+t.id===+o.tableId)&&(!branch||!t.branchId||t.branchId===branch.id));
       if(tbl){
@@ -3179,6 +3358,25 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
           dbUpdateTableStatus(tbl.dbId,"occupied",{}).catch(e=>console.log("Table save failed:",e));
         }
       }
+    }
+    // Auto-print to stations that have it enabled
+    if(stations&&menu){
+      // Determine which stations have items in this order
+      var stationsInOrder=new Set();
+      (o.items||[]).forEach(it=>{
+        var m=menu.find(x=>String(x.id)===String(it.id)||x.name===it.name);
+        if(m&&m.station)stationsInOrder.add(m.station);
+      });
+      stations.forEach(s=>{
+        if(s.autoPrint&&s.printerMethod&&s.printerMethod!=="none"&&stationsInOrder.has(s.name)){
+          // Annotate items with their station for filtering inside ticket
+          var enrichedOrder={...o,items:(o.items||[]).map(it=>{
+            var m=menu.find(x=>String(x.id)===String(it.id)||x.name===it.name);
+            return {...it,station:m?.station||null};
+          })};
+          setTimeout(()=>dispatchPrint(enrichedOrder,s,branch),300*Array.from(stationsInOrder).indexOf(s.name));
+        }
+      });
     }
   };
   var reject=o=>{
@@ -3253,10 +3451,14 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
           {(o.items||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><span>{it.name} x{it.qty}</span><span>{fmt((+it.price||0)*it.qty)}</span></div>)}
         </div>
 
-        {o.status==="pending"&&<div style={{display:"flex",gap:6}}>
-          <button className="btn btn-r" onClick={()=>accept(o)} style={{flex:2,padding:"10px",fontSize:13}}>{EM.check} Accept & Send to Kitchen</button>
-          {o.phone&&<button onClick={()=>callCust(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#2563eb",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>{EM.phone} Call</button>}
-          <button onClick={()=>reject(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Reject</button>
+        {o.status==="pending"&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <button className="btn btn-r" onClick={()=>accept(o)} style={{flex:2,padding:"10px",fontSize:13,minWidth:160}}>{EM.check} Accept & Send to Kitchen</button>
+          {o.phone&&<button onClick={()=>callCust(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#2563eb",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,minWidth:80}}>{EM.phone} Call</button>}
+          <button onClick={()=>reject(o)} style={{flex:1,padding:"10px",fontSize:12,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,minWidth:80}}>Reject</button>
+          {stations&&stations.some(s=>s.printerMethod&&s.printerMethod!=="none")&&<button onClick={()=>{
+            var enriched={...o,items:(o.items||[]).map(it=>{var m=menu?.find(x=>String(x.id)===String(it.id)||x.name===it.name);return{...it,station:m?.station||null};})};
+            stations.filter(s=>s.printerMethod&&s.printerMethod!=="none").forEach((s,i)=>setTimeout(()=>dispatchPrint(enriched,s,branch),i*400));
+          }} title="Manually print to all stations" style={{padding:"10px 12px",fontSize:11,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>{EM.cart} Print</button>}
         </div>}
         {o.status==="preparing"&&<div style={{display:"flex",gap:6}}>
           <button className="btn btn-p" onClick={()=>{
@@ -3772,6 +3974,12 @@ export default function App(){
         setStations(list.map(s=>({
           dbId:s.id,name:s.name,icon:s.icon,color:s.color,
           sortOrder:s.sort_order,active:s.active,
+          printerMethod:s.printer_method||"none",
+          printerFormat:s.printer_format||"thermal",
+          printContent:s.print_content||"station_only",
+          autoPrint:s.auto_print||false,
+          printnodeId:s.printnode_id||null,
+          copies:s.copies||1,
         })));
       }
     }).catch(e=>console.log("Stations load failed:",e));
@@ -3897,7 +4105,7 @@ export default function App(){
         push({title:"Adding to Table "+tableId,body:"Add items and send to kitchen",color:"#2563eb"});
       }}/>}
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
-      {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables}/>}
+      {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables} stations={stations} menu={menu}/>}
       {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES}/>}
       {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}

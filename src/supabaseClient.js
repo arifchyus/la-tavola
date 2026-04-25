@@ -616,6 +616,12 @@ export async function saveStation(s) {
     color: s.color || '#bf4626',
     sort_order: parseInt(s.sortOrder) || 0,
     active: s.active !== false,
+    printer_method: s.printerMethod || 'none',
+    printer_format: s.printerFormat || 'thermal',
+    print_content: s.printContent || 'station_only',
+    auto_print: s.autoPrint || false,
+    printnode_id: s.printnodeId || null,
+    copies: parseInt(s.copies) || 1,
   };
   if (s.dbId) {
     const { data, error } = await supabase.from('kitchen_stations')
