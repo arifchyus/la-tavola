@@ -2335,13 +2335,15 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       var monthAgo=new Date(now-30*86400000).toISOString().split("T")[0];
       result=result.filter(o=>{
         try{
-          var t=String(o.time||"");
-          // If just HH:MM, treat as today
-          if(/^\d{1,2}:\d{2}/.test(t)&&t.length<=8){
-            return orderDateFilter==="today";
+          // Prefer created_at (full ISO timestamp) over time field (HH:MM only)
+          var dateStr=o.created_at||o.time||"";
+          if(!dateStr)return orderDateFilter==="today"; // assume today if no date info
+          var d=new Date(dateStr);
+          if(isNaN(d.getTime())){
+            // If just HH:MM, treat as today (legacy data)
+            if(/^\d{1,2}:\d{2}/.test(String(o.time||"")))return orderDateFilter==="today";
+            return false;
           }
-          var d=new Date(t);
-          if(isNaN(d.getTime()))return false;
           var dStr=d.toISOString().split("T")[0];
           if(orderDateFilter==="today")return dStr===todayStr;
           if(orderDateFilter==="yesterday")return dStr===yesterday;
@@ -2464,7 +2466,23 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
               <div style={{flex:1,minWidth:0}}>
                 <p style={{fontWeight:700,fontSize:13}}>{o.id}</p>
-                <p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p>
+                <p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {(()=>{
+                  try{
+                    if(o.created_at){
+                      var d=new Date(o.created_at);
+                      if(!isNaN(d.getTime())){
+                        var today=new Date().toISOString().split("T")[0];
+                        var yest=new Date(Date.now()-86400000).toISOString().split("T")[0];
+                        var dStr=d.toISOString().split("T")[0];
+                        var tm=d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+                        if(dStr===today)return "Today "+tm;
+                        if(dStr===yest)return "Yesterday "+tm;
+                        return d.toLocaleDateString("en-GB",{day:"numeric",month:"short"})+" "+tm;
+                      }
+                    }
+                  }catch(e){}
+                  return o.time||"";
+                })()}</p>
                 {o.phone&&<p style={{fontSize:10,color:"#8a8078"}}>{EM.phone} {o.phone}</p>}
                 {o.address&&typeof o.address==="object"&&<p style={{fontSize:10,color:"#8a8078"}}>{EM.pin} {o.address.line1}, {o.address.postcode}</p>}
                 <p style={{fontSize:9,color:"#8a8078",marginTop:2}}>
@@ -4372,6 +4390,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
+            created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
@@ -6091,6 +6110,7 @@ export default function App(){
           takenBy:o.taken_by,
           source:o.source,
           tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
+          created_at:o.created_at,
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
@@ -6238,6 +6258,7 @@ export default function App(){
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
+            created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
           setOrders(formatted);
