@@ -4242,14 +4242,215 @@ function PosV(props){
 }
 
 // CLASSIC UI - POSCUBE-style with category buttons on left, items in middle, bill on right
-function PosVClassic(props){
-  return <div className="page" style={{padding:14}}>
-    <div className="card" style={{padding:30,textAlign:"center"}}>
-      <p style={{fontSize:36,marginBottom:10}}>{EM.cook}</p>
-      <h3 style={{fontSize:18,marginBottom:6}}>Classic POSCUBE-style UI</h3>
-      <p style={{fontSize:13,color:"#8a8078",marginBottom:14}}>This UI style is being built next session.</p>
-      <p style={{fontSize:11,color:"#8a8078"}}>For now, switch to Modern UI in Admin {String.fromCharCode(0x2192)} Settings.</p>
+// CLASSIC POSCUBE-style POS - traditional EPOS layout with categories on left, items in middle, bill on right
+function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders}){
+  var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
+  var [cat,setCat]=useState(cats[0]||"");
+  var [cart,setCart]=useState([]);
+  var [type,setType]=useState("dine-in");
+  var [tbl,setTbl]=useState("");
+  var [guests,setGuests]=useState("1");
+  var [discPct,setDiscPct]=useState(0);
+  var [showDiscModal,setShowDiscModal]=useState(false);
+  var [showSplitModal,setShowSplitModal]=useState(false);
+  var [splitN,setSplitN]=useState(2);
+  var [posDeliv,setPosDeliv]=useState(null);
+
+  // Color palette for categories - rotates through traditional EPOS colors
+  var catColors=["#f59e0b","#fbbf24","#fcd34d","#fb923c","#fca5a5","#a78bfa","#60a5fa","#34d399"];
+  var getCatColor=(idx)=>catColors[idx%catColors.length];
+
+  useEffect(()=>{
+    if(!branch)return;
+    dbFetchAllDelivery().then(list=>{
+      var s=(list||[]).find(x=>x.branch_id===branch.id);
+      if(s){
+        setPosDeliv({
+          serviceChargeEnabled:s.service_charge_enabled||false,
+          serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+          serviceChargeMandatory:s.service_charge_mandatory||false,
+        });
+      }
+    });
+  },[branch]);
+
+  // Calculations
+  var rawSub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  var discAmt=rawSub*(discPct/100);
+  var afterDisc=rawSub-discAmt;
+  var posServiceApplies=type==="dine-in"&&posDeliv&&posDeliv.serviceChargeEnabled;
+  var serviceCharge=posServiceApplies?afterDisc*((posDeliv.serviceChargePercent||0)/100):0;
+  var total=afterDisc+serviceCharge;
+
+  var add=(it)=>{
+    var typePrice=getItemPrice(it,type);
+    setCart(c=>{
+      var ex=c.find(x=>x.id===it.id);
+      if(ex){
+        var others=c.filter(x=>x.id!==it.id);
+        return [{...ex,qty:ex.qty+1,price:typePrice},...others];
+      }
+      return [{id:it.id,name:it.name,qty:1,price:typePrice},...c];
+    });
+  };
+  var rem=(idx)=>setCart(c=>c.filter((_,i)=>i!==idx));
+  var qtyChange=(idx,delta)=>setCart(c=>c.map((it,i)=>i===idx?{...it,qty:Math.max(1,it.qty+delta)}:it));
+  var clear=()=>{setCart([]);setDiscPct(0);};
+
+  // Send order to kitchen / save
+  var sendOrder=(paid,payMethod)=>{
+    if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
+    var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+    var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
+    var o={
+      id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,
+      items:[...cart],subtotal:rawSub,discount:discAmt,
+      serviceCharge:serviceCharge,total:total,
+      status:paid?"preparing":"pending",time:nowT(),type,
+      paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
+      tableId,source:"staff",guests:parseInt(guests)||1,
+    };
+    onOrder(o);
+    if(type==="dine-in"&&tbl){
+      var tnum=parseInt(tbl);
+      setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied",guests:parseInt(guests)||1}:t));
+    }
+    push({title:paid?"Paid - sent to kitchen":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
+    clear();
+  };
+
+  // Filter and dedupe items in current category
+  var visibleItems=(()=>{
+    var seen=new Set();
+    return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{
+      var key=(i.name||"").toLowerCase().trim();
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  })();
+
+  return <div style={{height:"calc(100vh - 100px)",display:"flex",flexDirection:"column",background:"#1a1208",color:"#fff",margin:-16,padding:8,overflow:"hidden"}}>
+    {/* Top bar - branch info + order type + table */}
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"linear-gradient(135deg,#2d1f12,#3d2e22)",borderRadius:8,marginBottom:6,flexWrap:"wrap"}}>
+      <div style={{flex:1,minWidth:140}}>
+        <p style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>POSCUBE STYLE</p>
+        <p style={{fontSize:14,fontWeight:700,color:"#d4952a"}}>{branch?.name} - {user?.name}</p>
+      </div>
+      <div style={{display:"flex",gap:4,background:"rgba(0,0,0,.3)",borderRadius:7,padding:3}}>
+        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"6px 14px",borderRadius:5,fontSize:12,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+      </div>
+      {type==="dine-in"&&<>
+        <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid #d4952a",background:"#fff",color:"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
+        <input value={guests} onChange={e=>setGuests(e.target.value)} placeholder="Guests" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid #d4952a",background:"#fff",color:"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
+      </>}
     </div>
+
+    {/* Main area - 3 columns */}
+    <div style={{flex:1,display:"flex",gap:6,minHeight:0}}>
+      {/* LEFT: Categories sidebar */}
+      <div style={{width:108,display:"flex",flexDirection:"column",gap:3,overflowY:"auto",background:"#0f0a05",borderRadius:8,padding:5}}>
+        {cats.map((c,idx)=>{
+          var color=getCatColor(idx);
+          var isActive=cat===c;
+          var count=menu.filter(m=>m.cat===c&&m.avail).length;
+          return <button key={c} onClick={()=>setCat(c)} style={{padding:"10px 6px",background:isActive?color:"#2d1f12",color:isActive?"#1a1208":"#fff",border:"2px solid "+color,borderRadius:6,fontWeight:700,fontSize:11,cursor:"pointer",lineHeight:1.2,minHeight:48,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <span>{c}</span>
+            <span style={{fontSize:9,opacity:.85,fontWeight:400,marginTop:2}}>{count} items</span>
+          </button>;
+        })}
+      </div>
+
+      {/* MIDDLE: Items grid */}
+      <div style={{flex:1,background:"#fafaf5",borderRadius:8,padding:6,overflowY:"auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:5}}>
+          {visibleItems.map(item=>{
+            var price=getItemPrice(item,type);
+            var inCart=cart.find(c=>c.id===item.id);
+            var idx=cats.indexOf(item.cat);
+            var color=getCatColor(idx);
+            return <button key={item.dbId||item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{padding:"10px 6px",background:inCart?"#fff":color,color:"#1a1208",border:"3px solid "+(inCart?"#bf4626":color),borderRadius:7,fontWeight:700,fontSize:11,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,position:"relative",minHeight:62,boxShadow:"0 2px 4px rgba(0,0,0,.15)"}}>
+              {inCart&&<div style={{position:"absolute",top:-7,right:-7,background:"#bf4626",color:"#fff",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
+              <div style={{fontWeight:700,marginBottom:2,lineHeight:1.1}}>{item.name.toUpperCase()}</div>
+              <div style={{fontSize:11,fontWeight:700,color:"#7c2d12"}}>{fmt(price)}</div>
+            </button>;
+          })}
+        </div>
+        {visibleItems.length===0&&<div style={{textAlign:"center",padding:50,color:"#8a8078"}}>
+          <p style={{fontSize:32}}>{EM.cook}</p>
+          <p style={{fontSize:13,marginTop:10}}>No items in {cat}</p>
+        </div>}
+      </div>
+
+      {/* RIGHT: Running bill */}
+      <div style={{width:240,display:"flex",flexDirection:"column",background:"#fff",color:"#1a1208",borderRadius:8,overflow:"hidden"}}>
+        <div style={{background:"#1a1208",color:"#fff",padding:"7px 10px",fontWeight:700,fontSize:12,textAlign:"center"}}>
+          {type==="dine-in"?"Dine In - Table "+(tbl||"?"):"Takeaway"}
+          {type==="dine-in"&&" - Guest: "+guests}
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:6}}>
+          {cart.length===0?<p style={{fontSize:11,color:"#8a8078",textAlign:"center",padding:20}}>Tap items to add</p>:cart.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px dashed #ede8de",fontSize:11}}>
+            <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:4}}>
+              <button onClick={()=>qtyChange(i,-1)} style={{width:18,height:18,borderRadius:3,border:"1px solid #ddd",background:"#f7f3ee",cursor:"pointer",fontWeight:700,fontSize:10}}>-</button>
+              <span style={{fontWeight:700,minWidth:18,textAlign:"center"}}>{it.qty}</span>
+              <button onClick={()=>qtyChange(i,1)} style={{width:18,height:18,borderRadius:3,border:"1px solid #ddd",background:"#f7f3ee",cursor:"pointer",fontWeight:700,fontSize:10}}>+</button>
+              <span style={{fontSize:10,marginLeft:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</span>
+            </div>
+            <span style={{fontWeight:700,marginLeft:4}}>{fmt(it.price*it.qty)}</span>
+            <button onClick={()=>rem(i)} style={{marginLeft:3,width:16,height:16,borderRadius:3,background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer",fontSize:10,fontWeight:700}}>x</button>
+          </div>)}
+        </div>
+        <div style={{padding:"7px 10px",borderTop:"2px solid #ede8de",background:"#fafaf5"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#8a8078"}}><span>Subtotal</span><span>{fmt(rawSub)}</span></div>
+          {discAmt>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#dc2626"}}><span>Disc {discPct}%</span><span>-{fmt(discAmt)}</span></div>}
+          {serviceCharge>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#7c3aed"}}><span>Service</span><span>+{fmt(serviceCharge)}</span></div>}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:18,fontWeight:700,color:"#bf4626",marginTop:4,paddingTop:4,borderTop:"1px solid #ede8de"}}><span>Amount Due:</span><span>{fmt(total)}</span></div>
+        </div>
+      </div>
+    </div>
+
+    {/* Bottom action bar */}
+    <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
+      <button onClick={clear} style={{padding:"10px 14px",background:"#dc2626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer",minWidth:80}}>Cancel</button>
+      <button onClick={()=>setShowDiscModal(true)} disabled={cart.length===0} style={{padding:"10px 14px",background:"#d4952a",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:80}}>Discount</button>
+      <button onClick={()=>setShowSplitModal(true)} disabled={cart.length===0||type!=="dine-in"} style={{padding:"10px 14px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:cart.length===0||type!=="dine-in"?"not-allowed":"pointer",opacity:cart.length===0||type!=="dine-in"?.5:1,minWidth:80}}>Split Bill</button>
+      <div style={{flex:1}}/>
+      <button onClick={()=>sendOrder(false,null)} disabled={cart.length===0} style={{padding:"10px 18px",background:"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:120}}>Send to Kitchen</button>
+      <button onClick={()=>sendOrder(true,"cash")} disabled={cart.length===0} style={{padding:"10px 18px",background:"#059669",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:90}}>Pay Cash</button>
+      <button onClick={()=>sendOrder(true,"card")} disabled={cart.length===0} style={{padding:"10px 18px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:90}}>Pay Card</button>
+    </div>
+
+    {/* Discount modal */}
+    {showDiscModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:99,padding:14}} onClick={()=>setShowDiscModal(false)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",color:"#1a1208",borderRadius:11,padding:18,maxWidth:340,width:"100%"}}>
+        <h3 style={{fontSize:16,marginBottom:9}}>Apply Discount</h3>
+        <p style={{fontSize:12,color:"#8a8078",marginBottom:11}}>Quick percentages:</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:11}}>
+          {[5,10,15,20,25,50].map(p=><button key={p} onClick={()=>setDiscPct(p)} style={{padding:"11px",background:discPct===p?"#bf4626":"#f7f3ee",color:discPct===p?"#fff":"#1a1208",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>{p}%</button>)}
+        </div>
+        <input type="number" value={discPct} onChange={e=>setDiscPct(Math.max(0,Math.min(100,+e.target.value)))} placeholder="Custom %" style={{width:"100%",padding:"9px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,textAlign:"center",marginBottom:11}}/>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>{setDiscPct(0);setShowDiscModal(false);}} style={{flex:1,padding:"10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Remove</button>
+          <button onClick={()=>setShowDiscModal(false)} style={{flex:1,padding:"10px",background:"#1a1208",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Apply</button>
+        </div>
+      </div>
+    </div>}
+
+    {/* Split bill modal */}
+    {showSplitModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:99,padding:14}} onClick={()=>setShowSplitModal(false)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",color:"#1a1208",borderRadius:11,padding:18,maxWidth:340,width:"100%"}}>
+        <h3 style={{fontSize:16,marginBottom:9}}>Split Bill</h3>
+        <p style={{fontSize:12,color:"#8a8078",marginBottom:11}}>How many ways to split?</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:11}}>
+          {[2,3,4,5,6,8].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"11px",background:splitN===n?"#7c3aed":"#f7f3ee",color:splitN===n?"#fff":"#1a1208",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>{n} ways</button>)}
+        </div>
+        <div style={{padding:"11px",background:"#f5f3ff",borderRadius:7,marginBottom:11,textAlign:"center"}}>
+          <p style={{fontSize:11,color:"#7c3aed",fontWeight:700}}>Each person pays</p>
+          <p style={{fontSize:22,fontWeight:700,color:"#7c3aed"}}>{fmt(total/splitN)}</p>
+        </div>
+        <button onClick={()=>setShowSplitModal(false)} style={{width:"100%",padding:"10px",background:"#1a1208",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Done</button>
+      </div>
+    </div>}
   </div>;
 }
 
