@@ -4369,6 +4369,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [discPct,setDiscPct]=useState(0);
   var [showDiscModal,setShowDiscModal]=useState(false);
   var [showSplitModal,setShowSplitModal]=useState(false);
+  var [showClassicPicker,setShowClassicPicker]=useState(false);
   var [splitN,setSplitN]=useState(2);
   var [posDeliv,setPosDeliv]=useState(null);
 
@@ -4416,13 +4417,28 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   // Send order to kitchen / save
   var sendOrder=(paid,payMethod)=>{
     if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
+    // VALIDATION: Dine-in requires table number
+    if(type==="dine-in"&&!tbl){
+      push({title:"Table required!",body:"Please select a table number for dine-in orders",color:"#dc2626"});
+      if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate([50,50,50]);}
+      return;
+    }
     var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
     var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
+    // CONFLICT CHECK: If another order exists for this table already, warn
+    if(tableId&&orders){
+      var existing=orders.filter(o=>o.tableId===tableId&&o.branchId===branch?.id&&!o.paid&&!["delivered","collected","cancelled"].includes(o.status));
+      if(existing.length>0){
+        var otherOrder=existing[0];
+        var msg="Table "+tableId+" already has an active order ("+otherOrder.id+") by "+(otherOrder.takenBy||otherOrder.customer)+" totaling "+fmt(otherOrder.total)+".\n\nOK = Add to existing bill (recommended)\nCancel = Don't send this order";
+        if(!window.confirm(msg))return;
+      }
+    }
     var o={
       id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,
       items:[...cart],subtotal:rawSub,discount:discAmt,
       serviceCharge:serviceCharge,total:total,
-      status:paid?"preparing":"pending",time:nowT(),type,
+      status:"preparing",time:nowT(),type,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
       tableId,source:"staff",guests:parseInt(guests)||1,
     };
@@ -4450,6 +4466,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   return <div style={{height:"calc(100vh - 100px)",display:"flex",flexDirection:"column",background:"#1a1208",color:"#fff",margin:-16,padding:8,overflow:"hidden"}}>
     {/* Top bar - branch info + order type + table */}
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"linear-gradient(135deg,#2d1f12,#3d2e22)",borderRadius:8,marginBottom:6,flexWrap:"wrap"}}>
+      {onBackToDash&&<button onClick={onBackToDash} style={{padding:"6px 11px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"< Dashboard"}</button>}
       <div style={{flex:1,minWidth:140}}>
         <p style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>POSCUBE STYLE</p>
         <p style={{fontSize:14,fontWeight:700,color:"#d4952a"}}>{branch?.name} - {user?.name}</p>
@@ -4458,7 +4475,8 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
         {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"6px 14px",borderRadius:5,fontSize:12,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
       {type==="dine-in"&&<>
-        <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid #d4952a",background:"#fff",color:"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
+        <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid "+(!tbl?"#fbbf24":"#d4952a"),background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
+        <button onClick={()=>setShowClassicPicker(true)} style={{padding:"6px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"#d4952a",color:"#1a1208",border:"none",cursor:"pointer"}}>Pick</button>
         <input value={guests} onChange={e=>setGuests(e.target.value)} placeholder="Guests" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid #d4952a",background:"#fff",color:"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
       </>}
     </div>
@@ -4568,11 +4586,35 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
         <button onClick={()=>setShowSplitModal(false)} style={{width:"100%",padding:"10px",background:"#1a1208",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Done</button>
       </div>
     </div>}
+
+    {/* Classic Table Picker Modal */}
+    {showClassicPicker&&(()=>{
+      var branchTables=tables?tables.filter(t=>!t.branchId||t.branchId===branch?.id).sort((a,b)=>(+a.id)-(+b.id)):[];
+      var statusColor={free:"#10b981",occupied:"#dc2626",reserved:"#d4952a"};
+      var statusBg={free:"#d1fae5",occupied:"#fee2e2",reserved:"#fef3c7"};
+      return <div onClick={()=>setShowClassicPicker(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"#fff",color:"#1a1208",borderRadius:14,padding:18,maxWidth:540,width:"100%",maxHeight:"80vh",overflowY:"auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:11}}>
+            <h3 style={{fontSize:18,fontWeight:700}}>Pick a Table</h3>
+            <button onClick={()=>setShowClassicPicker(false)} style={{width:32,height:32,borderRadius:"50%",background:"#f7f3ee",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+          </div>
+          {branchTables.length===0?<p style={{textAlign:"center",padding:30,color:"#8a8078"}}>No tables configured for this branch.</p>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:6}}>
+            {branchTables.map(t=>{var st=t.status||"free";return <button key={t.id} onClick={()=>{setTbl(String(t.id));setShowClassicPicker(false);}} style={{padding:"14px 8px",border:"3px solid "+statusColor[st],borderRadius:9,background:statusBg[st],color:statusColor[st],fontWeight:700,cursor:"pointer",textAlign:"center"}}>
+              <p style={{fontSize:18,fontWeight:700,marginBottom:2}}>T{t.id}</p>
+              <p style={{fontSize:9,fontWeight:600,letterSpacing:1,textTransform:"uppercase"}}>{st}</p>
+              <p style={{fontSize:9,marginTop:2}}>{t.seats||4} seats</p>
+            </button>;})}
+          </div>}
+          <div style={{display:"flex",gap:8,marginTop:14,fontSize:11,justifyContent:"center"}}>
+            <span><span style={{display:"inline-block",width:10,height:10,background:"#10b981",borderRadius:2,marginRight:3}}/> Free</span>
+            <span><span style={{display:"inline-block",width:10,height:10,background:"#dc2626",borderRadius:2,marginRight:3}}/> Occupied</span>
+            <span><span style={{display:"inline-block",width:10,height:10,background:"#d4952a",borderRadius:2,marginRight:3}}/> Reserved</span>
+          </div>
+        </div>
+      </div>;
+    })()}
   </div>;
 }
-
-// COMPACT UI - for small tablets/phones
-// COMPACT UI - phone-optimized POS, single column, slide-up cart
 function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
@@ -4620,6 +4662,12 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 
   var sendOrder=(paid,payMethod)=>{
     if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
+    // VALIDATION: Dine-in requires table number
+    if(type==="dine-in"&&!tbl){
+      push({title:"Table required!",body:"Please enter a table number for dine-in orders",color:"#dc2626"});
+      if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate([50,50,50]);}
+      return;
+    }
     var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
     var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
     var o={
@@ -4663,6 +4711,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 100px)",margin:-16,position:"relative",overflow:"hidden"}}>
     {/* Top bar - super compact */}
     <div style={{padding:"7px 10px",background:"#1a1208",color:"#fff",display:"flex",gap:6,alignItems:"center"}}>
+      {onBackToDash&&<button onClick={onBackToDash} style={{padding:"5px 9px",borderRadius:5,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"<"}</button>}
       <div style={{flex:1,minWidth:0}}>
         <p style={{fontSize:10,color:"#d4952a",fontWeight:700}}>COMPACT POS</p>
         <p style={{fontSize:11,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{branch?.name}</p>
@@ -4670,7 +4719,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       <div style={{display:"flex",gap:3,background:"rgba(0,0,0,.3)",borderRadius:6,padding:2}}>
         {[["dine-in","Dine"],["takeaway","Take"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"5px 10px",borderRadius:4,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
-      {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="T#" style={{width:42,padding:"5px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,textAlign:"center"}}/>}
+      {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="T#" style={{width:42,padding:"5px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,textAlign:"center",background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208"}}/>}
     </div>
 
     {/* Search */}
