@@ -4357,6 +4357,7 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
       if(c){setFound(c);setName(c.name);setStep("existing");}
       else{setStep("postcode");}
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   // Search by phone
@@ -5156,9 +5157,21 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   })();
 
   return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 100px)",margin:-16,position:"relative",overflow:"hidden"}}>
+    {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType("takeaway");setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name,color:"#059669"});}}/>}
+    
+    {/* Phone customer banner */}
+    {phoneCust&&<div style={{background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",padding:"6px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:6}}>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontSize:9,fontWeight:700,letterSpacing:1,opacity:.85}}>PHONE</p>
+        <p style={{fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{phoneCust.name} - {phoneCust.phone}</p>
+      </div>
+      <button onClick={()=>setPhoneCust(null)} style={{padding:"4px 8px",borderRadius:5,fontSize:10,fontWeight:700,background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer"}}>Clear</button>
+    </div>}
+    
     {/* Top bar - super compact */}
     <div style={{padding:"7px 10px",background:"#1a1208",color:"#fff",display:"flex",gap:6,alignItems:"center"}}>
       {onBackToDash&&<button onClick={onBackToDash} style={{padding:"5px 9px",borderRadius:5,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"<"}</button>}
+      <button onClick={()=>setShowPhonePopup(true)} style={{padding:"5px 9px",borderRadius:5,fontSize:11,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",cursor:"pointer"}}>{EM.phone}</button>
       <div style={{flex:1,minWidth:0}}>
         <p style={{fontSize:10,color:"#d4952a",fontWeight:700}}>COMPACT POS</p>
         <p style={{fontSize:11,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{branch?.name}</p>
