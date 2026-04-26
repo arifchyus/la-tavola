@@ -2099,6 +2099,12 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
   var [cashHandovers,setCashHandovers]=useState([]);
   var [handoverDriver,setHandoverDriver]=useState("");
+  var [posUiStyle,setPosUiStyle]=useState(()=>{
+    try{return localStorage.getItem("pos_ui_style")||"modern";}catch(e){return "modern";}
+  });
+  var [showDashboard,setShowDashboard]=useState(()=>{
+    try{return localStorage.getItem("show_pos_dashboard")==="1";}catch(e){return false;}
+  });
   var [menuSearch,setMenuSearch]=useState("");
   var [menuSort,setMenuSort]=useState("az");
   var [menuFilterCat,setMenuFilterCat]=useState("all");
@@ -2281,7 +2287,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"],["settings","Settings"]];
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -2923,6 +2929,40 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
     {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
+
+    {tab==="settings"&&<div>
+      <div className="card" style={{padding:16,marginBottom:12}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>POS User Interface</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Choose how the POS screen looks for staff. Each style is optimized for different needs.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:8}}>
+          {[
+            {id:"modern",name:"Modern",desc:"Clean, mobile-friendly, beautiful design",icon:EM.star,color:"#bf4626"},
+            {id:"classic",name:"Classic",desc:"Traditional POSCUBE-style with category buttons",icon:EM.cook,color:"#d4952a"},
+            {id:"compact",name:"Compact",desc:"Small screens & tablets, condensed layout",icon:EM.phone,color:"#7c3aed"},
+          ].map(opt=><button key={opt.id} onClick={()=>{setPosUiStyle(opt.id);try{localStorage.setItem("pos_ui_style",opt.id);}catch(e){}push({title:"UI updated",body:opt.name+" UI now active",color:opt.color});}} style={{padding:"14px 13px",background:posUiStyle===opt.id?opt.color:"#fff",color:posUiStyle===opt.id?"#fff":"#1a1208",border:"3px solid "+opt.color,borderRadius:12,cursor:"pointer",textAlign:"left",fontWeight:700,transition:"all .15s"}}>
+            <div style={{fontSize:24,marginBottom:5}}>{opt.icon}</div>
+            <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{opt.name}{posUiStyle===opt.id?" - Active":""}</p>
+            <p style={{fontSize:10,opacity:.85,fontWeight:400,lineHeight:1.4}}>{opt.desc}</p>
+          </button>)}
+        </div>
+      </div>
+
+      <div className="card" style={{padding:16,marginBottom:12}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>POS Dashboard Home Screen</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Show a dashboard with quick-access tiles when staff opens POS. Like POSCUBE-style restaurants.</p>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={showDashboard} onChange={e=>{setShowDashboard(e.target.checked);try{localStorage.setItem("show_pos_dashboard",e.target.checked?"1":"0");}catch(err){}push({title:"Dashboard "+(e.target.checked?"enabled":"disabled"),body:"Refresh POS to see change",color:"#2563eb"});}} style={{width:18,height:18,cursor:"pointer"}}/>
+          <span style={{fontWeight:700,fontSize:13}}>Show dashboard home screen on POS</span>
+        </label>
+        <p style={{fontSize:10,color:"#8a8078",marginTop:8}}>Note: Dashboard feature is being built. Toggle on to be ready when it launches.</p>
+      </div>
+
+      <div className="card" style={{padding:16,background:"#fffbeb",borderLeft:"4px solid #f59e0b"}}>
+        <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:5}}>Coming Soon</p>
+        <p style={{fontSize:11,color:"#92400e",marginBottom:6}}>The Classic and Compact UI styles are currently placeholder screens.</p>
+        <p style={{fontSize:11,color:"#92400e"}}>For full feature access, keep "Modern" UI selected. We will build out Classic and Compact in upcoming updates.</p>
+      </div>
+    </div>}
   </div>;
 }
 
@@ -4180,7 +4220,53 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
   </div>;
 }
 
-function PosV({menu,onOrder,push,user,branch,tables,setTables,orders}){
+// POS UI router - dispatches to correct UI based on user preference
+function PosV(props){
+  var [uiStyle,setUiStyle]=useState(()=>{
+    try{return localStorage.getItem("pos_ui_style")||"modern";}catch(e){return "modern";}
+  });
+  // Listen for storage changes (when user changes UI in settings)
+  useEffect(()=>{
+    var check=()=>{
+      try{
+        var current=localStorage.getItem("pos_ui_style")||"modern";
+        if(current!==uiStyle)setUiStyle(current);
+      }catch(e){}
+    };
+    var interval=setInterval(check,1000);
+    return()=>clearInterval(interval);
+  },[uiStyle]);
+  if(uiStyle==="classic")return <PosVClassic {...props}/>;
+  if(uiStyle==="compact")return <PosVCompact {...props}/>;
+  return <PosVModern {...props}/>;
+}
+
+// CLASSIC UI - POSCUBE-style with category buttons on left, items in middle, bill on right
+function PosVClassic(props){
+  return <div className="page" style={{padding:14}}>
+    <div className="card" style={{padding:30,textAlign:"center"}}>
+      <p style={{fontSize:36,marginBottom:10}}>{EM.cook}</p>
+      <h3 style={{fontSize:18,marginBottom:6}}>Classic POSCUBE-style UI</h3>
+      <p style={{fontSize:13,color:"#8a8078",marginBottom:14}}>This UI style is being built next session.</p>
+      <p style={{fontSize:11,color:"#8a8078"}}>For now, switch to Modern UI in Admin {String.fromCharCode(0x2192)} Settings.</p>
+    </div>
+  </div>;
+}
+
+// COMPACT UI - for small tablets/phones
+function PosVCompact(props){
+  return <div className="page" style={{padding:14}}>
+    <div className="card" style={{padding:30,textAlign:"center"}}>
+      <p style={{fontSize:36,marginBottom:10}}>{EM.phone}</p>
+      <h3 style={{fontSize:18,marginBottom:6}}>Compact UI</h3>
+      <p style={{fontSize:13,color:"#8a8078",marginBottom:14}}>This UI style is being built next session.</p>
+      <p style={{fontSize:11,color:"#8a8078"}}>For now, switch to Modern UI in Admin {String.fromCharCode(0x2192)} Settings.</p>
+    </div>
+  </div>;
+}
+
+// MODERN UI - the current existing UI (renamed from PosV)
+function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
     if(typeof window!=="undefined"&&window.__preselectedTable){
