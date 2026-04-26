@@ -4455,14 +4455,185 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders}){
 }
 
 // COMPACT UI - for small tablets/phones
-function PosVCompact(props){
-  return <div className="page" style={{padding:14}}>
-    <div className="card" style={{padding:30,textAlign:"center"}}>
-      <p style={{fontSize:36,marginBottom:10}}>{EM.phone}</p>
-      <h3 style={{fontSize:18,marginBottom:6}}>Compact UI</h3>
-      <p style={{fontSize:13,color:"#8a8078",marginBottom:14}}>This UI style is being built next session.</p>
-      <p style={{fontSize:11,color:"#8a8078"}}>For now, switch to Modern UI in Admin {String.fromCharCode(0x2192)} Settings.</p>
+// COMPACT UI - phone-optimized POS, single column, slide-up cart
+function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders}){
+  var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
+  var [cat,setCat]=useState(cats[0]||"");
+  var [cart,setCart]=useState([]);
+  var [type,setType]=useState("dine-in");
+  var [tbl,setTbl]=useState("");
+  var [showCart,setShowCart]=useState(false);
+  var [search,setSearch]=useState("");
+  var [posDeliv,setPosDeliv]=useState(null);
+
+  useEffect(()=>{
+    if(!branch)return;
+    dbFetchAllDelivery().then(list=>{
+      var s=(list||[]).find(x=>x.branch_id===branch.id);
+      if(s){
+        setPosDeliv({
+          serviceChargeEnabled:s.service_charge_enabled||false,
+          serviceChargePercent:parseFloat(s.service_charge_percent||12.5),
+        });
+      }
+    });
+  },[branch]);
+
+  // Calculations
+  var rawSub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  var posServiceApplies=type==="dine-in"&&posDeliv&&posDeliv.serviceChargeEnabled;
+  var serviceCharge=posServiceApplies?rawSub*((posDeliv.serviceChargePercent||0)/100):0;
+  var total=rawSub+serviceCharge;
+  var totalQty=cart.reduce((s,i)=>s+i.qty,0);
+
+  var add=(it)=>{
+    var typePrice=getItemPrice(it,type);
+    setCart(c=>{
+      var ex=c.find(x=>x.id===it.id);
+      if(ex){
+        return c.map(x=>x.id===it.id?{...x,qty:x.qty+1,price:typePrice}:x);
+      }
+      return [...c,{id:it.id,name:it.name,qty:1,price:typePrice}];
+    });
+    // Mini haptic feedback feel - flash effect on cart button
+  };
+  var qtyChange=(idx,delta)=>setCart(c=>c.map((it,i)=>i===idx?{...it,qty:Math.max(0,it.qty+delta)}:it).filter(it=>it.qty>0));
+  var rem=(idx)=>setCart(c=>c.filter((_,i)=>i!==idx));
+  var clear=()=>{setCart([]);setShowCart(false);};
+
+  var sendOrder=(paid,payMethod)=>{
+    if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
+    var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+    var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
+    var o={
+      id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,
+      items:[...cart],subtotal:rawSub,discount:0,
+      serviceCharge:serviceCharge,total:total,
+      status:paid?"preparing":"pending",time:nowT(),type,
+      paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
+      tableId,source:"staff",
+    };
+    onOrder(o);
+    if(type==="dine-in"&&tbl){
+      var tnum=parseInt(tbl);
+      setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied"}:t));
+    }
+    push({title:paid?"Paid - sent":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
+    clear();
+  };
+
+  // Filter items - search OR category
+  var visibleItems=(()=>{
+    var seen=new Set();
+    var q=search.trim().toLowerCase();
+    return menu.filter(i=>{
+      if(!i.avail)return false;
+      if(!isItemAvailable(i,type))return false;
+      if(q){
+        var hay=(i.name+" "+(i.desc||"")+" "+(i.cat||"")).toLowerCase();
+        return hay.includes(q);
+      }
+      return i.cat===cat;
+    }).filter(i=>{
+      var key=(i.name||"").toLowerCase().trim();
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  })();
+
+  return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 100px)",margin:-16,position:"relative",overflow:"hidden"}}>
+    {/* Top bar - super compact */}
+    <div style={{padding:"7px 10px",background:"#1a1208",color:"#fff",display:"flex",gap:6,alignItems:"center"}}>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontSize:10,color:"#d4952a",fontWeight:700}}>COMPACT POS</p>
+        <p style={{fontSize:11,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{branch?.name}</p>
+      </div>
+      <div style={{display:"flex",gap:3,background:"rgba(0,0,0,.3)",borderRadius:6,padding:2}}>
+        {[["dine-in","Dine"],["takeaway","Take"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"5px 10px",borderRadius:4,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+      </div>
+      {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="T#" style={{width:42,padding:"5px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,textAlign:"center"}}/>}
     </div>
+
+    {/* Search */}
+    <div style={{padding:"6px 8px",background:"#fafaf5",borderBottom:"1px solid #ede8de"}}>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={String.fromCharCode(0x1F50D >> 10)+String.fromCharCode((0x1F50D & 0x3FF)|0xDC00)+" Quick search items..."} style={{width:"100%",padding:"7px 10px",border:"2px solid #ede8de",borderRadius:7,fontSize:12,background:"#fff"}}/>
+    </div>
+
+    {/* Categories - horizontal scroll - hidden when searching */}
+    {!search&&<div style={{display:"flex",gap:4,overflowX:"auto",padding:"6px 8px",background:"#fafaf5",borderBottom:"1px solid #ede8de"}}>
+      {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:"7px 13px",borderRadius:6,fontWeight:700,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:cat===c?"#bf4626":"#ede8de",background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",cursor:"pointer",flexShrink:0}}>{c}</button>)}
+    </div>}
+
+    {/* Items - 2 column grid for phones */}
+    <div style={{flex:1,overflowY:"auto",padding:7,paddingBottom:80}}>
+      {visibleItems.length===0?<div style={{textAlign:"center",padding:40,color:"#8a8078"}}>
+        <p style={{fontSize:32}}>{search?String.fromCharCode(0x1F50D >> 10)+String.fromCharCode((0x1F50D & 0x3FF)|0xDC00):EM.cook}</p>
+        <p style={{fontSize:13,marginTop:8}}>{search?"No items match":"No items"}</p>
+      </div>:<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+        {visibleItems.map(item=>{
+          var price=getItemPrice(item,type);
+          var inCart=cart.find(c=>c.id===item.id);
+          return <button key={item.dbId||item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{padding:"11px 8px",background:inCart?"#fff5f3":"#fff",color:"#1a1208",border:"2px solid "+(inCart?"#bf4626":"#ede8de"),borderRadius:9,cursor:"pointer",opacity:item.stock===0?.4:1,position:"relative",textAlign:"left",minHeight:78}}>
+            {inCart&&<div style={{position:"absolute",top:-6,right:-6,background:"#bf4626",color:"#fff",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
+            <div style={{fontSize:18,marginBottom:3}}>{EM[item.icon]||""}</div>
+            <p style={{fontSize:12,fontWeight:700,marginBottom:2,lineHeight:1.2}}>{item.name}</p>
+            <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(price)}</p>
+          </button>;
+        })}
+      </div>}
+    </div>
+
+    {/* Floating cart button - bottom */}
+    {cart.length>0&&!showCart&&<button onClick={()=>setShowCart(true)} style={{position:"fixed",bottom:80,left:14,right:14,padding:"14px 18px",background:"linear-gradient(135deg,#bf4626,#dc2626)",color:"#fff",border:"none",borderRadius:14,fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 6px 20px rgba(191,70,38,.4)",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:50}}>
+      <span style={{display:"flex",alignItems:"center",gap:8}}>
+        <span style={{background:"rgba(255,255,255,.25)",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>{totalQty}</span>
+        View Cart
+      </span>
+      <span style={{fontSize:17,fontWeight:700}}>{fmt(total)}</span>
+    </button>}
+
+    {/* Slide-up cart panel */}
+    {showCart&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:60}} onClick={()=>setShowCart(false)}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:0,left:0,right:0,background:"#fff",borderRadius:"16px 16px 0 0",maxHeight:"80vh",display:"flex",flexDirection:"column",animation:"slideUp .25s ease-out"}}>
+        <div style={{padding:"12px 14px",borderBottom:"2px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <h3 style={{fontSize:16,fontWeight:700}}>Order {totalQty} item{totalQty!==1?"s":""}</h3>
+            <p style={{fontSize:11,color:"#8a8078"}}>{type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Takeaway"}</p>
+          </div>
+          <button onClick={()=>setShowCart(false)} style={{width:32,height:32,borderRadius:"50%",background:"#f7f3ee",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"8px 14px"}}>
+          {cart.map((it,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:"1px solid #f5f0e8"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{fontSize:13,fontWeight:700}}>{it.name}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{fmt(it.price)} each</p>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:"#f7f3ee",borderRadius:18,padding:"3px 8px"}}>
+              <button onClick={()=>qtyChange(i,-1)} style={{width:24,height:24,borderRadius:"50%",border:"none",background:"#fff",cursor:"pointer",fontSize:16,fontWeight:700,color:"#bf4626"}}>-</button>
+              <span style={{fontWeight:700,minWidth:18,textAlign:"center"}}>{it.qty}</span>
+              <button onClick={()=>qtyChange(i,1)} style={{width:24,height:24,borderRadius:"50%",border:"none",background:"#fff",cursor:"pointer",fontSize:16,fontWeight:700,color:"#059669"}}>+</button>
+            </div>
+            <p style={{fontWeight:700,fontSize:13,color:"#bf4626",minWidth:54,textAlign:"right"}}>{fmt(it.price*it.qty)}</p>
+            <button onClick={()=>rem(i)} style={{width:24,height:24,borderRadius:"50%",border:"none",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontWeight:700}}>x</button>
+          </div>)}
+        </div>
+
+        <div style={{padding:"10px 14px",borderTop:"2px solid #ede8de",background:"#fafaf5"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078"}}><span>Subtotal</span><span>{fmt(rawSub)}</span></div>
+          {serviceCharge>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#7c3aed",fontWeight:700}}><span>Service ({posDeliv.serviceChargePercent}%)</span><span>+ {fmt(serviceCharge)}</span></div>}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:18,fontWeight:700,color:"#bf4626",marginTop:5,paddingTop:5,borderTop:"1px solid #ede8de"}}><span>Total</span><span>{fmt(total)}</span></div>
+        </div>
+
+        <div style={{padding:"10px 14px",display:"flex",gap:6}}>
+          <button onClick={clear} style={{padding:"12px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+          <button onClick={()=>sendOrder(false,null)} style={{flex:1,padding:"12px",background:"#2563eb",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Send Order</button>
+          <button onClick={()=>sendOrder(true,"cash")} style={{flex:1,padding:"12px",background:"#059669",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Pay Cash</button>
+          <button onClick={()=>sendOrder(true,"card")} style={{flex:1,padding:"12px",background:"#bf4626",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Pay Card</button>
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 
