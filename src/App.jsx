@@ -2955,9 +2955,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Pick keyboard button size for staff. Larger sizes are easier to tap on touchscreens.</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
           {[
-            {id:"small",name:"Small",desc:"Compact - fits more on screen",h:54,fs:18},
-            {id:"medium",name:"Medium",desc:"Balanced - good for most users",h:68,fs:22},
-            {id:"large",name:"Large",desc:"Big buttons - best for touchscreens",h:82,fs:28},
+            {id:"small",name:"Small",desc:"Compact - fits more on screen",h:46,fs:16},
+            {id:"medium",name:"Medium",desc:"Balanced - good for most users",h:58,fs:20},
+            {id:"large",name:"Large",desc:"Big buttons - best for touchscreens",h:72,fs:24},
           ].map(opt=><button key={opt.id} onClick={()=>{setKbSize(opt.id);try{localStorage.setItem("kb_size",opt.id);}catch(e){}push({title:"Keyboard size "+opt.name,body:"Will apply to next phone order",color:"#bf4626"});}} style={{padding:"14px 11px",background:kbSize===opt.id?"#bf4626":"#fff",color:kbSize===opt.id?"#fff":"#1a1208",border:"3px solid #bf4626",borderRadius:11,cursor:"pointer",textAlign:"left",fontWeight:700}}>
             <div style={{height:opt.h/3,background:kbSize===opt.id?"rgba(255,255,255,.2)":"#f7f3ee",borderRadius:5,marginBottom:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:opt.fs/2,fontWeight:700}}>A B C</div>
             <p style={{fontSize:13,marginBottom:2}}>{opt.name}{kbSize===opt.id?" - Active":""}</p>
@@ -4358,11 +4358,11 @@ function SlideUpKeyboard({mode,value,onChange,onSubmit,onClose,sizePreset}){
   // sizePreset: "small" | "medium" | "large"
   var [shifted,setShifted]=useState(true); // capital letters by default for postcode
   
-  // Size presets
+  // Size presets - tuned for visibility (keyboard + popup must both fit)
   var sizes={
-    small:{btnH:54,btnFs:18,gap:5,padding:10,labelFs:11,displayFs:22},
-    medium:{btnH:68,btnFs:22,gap:6,padding:12,labelFs:12,displayFs:26},
-    large:{btnH:82,btnFs:28,gap:8,padding:14,labelFs:13,displayFs:32},
+    small:{btnH:46,btnFs:16,gap:4,padding:8,labelFs:11,displayFs:22},
+    medium:{btnH:58,btnFs:20,gap:5,padding:10,labelFs:12,displayFs:26},
+    large:{btnH:72,btnFs:24,gap:6,padding:12,labelFs:13,displayFs:30},
   };
   var sz=sizes[sizePreset||"medium"];
 
@@ -4621,8 +4621,12 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
     else setActiveField(null); // close keyboard for text fields
   };
 
-  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",maxHeight:activeField?"calc(92vh - 360px)":"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 50px rgba(0,0,0,.4)",transition:"max-height .3s"}}>
+  // Calculate keyboard height based on size (5 rows of buttons + gaps + padding)
+  var kbHeights={small:300,medium:370,large:450};
+  var kbHeight=activeField?(kbHeights[keyboardSize]||370):0;
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9000,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"14px 14px 0 14px",paddingTop:14,overflow:"hidden"}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",height:"calc(100vh - "+(kbHeight+28)+"px)",maxHeight:"calc(100vh - "+(kbHeight+28)+"px)",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 50px rgba(0,0,0,.4)",transition:"height .3s, max-height .3s"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
