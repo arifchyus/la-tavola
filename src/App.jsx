@@ -5537,8 +5537,11 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
     }
     clear();setPayStep(paid?"done":null);setCashGiven("");
     setPhoneCust(null); // clear phone customer after order placed
+    // If phone delivery order: don't auto-return - popup will handle it after OK click
+    var hasCodePopup=phoneCust&&deliveryCode&&orderType==="delivery";
     // If dashboard mode enabled and just sent (not paid - which has its own success screen), return to dashboard
-    if(!paid&&onBackToDash){
+    // BUT only if no code popup is showing - that needs to stay until staff clicks OK
+    if(!paid&&onBackToDash&&!hasCodePopup){
       setTimeout(()=>onBackToDash(),300);
     }
   };
@@ -5608,24 +5611,26 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
 
   return <div className="pos-wrap">
     {/* DELIVERY CODE POPUP - big visible popup so staff can read to customer */}
-    {showCodePopup&&<div onClick={()=>setShowCodePopup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:16,padding:"30px 26px",maxWidth:480,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.5)",border:"3px solid #d4952a"}}>
+    {showCodePopup&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:16,padding:"30px 26px",maxWidth:520,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.6)",border:"4px solid #d4952a"}}>
         <p style={{fontSize:13,color:"#d4952a",fontWeight:700,letterSpacing:3,marginBottom:10}}>{EM.check} ORDER SENT TO KITCHEN</p>
-        <h2 style={{fontSize:20,fontWeight:700,marginBottom:6,color:"#fff"}}>{showCodePopup.customer}</h2>
-        <p style={{fontSize:13,color:"rgba(255,255,255,.7)",marginBottom:14}}>{showCodePopup.phone} - {fmt(showCodePopup.total)}</p>
+        <h2 style={{fontSize:22,fontWeight:700,marginBottom:6,color:"#fff"}}>{showCodePopup.customer}</h2>
+        <p style={{fontSize:14,color:"rgba(255,255,255,.75)",marginBottom:14}}>{showCodePopup.phone} - {fmt(showCodePopup.total)}</p>
         
-        <div style={{background:"#fff",color:"#1a1208",borderRadius:12,padding:"22px 16px",margin:"14px 0"}}>
-          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>READ THIS CODE TO CUSTOMER</p>
-          <p style={{fontSize:64,fontWeight:700,letterSpacing:14,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1}}>{showCodePopup.code}</p>
-          <p style={{fontSize:12,color:"#8a8078",marginTop:8}}>Driver will ask for this code on delivery for cash payment</p>
+        <div style={{background:"#fff",color:"#1a1208",borderRadius:12,padding:"24px 16px",margin:"14px 0",boxShadow:"inset 0 0 0 3px #d4952a"}}>
+          <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:8}}>READ THIS CODE TO CUSTOMER</p>
+          <p style={{fontSize:72,fontWeight:700,letterSpacing:16,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1,marginBottom:6}}>{showCodePopup.code}</p>
+          <p style={{fontSize:11,color:"#8a8078",marginTop:8}}>Driver will ask for this code on cash delivery</p>
         </div>
         
-        <div style={{padding:"12px",background:"rgba(255,255,255,.08)",borderRadius:9,marginBottom:14,textAlign:"left"}}>
-          <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:1,marginBottom:4}}>SAY TO CUSTOMER:</p>
-          <p style={{fontSize:13,fontStyle:"italic",lineHeight:1.4}}>"Your order has been sent to the kitchen. When the driver arrives, please give them this 4-digit code to confirm your order: <span style={{fontSize:18,fontWeight:700,color:"#fff"}}>{showCodePopup.code.split("").join(" ")}</span>"</p>
+        <div style={{padding:"14px",background:"rgba(255,255,255,.08)",borderRadius:9,marginBottom:14,textAlign:"left",border:"1px solid rgba(255,255,255,.15)"}}>
+          <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCDE)} SAY TO CUSTOMER:</p>
+          <p style={{fontSize:14,fontStyle:"italic",lineHeight:1.5}}>"Your order has been sent to the kitchen. When the driver arrives for cash payment, please give them this 4-digit code: <span style={{fontSize:20,fontWeight:700,color:"#fff",fontFamily:"'Courier New',monospace"}}>{showCodePopup.code.split("").join(" ")}</span>"</p>
         </div>
         
-        <button onClick={()=>setShowCodePopup(null)} style={{padding:"14px 28px",background:"#bf4626",color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",width:"100%"}}>OK - Customer Has Code</button>
+        <p style={{fontSize:11,color:"rgba(255,255,255,.5)",marginBottom:10,fontStyle:"italic"}}>This popup will stay until you click below</p>
+        
+        <button onClick={()=>{var hadDash=!!onBackToDash;setShowCodePopup(null);if(hadDash)setTimeout(()=>onBackToDash(),100);}} style={{padding:"18px 32px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:11,fontSize:16,fontWeight:700,cursor:"pointer",width:"100%",boxShadow:"0 4px 14px rgba(5,150,105,.4)"}}>{EM.check} I have given the code - Close</button>
       </div>
     </div>}
     
