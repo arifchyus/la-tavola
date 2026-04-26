@@ -2116,6 +2116,13 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     try{return localStorage.getItem("kb_size")||"medium";}catch(e){return "medium";}
   });
   var [menuSearch,setMenuSearch]=useState("");
+  var [orderSearch,setOrderSearch]=useState("");
+  var [orderDateFilter,setOrderDateFilter]=useState("all"); // all, today, yesterday, week, month, custom
+  var [orderCustomFrom,setOrderCustomFrom]=useState("");
+  var [orderCustomTo,setOrderCustomTo]=useState("");
+  var [orderTypeFilter,setOrderTypeFilter]=useState("all"); // all, dine-in, takeaway, delivery, collection
+  var [orderStatusFilter,setOrderStatusFilter]=useState("all"); // all, pending, preparing, ready, delivered, collected, cancelled
+  var [orderSourceFilter,setOrderSourceFilter]=useState("all"); // all, online, qr-table, staff, phone
   var [menuSort,setMenuSort]=useState("az");
   var [menuFilterCat,setMenuFilterCat]=useState("all");
   var [menuFilterStation,setMenuFilterStation]=useState("all");
@@ -2298,11 +2305,193 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     }
   };
   var TABS=[["orders","Orders"],["analytics","Analytics"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  
+  // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
+  var searchedOrders=(()=>{
+    var result=fil;
+    // Text search across multiple fields
+    var q=orderSearch.trim().toLowerCase();
+    if(q){
+      result=result.filter(o=>{
+        var hay=[
+          o.id,
+          o.customer,
+          o.phone,
+          o.address?(typeof o.address==="string"?o.address:(o.address.line1||"")+" "+(o.address.postcode||"")):"",
+          o.takenBy,
+          (o.items||[]).map(i=>i.name).join(" "),
+          o.deliveryCode,
+          o.payMethod,
+        ].filter(x=>x).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    // Date filter
+    if(orderDateFilter!=="all"){
+      var now=new Date();
+      var todayStr=now.toISOString().split("T")[0];
+      var yesterday=new Date(now-86400000).toISOString().split("T")[0];
+      var weekAgo=new Date(now-7*86400000).toISOString().split("T")[0];
+      var monthAgo=new Date(now-30*86400000).toISOString().split("T")[0];
+      result=result.filter(o=>{
+        try{
+          var t=String(o.time||"");
+          // If just HH:MM, treat as today
+          if(/^\d{1,2}:\d{2}/.test(t)&&t.length<=8){
+            return orderDateFilter==="today";
+          }
+          var d=new Date(t);
+          if(isNaN(d.getTime()))return false;
+          var dStr=d.toISOString().split("T")[0];
+          if(orderDateFilter==="today")return dStr===todayStr;
+          if(orderDateFilter==="yesterday")return dStr===yesterday;
+          if(orderDateFilter==="week")return dStr>=weekAgo;
+          if(orderDateFilter==="month")return dStr>=monthAgo;
+          if(orderDateFilter==="custom"){
+            if(orderCustomFrom&&dStr<orderCustomFrom)return false;
+            if(orderCustomTo&&dStr>orderCustomTo)return false;
+            return true;
+          }
+        }catch(e){return false;}
+        return true;
+      });
+    }
+    // Type filter
+    if(orderTypeFilter!=="all")result=result.filter(o=>o.type===orderTypeFilter);
+    // Status filter
+    if(orderStatusFilter!=="all")result=result.filter(o=>o.status===orderStatusFilter);
+    // Source filter
+    if(orderSourceFilter!=="all")result=result.filter(o=>o.source===orderSourceFilter);
+    return result;
+  })();
   return <div className="page">
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
     <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":(k==="settings"?"#7c3aed":"#ede8de"),background:tab===k?"#1a1208":(k==="settings"?"#f5f3ff":"#fff"),color:tab===k?"#fff":(k==="settings"?"#7c3aed":"#1a1208"),cursor:"pointer",flexShrink:0}}>{k==="settings"?String.fromCharCode(0x2699,0xFE0F)+" ":""}{l}</button>)}</div>
-    {tab==="orders"&&allSt.map(st=>{var grp=fil.filter(o=>o.status===st);if(!grp.length)return null;return <div key={st} style={{marginBottom:14}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span className="bdg" style={{background:SB[st],color:SC[st]}}>{SL[st]}</span><span style={{color:"#8a8078",fontSize:11}}>{grp.length}</span></div><div className="ag">{grp.map(o=><div key={o.id} className="card" style={{padding:"11px 13px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><div><p style={{fontWeight:700,fontSize:13}}>{o.id}</p><p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p></div><div style={{textAlign:"right"}}><p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p><span style={{fontSize:10,color:o.paid?"#059669":"#dc2626",fontWeight:600}}>{o.paid?"Paid":"Unpaid"}</span></div></div><p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{o.items.map(i=>i.name+"x"+i.qty).join(", ")}</p><div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}</div><button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button></div>)}</div></div>;})}
+    {tab==="orders"&&<div>
+      {/* Search Bar */}
+      <div className="card" style={{marginBottom:10,padding:12}}>
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:240,position:"relative"}}>
+            <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} placeholder="Search by order#, name, phone, address, item, code..." className="field" style={{paddingLeft:34,paddingRight:orderSearch?32:10,fontSize:13}}/>
+            <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#8a8078",pointerEvents:"none"}}>{String.fromCharCode(0xD83D,0xDD0D)}</span>
+            {orderSearch&&<button onClick={()=>setOrderSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"#ede8de",border:"none",width:22,height:22,borderRadius:11,cursor:"pointer",fontWeight:700,color:"#8a8078",fontSize:11}}>x</button>}
+          </div>
+          {(orderSearch||orderDateFilter!=="all"||orderTypeFilter!=="all"||orderStatusFilter!=="all"||orderSourceFilter!=="all")&&<button onClick={()=>{setOrderSearch("");setOrderDateFilter("all");setOrderTypeFilter("all");setOrderStatusFilter("all");setOrderSourceFilter("all");setOrderCustomFrom("");setOrderCustomTo("");}} style={{padding:"7px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>Clear All</button>}
+        </div>
+
+        {/* Filter chips */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:6}}>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>DATE</p>
+            <select className="field" value={orderDateFilter} onChange={e=>setOrderDateFilter(e.target.value)} style={{fontSize:12,padding:"6px 8px"}}>
+              <option value="all">All time</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="week">Last 7 days</option>
+              <option value="month">Last 30 days</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </div>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>TYPE</p>
+            <select className="field" value={orderTypeFilter} onChange={e=>setOrderTypeFilter(e.target.value)} style={{fontSize:12,padding:"6px 8px"}}>
+              <option value="all">All types</option>
+              <option value="dine-in">Dine In</option>
+              <option value="takeaway">Takeaway</option>
+              <option value="delivery">Delivery</option>
+              <option value="collection">Collection</option>
+              <option value="eatin">QR Eat-In</option>
+            </select>
+          </div>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>STATUS</p>
+            <select className="field" value={orderStatusFilter} onChange={e=>setOrderStatusFilter(e.target.value)} style={{fontSize:12,padding:"6px 8px"}}>
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="preparing">Preparing</option>
+              <option value="ready">Ready</option>
+              <option value="delivered">Delivered</option>
+              <option value="collected">Collected</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>SOURCE</p>
+            <select className="field" value={orderSourceFilter} onChange={e=>setOrderSourceFilter(e.target.value)} style={{fontSize:12,padding:"6px 8px"}}>
+              <option value="all">All sources</option>
+              <option value="online">Customer Online</option>
+              <option value="qr-table">QR Code Table</option>
+              <option value="staff">Staff POS</option>
+              <option value="phone">Phone Order</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Custom date range */}
+        {orderDateFilter==="custom"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:7}}>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>FROM</p>
+            <input type="date" value={orderCustomFrom} onChange={e=>setOrderCustomFrom(e.target.value)} className="field" style={{fontSize:12,padding:"6px 8px"}}/>
+          </div>
+          <div>
+            <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>TO</p>
+            <input type="date" value={orderCustomTo} onChange={e=>setOrderCustomTo(e.target.value)} className="field" style={{fontSize:12,padding:"6px 8px"}}/>
+          </div>
+        </div>}
+
+        {/* Result count */}
+        <div style={{marginTop:9,padding:"7px 11px",background:"#f7f3ee",borderRadius:7,fontSize:11,color:"#8a8078",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span><strong style={{color:"#1a1208"}}>{searchedOrders.length}</strong> order{searchedOrders.length!==1?"s":""} found {fil.length!==searchedOrders.length?"(of "+fil.length+" total)":""}</span>
+          {searchedOrders.length>0&&<span style={{fontWeight:700,color:"#bf4626"}}>Total: {fmt(searchedOrders.reduce((s,o)=>s+(parseFloat(o.total)||0),0))}</span>}
+        </div>
+      </div>
+
+      {/* Order list */}
+      {searchedOrders.length===0?<div className="card" style={{textAlign:"center",padding:40,color:"#8a8078"}}>
+        <p style={{fontSize:36,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDD0D)}</p>
+        <p style={{fontSize:14,fontWeight:700,marginBottom:4}}>No orders found</p>
+        <p style={{fontSize:12}}>Try adjusting your search or filters</p>
+      </div>:allSt.map(st=>{
+        var grp=searchedOrders.filter(o=>o.status===st);
+        if(!grp.length)return null;
+        return <div key={st} style={{marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+            <span className="bdg" style={{background:SB[st],color:SC[st]}}>{SL[st]}</span>
+            <span style={{color:"#8a8078",fontSize:11}}>{grp.length}</span>
+          </div>
+          <div className="ag">{grp.map(o=><div key={o.id} className="card" style={{padding:"11px 13px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{fontWeight:700,fontSize:13}}>{o.id}</p>
+                <p style={{fontSize:10,color:"#8a8078"}}>{o.customer} - {o.time}</p>
+                {o.phone&&<p style={{fontSize:10,color:"#8a8078"}}>{EM.phone} {o.phone}</p>}
+                {o.address&&typeof o.address==="object"&&<p style={{fontSize:10,color:"#8a8078"}}>{EM.pin} {o.address.line1}, {o.address.postcode}</p>}
+                <p style={{fontSize:9,color:"#8a8078",marginTop:2}}>
+                  {o.source==="online"?String.fromCharCode(0xD83C,0xDF10)+" Online":""}
+                  {o.source==="qr-table"?String.fromCharCode(0xD83D,0xDCF1)+" QR Table":""}
+                  {o.source==="staff"?String.fromCharCode(0xD83D,0xDC68)+" Staff":""}
+                  {o.source==="phone"?EM.phone+" Phone":""}
+                  {" - "+(o.type||"")}
+                  {o.takenBy?" - by "+o.takenBy:""}
+                </p>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p>
+                <span style={{fontSize:10,color:o.paid?"#059669":"#dc2626",fontWeight:600}}>{o.paid?"Paid"+(o.payMethod?" "+o.payMethod:""):"Unpaid"}</span>
+                {o.deliveryCode&&<p style={{fontSize:10,color:"#7c3aed",fontWeight:700,fontFamily:"'Courier New',monospace",marginTop:1}}>Code: {o.deliveryCode}</p>}
+              </div>
+            </div>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{(o.items||[]).map(i=>i.name+"x"+i.qty).join(", ")}</p>
+            {o.notes&&<p style={{fontSize:10,color:"#92400e",background:"#fef3c7",padding:"4px 7px",borderRadius:5,marginBottom:6,fontStyle:"italic"}}>Note: {o.notes}</p>}
+            <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+              {allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
+            </div>
+            <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button>
+          </div>)}</div>
+        </div>;
+      })}
+    </div>}
     {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(del.length?rev/del.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
     {tab==="menu"&&(()=>{
       // Apply filters
