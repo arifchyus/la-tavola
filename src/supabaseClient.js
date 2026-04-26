@@ -875,3 +875,81 @@ export async function fetchCurrentlyClockedIn(branchId) {
   const { data } = await q;
   return data || [];
 }
+
+// ===========================================================
+// ADVANCED OPENING HOURS
+// ===========================================================
+
+export async function fetchBranchHours(branchId) {
+  let q = supabase.from('branch_hours').select('*').order('day_of_week');
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data, error } = await q;
+  if (error) console.error('fetchBranchHours:', error);
+  return data || [];
+}
+
+export async function saveBranchHours(branchId, dayOfWeek, serviceType, serviceWindow, hours) {
+  // hours = { is_closed, open_time, close_time, last_order_time }
+  const { data, error } = await supabase
+    .from('branch_hours')
+    .upsert({
+      branch_id: branchId,
+      day_of_week: dayOfWeek,
+      service_type: serviceType || 'all',
+      service_window: serviceWindow || 1,
+      is_closed: hours.is_closed || false,
+      open_time: hours.open_time || null,
+      close_time: hours.close_time || null,
+      last_order_time: hours.last_order_time || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'branch_id,day_of_week,service_type,service_window' })
+    .select();
+  if (error) console.error('saveBranchHours:', error);
+  return { data: data?.[0], error };
+}
+
+export async function deleteBranchHours(id) {
+  const { error } = await supabase.from('branch_hours').delete().eq('id', id);
+  if (error) console.error('deleteBranchHours:', error);
+}
+
+export async function fetchBranchHolidays(branchId) {
+  let q = supabase.from('branch_holidays').select('*').order('holiday_date');
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data, error } = await q;
+  if (error) console.error('fetchBranchHolidays:', error);
+  return data || [];
+}
+
+export async function saveBranchHoliday(holiday) {
+  const { data, error } = await supabase
+    .from('branch_holidays')
+    .upsert(holiday, { onConflict: 'branch_id,holiday_date' })
+    .select();
+  if (error) console.error('saveBranchHoliday:', error);
+  return { data: data?.[0], error };
+}
+
+export async function deleteBranchHoliday(id) {
+  const { error } = await supabase.from('branch_holidays').delete().eq('id', id);
+  if (error) console.error('deleteBranchHoliday:', error);
+}
+
+export async function fetchBranchHoursConfig(branchId) {
+  const { data, error } = await supabase
+    .from('branch_hours_config')
+    .select('*')
+    .eq('branch_id', branchId)
+    .maybeSingle();
+  if (error) console.error('fetchBranchHoursConfig:', error);
+  return data;
+}
+
+export async function saveBranchHoursConfig(config) {
+  const { data, error } = await supabase
+    .from('branch_hours_config')
+    .upsert({ ...config, updated_at: new Date().toISOString() }, { onConflict: 'branch_id' })
+    .select();
+  if (error) console.error('saveBranchHoursConfig:', error);
+  return { data: data?.[0], error };
+}

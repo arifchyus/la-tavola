@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -2117,6 +2117,93 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   });
   var [menuSearch,setMenuSearch]=useState("");
   var [orderSearch,setOrderSearch]=useState("");
+  var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
+  var [holidays,setHolidays]=useState({}); // { branchId: [{ id, holiday_date, ... }] }
+  var [hoursConfig,setHoursConfig]=useState({}); // { branchId: { use_per_service_hours, ... } }
+  var [hoursLoading,setHoursLoading]=useState(false);
+  var [editingBranch,setEditingBranch]=useState(null);
+  var [showHolidayModal,setShowHolidayModal]=useState(false);
+  var [editHoliday,setEditHoliday]=useState(null);
+
+  // Load advanced hours from DB on mount
+  useEffect(()=>{
+    if(!branches||!branches.length)return;
+    setHoursLoading(true);
+    Promise.all(branches.map(b=>Promise.all([
+      dbFetchBranchHours(b.id),
+      dbFetchHolidays(b.id),
+      dbFetchHoursConfig(b.id),
+    ]))).then(results=>{
+      var h={},hol={},cfg={};
+      results.forEach((r,i)=>{
+        var bid=branches[i].id;
+        var hourRows=r[0]||[];
+        h[bid]={};
+        hourRows.forEach(row=>{
+          if(!h[bid][row.day_of_week])h[bid][row.day_of_week]={};
+          var key=row.service_type+"_"+row.service_window;
+          h[bid][row.day_of_week][key]={
+            id:row.id,
+            is_closed:row.is_closed,
+            open_time:row.open_time?row.open_time.slice(0,5):"",
+            close_time:row.close_time?row.close_time.slice(0,5):"",
+            last_order_time:row.last_order_time?row.last_order_time.slice(0,5):"",
+          };
+        });
+        hol[bid]=r[1]||[];
+        cfg[bid]=r[2]||{branch_id:bid,use_per_service_hours:false,block_orders_when_closed:true,block_orders_after_last_order:true,show_last_order_warning:true,warning_threshold_minutes:30,allow_staff_override:true};
+      });
+      setAdvHours(h);setHolidays(hol);setHoursConfig(cfg);setHoursLoading(false);
+    }).catch(e=>{console.log("Hours load failed:",e);setHoursLoading(false);});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  // Save hours for a day
+  var saveDayHours=(branchId,day,serviceType,serviceWindow,hours)=>{
+    dbSaveBranchHours(branchId,day,serviceType,serviceWindow,hours).then(r=>{
+      if(r.data){
+        setAdvHours(h=>{
+          var newH={...h};
+          if(!newH[branchId])newH[branchId]={};
+          if(!newH[branchId][day])newH[branchId][day]={};
+          var key=serviceType+"_"+serviceWindow;
+          newH[branchId][day][key]={...hours,id:r.data.id};
+          return newH;
+        });
+      }
+    });
+  };
+
+  // Save holiday
+  var saveHoliday=(branchId,h)=>{
+    dbSaveHoliday({...h,branch_id:branchId}).then(r=>{
+      if(r.data){
+        setHolidays(prev=>{
+          var newHol={...prev};
+          if(!newHol[branchId])newHol[branchId]=[];
+          var existing=newHol[branchId].findIndex(x=>x.id===r.data.id);
+          if(existing>=0)newHol[branchId][existing]=r.data;
+          else newHol[branchId]=[...newHol[branchId],r.data].sort((a,b)=>a.holiday_date.localeCompare(b.holiday_date));
+          return newHol;
+        });
+      }
+    });
+  };
+
+  var deleteHoliday=(branchId,id)=>{
+    if(!window.confirm("Delete this holiday?"))return;
+    dbDeleteHoliday(id).then(()=>{
+      setHolidays(prev=>{var newHol={...prev};newHol[branchId]=(newHol[branchId]||[]).filter(h=>h.id!==id);return newHol;});
+    });
+  };
+
+  // Save config
+  var saveConfig=(branchId,partial)=>{
+    var current=hoursConfig[branchId]||{branch_id:branchId};
+    var updated={...current,...partial};
+    setHoursConfig(c=>({...c,[branchId]:updated}));
+    dbSaveHoursConfig(updated);
+  };
   var [orderDateFilter,setOrderDateFilter]=useState("all"); // all, today, yesterday, week, month, custom
   var [orderCustomFrom,setOrderCustomFrom]=useState("");
   var [orderCustomTo,setOrderCustomTo]=useState("");
@@ -3145,7 +3232,156 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
 
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
-    {tab==="hours"&&<div>{branches.map(b=>{var today=DAYS[new Date().getDay()];return <div key={b.id} className="card" style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h3 style={{fontSize:16,marginBottom:1}}>{b.name}</h3><p style={{color:"#8a8078",fontSize:12}}>{b.addr}</p></div><span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626"}}>{isOpenNow(b.id)?"Open":"Closed"}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:5}}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>{var h=HOURS[b.id]?.[day],it=day===today;return <div key={day} style={{background:it?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:it?"2px solid #bf4626":"1px solid #ede8de"}}><p style={{fontWeight:700,fontSize:11,color:it?"#bf4626":"#8a8078",marginBottom:2}}>{day}</p>{h?<p style={{fontWeight:600,fontSize:12}}>{("0"+h[0]).slice(-2)}:00-{("0"+h[1]).slice(-2)}:00</p>:<p style={{fontSize:11,color:"#8a8078"}}>Closed</p>}</div>;})}</div></div>;})}</div>}
+    {tab==="hours"&&<div>
+      {hoursLoading&&<div className="card" style={{padding:30,textAlign:"center",color:"#8a8078"}}>Loading hours...</div>}
+      {!hoursLoading&&branches.map(b=>{
+        var todayDay=DAYS[new Date().getDay()];
+        var bHours=advHours[b.id]||{};
+        var bHolidays=holidays[b.id]||[];
+        var cfg=hoursConfig[b.id]||{};
+        var isExpanded=editingBranch===b.id;
+        var DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+        return <div key={b.id} className="card" style={{marginBottom:14,padding:0,overflow:"hidden"}}>
+          {/* Branch header */}
+          <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <h3 style={{fontSize:16,fontWeight:700,marginBottom:2}}>{b.name}</h3>
+              <p style={{fontSize:11,color:"rgba(255,255,255,.7)"}}>{b.addr}</p>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <span className="bdg" style={{background:isOpenNow(b.id)?"#d1fae5":"#fee2e2",color:isOpenNow(b.id)?"#059669":"#dc2626",fontWeight:700}}>{isOpenNow(b.id)?"Open Now":"Closed"}</span>
+              <button onClick={()=>setEditingBranch(isExpanded?null:b.id)} style={{padding:"6px 13px",background:isExpanded?"#bf4626":"rgba(255,255,255,.15)",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>{isExpanded?"Collapse":"Edit Hours"}</button>
+            </div>
+          </div>
+
+          {/* Compact summary view (when collapsed) */}
+          {!isExpanded&&<div style={{padding:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:6}}>
+              {DAY_NAMES.map(day=>{
+                var dh=bHours[day]||{};
+                var primary=dh.all_1||dh["dine-in_1"]||{};
+                var isToday=day===todayDay;
+                return <div key={day} style={{background:isToday?"#fff5f3":"#f7f3ee",borderRadius:7,padding:"7px 9px",border:isToday?"2px solid #bf4626":"1px solid #ede8de"}}>
+                  <p style={{fontWeight:700,fontSize:11,color:isToday?"#bf4626":"#8a8078",marginBottom:2}}>{day}{isToday?" (Today)":""}</p>
+                  {primary.is_closed?<p style={{fontSize:11,color:"#dc2626",fontWeight:700}}>CLOSED</p>:
+                    primary.open_time?<>
+                      <p style={{fontWeight:600,fontSize:12}}>{primary.open_time} - {primary.close_time}</p>
+                      {primary.last_order_time&&<p style={{fontSize:10,color:"#8a8078"}}>Last: {primary.last_order_time}</p>}
+                    </>:<p style={{fontSize:11,color:"#8a8078"}}>Not set</p>}
+                </div>;
+              })}
+            </div>
+            {bHolidays.length>0&&<div style={{marginTop:10,padding:"7px 11px",background:"#fef3c7",borderRadius:6,fontSize:11,color:"#92400e"}}>
+              <strong>{bHolidays.length} holiday{bHolidays.length>1?"s":""} configured</strong>
+            </div>}
+          </div>}
+
+          {/* Expanded edit view */}
+          {isExpanded&&<div style={{padding:14}}>
+            {/* Config toggles */}
+            <div style={{padding:11,background:"#fafaf5",borderRadius:8,marginBottom:14,border:"1px solid #ede8de"}}>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:7}}>BEHAVIOR SETTINGS</p>
+              <label style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,cursor:"pointer"}}>
+                <input type="checkbox" checked={cfg.block_orders_when_closed!==false} onChange={e=>saveConfig(b.id,{block_orders_when_closed:e.target.checked})} style={{width:16,height:16}}/>
+                <span style={{fontSize:12}}>Block customer orders when closed</span>
+              </label>
+              <label style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,cursor:"pointer"}}>
+                <input type="checkbox" checked={cfg.block_orders_after_last_order!==false} onChange={e=>saveConfig(b.id,{block_orders_after_last_order:e.target.checked})} style={{width:16,height:16}}/>
+                <span style={{fontSize:12}}>Block customer orders after last order time</span>
+              </label>
+              <label style={{display:"flex",alignItems:"center",gap:6,marginBottom:5,cursor:"pointer"}}>
+                <input type="checkbox" checked={cfg.show_last_order_warning!==false} onChange={e=>saveConfig(b.id,{show_last_order_warning:e.target.checked})} style={{width:16,height:16}}/>
+                <span style={{fontSize:12}}>Show "last orders" warning to customers ({cfg.warning_threshold_minutes||30} min before)</span>
+              </label>
+              <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                <input type="checkbox" checked={cfg.allow_staff_override!==false} onChange={e=>saveConfig(b.id,{allow_staff_override:e.target.checked})} style={{width:16,height:16}}/>
+                <span style={{fontSize:12}}>Allow staff to override and accept late orders</span>
+              </label>
+            </div>
+
+            {/* Per-day editor */}
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:7}}>OPENING HOURS BY DAY</p>
+            {DAY_NAMES.map(day=>{
+              var dh=bHours[day]||{};
+              var primary=dh.all_1||{};
+              var isToday=day===todayDay;
+              return <div key={day} style={{padding:11,background:isToday?"#fff5f3":"#fff",borderRadius:8,marginBottom:7,border:isToday?"2px solid #bf4626":"1px solid #ede8de"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <div style={{minWidth:60,fontWeight:700,fontSize:13,color:isToday?"#bf4626":"#1a1208"}}>{day}{isToday?" (Today)":""}</div>
+                  <label style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer"}}>
+                    <input type="checkbox" checked={primary.is_closed||false} onChange={e=>saveDayHours(b.id,day,"all",1,{...primary,is_closed:e.target.checked})} style={{width:16,height:16}}/>
+                    <span style={{fontSize:11,fontWeight:700,color:"#dc2626"}}>Closed all day</span>
+                  </label>
+                  {!primary.is_closed&&<>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>OPEN</label>
+                      <input type="time" value={primary.open_time||""} onChange={e=>saveDayHours(b.id,day,"all",1,{...primary,open_time:e.target.value})} style={{padding:"5px 7px",border:"1px solid #ede8de",borderRadius:5,fontSize:12,width:90}}/>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>CLOSE</label>
+                      <input type="time" value={primary.close_time||""} onChange={e=>saveDayHours(b.id,day,"all",1,{...primary,close_time:e.target.value})} style={{padding:"5px 7px",border:"1px solid #ede8de",borderRadius:5,fontSize:12,width:90}}/>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>LAST ORDER</label>
+                      <input type="time" value={primary.last_order_time||""} onChange={e=>saveDayHours(b.id,day,"all",1,{...primary,last_order_time:e.target.value})} style={{padding:"5px 7px",border:"1px solid #ede8de",borderRadius:5,fontSize:12,width:90,background:"#fef3c7"}}/>
+                    </div>
+                  </>}
+                </div>
+              </div>;
+            })}
+
+            {/* Holidays section */}
+            <div style={{marginTop:14,padding:12,background:"#fafaf5",borderRadius:8,border:"1px solid #ede8de"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <p style={{fontSize:13,fontWeight:700}}>{EM.cal} Holidays & Special Dates</p>
+                <button onClick={()=>{setEditHoliday({branch_id:b.id,holiday_date:"",holiday_name:"",is_closed:true,open_time:"",close_time:"",last_order_time:"",notes:""});setShowHolidayModal(true);}} style={{padding:"6px 12px",background:"#bf4626",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Add Holiday</button>
+              </div>
+              {bHolidays.length===0?<p style={{fontSize:11,color:"#8a8078",fontStyle:"italic"}}>No holidays configured. Add Christmas, Easter, etc.</p>:bHolidays.map(h=><div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 9px",background:"#fff",borderRadius:6,marginBottom:4,border:"1px solid #ede8de"}}>
+                <div>
+                  <p style={{fontSize:12,fontWeight:700}}>{h.holiday_name} - {new Date(h.holiday_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</p>
+                  <p style={{fontSize:11,color:h.is_closed?"#dc2626":"#059669",fontWeight:700}}>{h.is_closed?"CLOSED":"Open "+h.open_time+" - "+h.close_time+(h.last_order_time?" (last order "+h.last_order_time+")":"")}</p>
+                </div>
+                <div style={{display:"flex",gap:5}}>
+                  <button onClick={()=>{setEditHoliday(h);setShowHolidayModal(true);}} style={{padding:"4px 9px",background:"#f7f3ee",border:"1px solid #ede8de",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>Edit</button>
+                  <button onClick={()=>deleteHoliday(b.id,h.id)} style={{padding:"4px 9px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>Delete</button>
+                </div>
+              </div>)}
+            </div>
+          </div>}
+        </div>;
+      })}
+
+      {/* Holiday modal */}
+      {showHolidayModal&&editHoliday&&<div onClick={()=>setShowHolidayModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:12,padding:18,maxWidth:480,width:"100%"}}>
+          <h3 style={{fontSize:17,fontWeight:700,marginBottom:11}}>{editHoliday.id?"Edit":"Add"} Holiday</h3>
+          <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3,display:"block"}}>HOLIDAY NAME</label>
+          <input value={editHoliday.holiday_name} onChange={e=>setEditHoliday({...editHoliday,holiday_name:e.target.value})} placeholder="Christmas Day" className="field" style={{marginBottom:9}}/>
+          <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3,display:"block"}}>DATE</label>
+          <input type="date" value={editHoliday.holiday_date} onChange={e=>setEditHoliday({...editHoliday,holiday_date:e.target.value})} className="field" style={{marginBottom:9}}/>
+          <label style={{display:"flex",alignItems:"center",gap:6,marginBottom:9,cursor:"pointer"}}>
+            <input type="checkbox" checked={editHoliday.is_closed} onChange={e=>setEditHoliday({...editHoliday,is_closed:e.target.checked})} style={{width:16,height:16}}/>
+            <span style={{fontSize:13,fontWeight:700}}>Closed all day</span>
+          </label>
+          {!editHoliday.is_closed&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5,marginBottom:9}}>
+            <div><label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>OPEN</label><input type="time" value={editHoliday.open_time||""} onChange={e=>setEditHoliday({...editHoliday,open_time:e.target.value})} className="field" style={{fontSize:12,padding:"6px 8px"}}/></div>
+            <div><label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>CLOSE</label><input type="time" value={editHoliday.close_time||""} onChange={e=>setEditHoliday({...editHoliday,close_time:e.target.value})} className="field" style={{fontSize:12,padding:"6px 8px"}}/></div>
+            <div><label style={{fontSize:10,color:"#8a8078",fontWeight:700}}>LAST ORDER</label><input type="time" value={editHoliday.last_order_time||""} onChange={e=>setEditHoliday({...editHoliday,last_order_time:e.target.value})} className="field" style={{fontSize:12,padding:"6px 8px"}}/></div>
+          </div>}
+          <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3,display:"block"}}>NOTES (OPTIONAL)</label>
+          <input value={editHoliday.notes||""} onChange={e=>setEditHoliday({...editHoliday,notes:e.target.value})} placeholder="e.g., Boxing Day - shorter hours" className="field" style={{marginBottom:11}}/>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setShowHolidayModal(false)} style={{flex:1,padding:"10px",background:"#f7f3ee",border:"1px solid #ede8de",borderRadius:7,fontWeight:700,cursor:"pointer",fontSize:13}}>Cancel</button>
+            <button onClick={()=>{
+              if(!editHoliday.holiday_name||!editHoliday.holiday_date){alert("Name and date required");return;}
+              saveHoliday(editHoliday.branch_id,editHoliday);
+              setShowHolidayModal(false);
+              push({title:"Holiday saved",body:editHoliday.holiday_name,color:"#059669"});
+            }} style={{flex:2,padding:"10px",background:"#059669",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer",fontSize:13}}>Save Holiday</button>
+          </div>
+        </div>
+      </div>}
+    </div>}
 
     {tab==="settings"&&<div>
       <div className="card" style={{padding:16,marginBottom:12}}>
