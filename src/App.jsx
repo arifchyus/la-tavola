@@ -4359,7 +4359,7 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
 
 // CLASSIC UI - POSCUBE-style with category buttons on left, items in middle, bill on right
 // CLASSIC POSCUBE-style POS - traditional EPOS layout with categories on left, items in middle, bill on right
-function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders}){
+function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
@@ -4433,6 +4433,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders}){
     }
     push({title:paid?"Paid - sent to kitchen":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
     clear();
+    if(onBackToDash)setTimeout(()=>onBackToDash(),300);
   };
 
   // Filter and dedupe items in current category
@@ -4572,7 +4573,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders}){
 
 // COMPACT UI - for small tablets/phones
 // COMPACT UI - phone-optimized POS, single column, slide-up cart
-function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders}){
+function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
@@ -4636,6 +4637,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders}){
     }
     push({title:paid?"Paid - sent":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
     clear();
+    if(onBackToDash)setTimeout(()=>onBackToDash(),300);
   };
 
   // Filter items - search OR category
@@ -4754,7 +4756,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders}){
 }
 
 // MODERN UI - the current existing UI (renamed from PosV)
-function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders}){
+function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
     if(typeof window!=="undefined"&&window.__preselectedTable){
@@ -4852,6 +4854,10 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders}){
       }
     }
     clear();setPayStep(paid?"done":null);setCashGiven("");
+    // If dashboard mode enabled and just sent (not paid - which has its own success screen), return to dashboard
+    if(!paid&&onBackToDash){
+      setTimeout(()=>onBackToDash(),300);
+    }
   };
   var change=parseFloat(cashGiven)-total;
 
@@ -4866,7 +4872,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders}){
     <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
       <button className="btn btn-o" onClick={()=>printR(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14}}>Print Receipt</button>
       <button className="btn btn-o" onClick={()=>{alert("Email receipt sent (simulated)");}} style={{padding:"14px 24px",fontSize:14}}>Email Receipt</button>
-      <button className="btn btn-r" onClick={()=>{setLastOrder(null);setPayStep(null);}} style={{padding:"14px 24px",fontSize:14}}>New Order</button>
+      <button className="btn btn-r" onClick={()=>{setLastOrder(null);setPayStep(null);if(onBackToDash)onBackToDash();}} style={{padding:"14px 24px",fontSize:14}}>{onBackToDash?"Back to Dashboard":"New Order"}</button>
     </div>
   </div>;
 
@@ -4920,6 +4926,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders}){
   return <div className="pos-wrap">
     
     <div style={{background:"#1a1208",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      {onBackToDash&&<button onClick={onBackToDash} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"< Dashboard"}</button>}
       <p style={{color:"#d4952a",fontWeight:700,fontSize:14}}>POS</p>
       <div style={{display:"flex",gap:4}}>
         {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));var newPrice=m?getItemPrice(m,tp):it.price;return{...it,price:newPrice};}));}} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
