@@ -2105,6 +2105,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [showDashboard,setShowDashboard]=useState(()=>{
     try{return localStorage.getItem("show_pos_dashboard")==="1";}catch(e){return false;}
   });
+  var [kbSize,setKbSize]=useState(()=>{
+    try{return localStorage.getItem("kb_size")||"medium";}catch(e){return "medium";}
+  });
   var [menuSearch,setMenuSearch]=useState("");
   var [menuSort,setMenuSort]=useState("az");
   var [menuFilterCat,setMenuFilterCat]=useState("all");
@@ -2943,6 +2946,22 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{fontSize:24,marginBottom:5}}>{opt.icon}</div>
             <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{opt.name}{posUiStyle===opt.id?" - Active":""}</p>
             <p style={{fontSize:10,opacity:.85,fontWeight:400,lineHeight:1.4}}>{opt.desc}</p>
+          </button>)}
+        </div>
+      </div>
+
+      <div className="card" style={{padding:16,marginBottom:12}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>On-Screen Keyboard Size</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Pick keyboard button size for staff. Larger sizes are easier to tap on touchscreens.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {[
+            {id:"small",name:"Small",desc:"Compact - fits more on screen",h:54,fs:18},
+            {id:"medium",name:"Medium",desc:"Balanced - good for most users",h:68,fs:22},
+            {id:"large",name:"Large",desc:"Big buttons - best for touchscreens",h:82,fs:28},
+          ].map(opt=><button key={opt.id} onClick={()=>{setKbSize(opt.id);try{localStorage.setItem("kb_size",opt.id);}catch(e){}push({title:"Keyboard size "+opt.name,body:"Will apply to next phone order",color:"#bf4626"});}} style={{padding:"14px 11px",background:kbSize===opt.id?"#bf4626":"#fff",color:kbSize===opt.id?"#fff":"#1a1208",border:"3px solid #bf4626",borderRadius:11,cursor:"pointer",textAlign:"left",fontWeight:700}}>
+            <div style={{height:opt.h/3,background:kbSize===opt.id?"rgba(255,255,255,.2)":"#f7f3ee",borderRadius:5,marginBottom:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:opt.fs/2,fontWeight:700}}>A B C</div>
+            <p style={{fontSize:13,marginBottom:2}}>{opt.name}{kbSize===opt.id?" - Active":""}</p>
+            <p style={{fontSize:9,opacity:.85,fontWeight:400,lineHeight:1.3}}>{opt.desc}</p>
           </button>)}
         </div>
       </div>
@@ -4333,6 +4352,111 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
 
 // POS UI router - dispatches to correct UI based on user preference
 // PHONE ORDER CUSTOMER POPUP - opens from POS to capture customer for delivery/collection
+// SLIDE-UP KEYBOARD - reusable touch keyboard that appears from bottom
+function SlideUpKeyboard({mode,value,onChange,onSubmit,onClose,sizePreset}){
+  // mode: "numeric" (phone), "alpha" (text), "alphanumeric" (postcode/email)
+  // sizePreset: "small" | "medium" | "large"
+  var [shifted,setShifted]=useState(true); // capital letters by default for postcode
+  
+  // Size presets
+  var sizes={
+    small:{btnH:54,btnFs:18,gap:5,padding:10,labelFs:11,displayFs:22},
+    medium:{btnH:68,btnFs:22,gap:6,padding:12,labelFs:12,displayFs:26},
+    large:{btnH:82,btnFs:28,gap:8,padding:14,labelFs:13,displayFs:32},
+  };
+  var sz=sizes[sizePreset||"medium"];
+
+  var typeChar=k=>{
+    if(k==="DEL")onChange(value.slice(0,-1));
+    else if(k==="SPACE")onChange(value+" ");
+    else if(k==="SHIFT")setShifted(!shifted);
+    else if(k==="OK"){if(onSubmit)onSubmit();}
+    else if(k==="CLOSE"){if(onClose)onClose();}
+    else{
+      var char=mode==="alpha"||mode==="alphanumeric"?(shifted?k.toUpperCase():k.toLowerCase()):k;
+      onChange(value+char);
+    }
+  };
+
+  // Button style - warm restaurant brand
+  var btnStyle=(special)=>{
+    var baseBg=special==="action"?"linear-gradient(180deg,#bf4626,#a3391d)":
+               special==="del"?"linear-gradient(180deg,#dc2626,#991b1b)":
+               special==="ok"?"linear-gradient(180deg,#059669,#047857)":
+               special==="space"?"linear-gradient(180deg,#fff,#fafaf5)":
+               "linear-gradient(180deg,#fff,#f5f0e8)";
+    var color=special==="action"||special==="del"||special==="ok"?"#fff":"#1a1208";
+    return {
+      height:sz.btnH,
+      background:baseBg,
+      color:color,
+      border:"1px solid "+(special==="action"||special==="del"||special==="ok"?"transparent":"#d4b896"),
+      borderRadius:10,
+      fontSize:sz.btnFs,
+      fontWeight:700,
+      cursor:"pointer",
+      boxShadow:"0 2px 0 rgba(0,0,0,.15), 0 4px 8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.5)",
+      transition:"transform .08s, box-shadow .08s",
+      userSelect:"none",
+      WebkitUserSelect:"none",
+      display:"flex",
+      alignItems:"center",
+      justifyContent:"center",
+      letterSpacing:.5,
+    };
+  };
+
+  var pressDown=e=>{e.currentTarget.style.transform="translateY(2px)";e.currentTarget.style.boxShadow="0 0 0 rgba(0,0,0,.15), 0 2px 4px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.5)";};
+  var pressUp=e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 0 rgba(0,0,0,.15), 0 4px 8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.5)";};
+
+  // Define keys based on mode
+  var renderKeys=()=>{
+    if(mode==="numeric"){
+      return <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:sz.gap}}>
+        {["1","2","3","4","5","6","7","8","9"].map(k=><button key={k} onClick={()=>typeChar(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{k}</button>)}
+        <button onClick={()=>typeChar("DEL")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("del")}>{String.fromCharCode(0x232B)}</button>
+        <button onClick={()=>typeChar("0")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>0</button>
+        <button onClick={()=>typeChar("OK")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("ok")}>{String.fromCharCode(0x2713)}</button>
+      </div>;
+    }
+    // alpha or alphanumeric
+    var row1=mode==="alphanumeric"?["1","2","3","4","5","6","7","8","9","0"]:["q","w","e","r","t","y","u","i","o","p"];
+    var row2=mode==="alphanumeric"?["q","w","e","r","t","y","u","i","o","p"]:["a","s","d","f","g","h","j","k","l"];
+    var row3=mode==="alphanumeric"?["a","s","d","f","g","h","j","k","l"]:["z","x","c","v","b","n","m"];
+    var row4=mode==="alphanumeric"?["z","x","c","v","b","n","m"]:[];
+
+    return <div style={{display:"flex",flexDirection:"column",gap:sz.gap}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat("+row1.length+",1fr)",gap:sz.gap}}>
+        {row1.map(k=><button key={k} onClick={()=>typeChar(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{shifted?k.toUpperCase():k}</button>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat("+row2.length+",1fr)",gap:sz.gap,padding:"0 "+(mode==="alpha"?sz.btnH/2:0)+"px"}}>
+        {row2.map(k=><button key={k} onClick={()=>typeChar(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{shifted?k.toUpperCase():k}</button>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:mode==="alpha"?"1.5fr repeat("+row3.length+",1fr) 1.5fr":"repeat("+(row3.length+1)+",1fr) 1.5fr",gap:sz.gap}}>
+        {mode==="alpha"&&<button onClick={()=>typeChar("SHIFT")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle(shifted?"action":"")}>{shifted?String.fromCharCode(0x21EA):String.fromCharCode(0x21E7)}</button>}
+        {row3.map(k=><button key={k} onClick={()=>typeChar(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{shifted?k.toUpperCase():k}</button>)}
+        {mode==="alphanumeric"&&row4.length===0&&<button onClick={()=>typeChar("SHIFT")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle(shifted?"action":"")}>{shifted?String.fromCharCode(0x21EA):String.fromCharCode(0x21E7)}</button>}
+        <button onClick={()=>typeChar("DEL")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("del")}>{String.fromCharCode(0x232B)}</button>
+      </div>
+      {row4.length>0&&<div style={{display:"grid",gridTemplateColumns:"1.5fr repeat("+row4.length+",1fr) 1.5fr",gap:sz.gap}}>
+        <button onClick={()=>typeChar("SHIFT")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle(shifted?"action":"")}>{shifted?String.fromCharCode(0x21EA):String.fromCharCode(0x21E7)}</button>
+        {row4.map(k=><button key={k} onClick={()=>typeChar(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{shifted?k.toUpperCase():k}</button>)}
+        <button onClick={()=>typeChar("DEL")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("del")}>{String.fromCharCode(0x232B)}</button>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 4fr 1fr",gap:sz.gap}}>
+        <button onClick={()=>typeChar("CLOSE")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle()}>{String.fromCharCode(0x2715)}</button>
+        <button onClick={()=>typeChar("SPACE")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("space")}>SPACE</button>
+        <button onClick={()=>typeChar("OK")} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle("ok")}>{String.fromCharCode(0x2713)}</button>
+      </div>
+    </div>;
+  };
+
+  return <div style={{position:"fixed",bottom:0,left:0,right:0,background:"linear-gradient(180deg,#fafaf5,#f0e8d8)",borderTop:"3px solid #d4b896",boxShadow:"0 -8px 30px rgba(0,0,0,.2)",padding:sz.padding,zIndex:9999,animation:"slideUpKb .3s ease-out"}}>
+    <style>{`@keyframes slideUpKb{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+    {renderKeys()}
+  </div>;
+}
+
 function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push,branch,initialPhone}){
   var [step,setStep]=useState(initialPhone?"search":"phone"); // phone, search, existing, postcode, address, manual
   var [phone,setPhone]=useState(initialPhone||"");
@@ -4347,6 +4471,8 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
   var [streetName,setStreetName]=useState("");
   var [name,setName]=useState("");
   var [notes,setNotes]=useState("");
+  var [activeField,setActiveField]=useState(null); // 'phone','postcode','name','door','street','notes' or null
+  var keyboardSize=(()=>{try{return localStorage.getItem("kb_size")||"medium";}catch(e){return "medium";}})();
 
   // On mount, if initialPhone provided, search immediately
   useEffect(()=>{
@@ -4359,6 +4485,13 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
+
+  // Auto-show keyboard for phone and postcode steps (always required)
+  useEffect(()=>{
+    if(step==="phone")setActiveField("phone");
+    else if(step==="postcode")setActiveField("postcode");
+    else setActiveField(null);
+  },[step]);
 
   // Search by phone
   var searchPhone=()=>{
@@ -4471,28 +4604,25 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
   };
 
   // On-screen keyboard helper
-  var keyboardKey=(k,wide)=>{
-    var doKey=()=>{
-      if(k==="DEL"){
-        if(step==="phone")setPhone(p=>p.slice(0,-1));
-        else if(step==="postcode")setPostcode(p=>p.slice(0,-1));
-      }else if(k==="SPACE"){
-        if(step==="postcode")setPostcode(p=>p+" ");
-      }else if(k==="OK"){
-        if(step==="phone")searchPhone();
-        else if(step==="postcode")lookupPostcodeIO();
-      }else{
-        if(step==="phone"){if(/[0-9]/.test(k))setPhone(p=>p+k);}
-        else if(step==="postcode")setPostcode(p=>p+k);
-      }
-    };
-    var bg=k==="DEL"?"#dc2626":k==="OK"?"#059669":"#fff";
-    var color=k==="DEL"||k==="OK"?"#fff":"#1a1208";
-    return <button key={k} onClick={doKey} style={{padding:"14px 0",background:bg,color:color,border:"2px solid "+(k==="OK"||k==="DEL"?bg:"#ede8de"),borderRadius:8,fontSize:18,fontWeight:700,cursor:"pointer",gridColumn:wide?"span 2":"span 1",minHeight:54,boxShadow:"0 2px 4px rgba(0,0,0,.06)"}}>{k==="DEL"?"<X":k==="OK"?"OK":k==="SPACE"?"_____":k}</button>;
+  // Helper: get current value/setter for active field
+  var getActive=()=>{
+    if(activeField==="phone")return [phone,setPhone,"numeric"];
+    if(activeField==="postcode")return [postcode,setPostcode,"alphanumeric"];
+    if(activeField==="name")return [name,setName,"alpha"];
+    if(activeField==="door")return [doorNum,setDoorNum,"alphanumeric"];
+    if(activeField==="street")return [streetName,setStreetName,"alpha"];
+    if(activeField==="notes")return [notes,setNotes,"alpha"];
+    return ["",()=>{},"alpha"];
+  };
+  var [activeVal,activeSetter,activeMode]=getActive();
+  var submitActive=()=>{
+    if(activeField==="phone")searchPhone();
+    else if(activeField==="postcode")lookupPostcodeIO();
+    else setActiveField(null); // close keyboard for text fields
   };
 
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 50px rgba(0,0,0,.4)"}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",maxHeight:activeField?"calc(92vh - 360px)":"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 50px rgba(0,0,0,.4)",transition:"max-height .3s"}}>
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -4515,13 +4645,10 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
         {/* STEP: PHONE ENTRY */}
         {step==="phone"&&<>
           <div style={{textAlign:"center",marginBottom:14}}>
-            <div style={{display:"inline-block",padding:"14px 28px",background:"#fff",borderRadius:11,fontSize:32,fontWeight:700,letterSpacing:3,minWidth:280,border:"3px solid #d4952a",color:"#1a1208"}}>
-              {phone||"_______"}
+            <div onClick={()=>setActiveField("phone")} style={{display:"inline-block",padding:"18px 30px",background:"#fff",borderRadius:13,fontSize:36,fontWeight:700,letterSpacing:4,minWidth:320,border:"3px solid #d4952a",color:"#1a1208",cursor:"text",boxShadow:"0 4px 12px rgba(0,0,0,.08)"}}>
+              {phone||<span style={{color:"#d4b896"}}>0XXXXXXXXXX</span>}
             </div>
-            <p style={{fontSize:12,color:"#8a8078",marginTop:8}}>Enter customer phone number</p>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,maxWidth:340,margin:"0 auto"}}>
-            {["1","2","3","4","5","6","7","8","9","DEL","0","OK"].map(k=>keyboardKey(k))}
+            <p style={{fontSize:13,color:"#8a8078",marginTop:10,fontWeight:600}}>Enter customer phone number using keyboard below</p>
           </div>
         </>}
 
@@ -4558,30 +4685,16 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
 
         {/* STEP: POSTCODE ENTRY */}
         {step==="postcode"&&<>
-          <p style={{fontSize:12,color:"#8a8078",marginBottom:6}}>Phone: <span style={{fontWeight:700,color:"#1a1208"}}>{phone}</span></p>
-          <div style={{marginBottom:11}}>
-            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>POSTCODE</label>
-            <div style={{display:"inline-block",padding:"12px 18px",background:"#fff",borderRadius:9,fontSize:28,fontWeight:700,letterSpacing:2,minWidth:240,border:"3px solid #d4952a",color:"#1a1208",textAlign:"center",width:"100%",boxSizing:"border-box"}}>
-              {postcode||"_______"}
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:8}}>Phone: <span style={{fontWeight:700,color:"#1a1208"}}>{phone}</span></p>
+          <div style={{marginBottom:14}}>
+            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5,display:"block"}}>POSTCODE</label>
+            <div onClick={()=>setActiveField("postcode")} style={{padding:"16px 22px",background:"#fff",borderRadius:11,fontSize:30,fontWeight:700,letterSpacing:3,border:"3px solid #d4952a",color:"#1a1208",textAlign:"center",cursor:"text",boxShadow:"0 4px 12px rgba(0,0,0,.08)"}}>
+              {postcode||<span style={{color:"#d4b896"}}>E1 6AN</span>}
             </div>
           </div>
 
-          {/* Postcode keyboard - alphanumeric */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
-            {["1","2","3","4","5","6","7"].map(k=>keyboardKey(k))}
-            {["8","9","0","Q","W","E","R"].map(k=>keyboardKey(k))}
-            {["T","Y","U","I","O","P","A"].map(k=>keyboardKey(k))}
-            {["S","D","F","G","H","J","K"].map(k=>keyboardKey(k))}
-            {["L","Z","X","C","V","B","N"].map(k=>keyboardKey(k))}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:11}}>
-            {keyboardKey("M")}
-            {keyboardKey("SPACE",true)}
-            {keyboardKey("DEL")}
-          </div>
-
-          <button onClick={lookupPostcodeIO} disabled={!postcode||lookingUp} style={{width:"100%",padding:"13px",background:lookingUp?"#8a8078":"#2563eb",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:lookingUp?"not-allowed":"pointer",marginBottom:11}}>
-            {lookingUp?"Looking up...":"Search Postcodes"}
+          <button onClick={lookupPostcodeIO} disabled={!postcode||lookingUp} style={{width:"100%",padding:"15px",background:lookingUp?"#8a8078":"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:lookingUp?"not-allowed":"pointer",marginBottom:11,boxShadow:"0 3px 8px rgba(37,99,235,.3)"}}>
+            {lookingUp?"Looking up...":(String.fromCharCode(0xD83D,0xDD0D)+" Search Postcodes")}
           </button>
 
           {/* Postcode results */}
@@ -4605,26 +4718,26 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
           <p style={{fontSize:12,color:"#8a8078",marginBottom:11}}>Phone: <span style={{fontWeight:700,color:"#1a1208"}}>{phone}</span> {selectedPostcode&&<>- Postcode: <span style={{fontWeight:700,color:"#1a1208"}}>{selectedPostcode.postcode}</span> ({calculateDistance(selectedPostcode.lat,selectedPostcode.lng).toFixed(1)} mi)</>}</p>
 
           <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>CUSTOMER NAME</label>
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Mr Smith" autoFocus className="field" style={{marginBottom:11,fontSize:16,padding:"12px 14px"}}/>
+          <input value={name} onChange={e=>setName(e.target.value)} onClick={()=>setActiveField("name")} placeholder="Mr Smith" autoFocus className="field" style={{marginBottom:11,fontSize:18,padding:"14px 16px",borderColor:activeField==="name"?"#bf4626":undefined,borderWidth:activeField==="name"?2:1}}/>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8,marginBottom:11}}>
             <div>
               <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>DOOR / FLAT</label>
-              <input value={doorNum} onChange={e=>setDoorNum(e.target.value)} placeholder="23" className="field" style={{fontSize:16,padding:"12px 14px"}}/>
+              <input value={doorNum} onChange={e=>setDoorNum(e.target.value)} onClick={()=>setActiveField("door")} placeholder="23" className="field" style={{fontSize:18,padding:"14px 16px",borderColor:activeField==="door"?"#bf4626":undefined,borderWidth:activeField==="door"?2:1}}/>
             </div>
             <div>
               <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>STREET / ROAD</label>
-              <input value={streetName} onChange={e=>setStreetName(e.target.value)} placeholder="High Street" className="field" style={{fontSize:16,padding:"12px 14px"}}/>
+              <input value={streetName} onChange={e=>setStreetName(e.target.value)} onClick={()=>setActiveField("street")} placeholder="High Street" className="field" style={{fontSize:18,padding:"14px 16px",borderColor:activeField==="street"?"#bf4626":undefined,borderWidth:activeField==="street"?2:1}}/>
             </div>
           </div>
 
           {!selectedPostcode&&<>
             <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>POSTCODE</label>
-            <input value={postcode} onChange={e=>setPostcode(e.target.value.toUpperCase())} placeholder="E1 6AN" className="field" style={{marginBottom:11,fontSize:16,padding:"12px 14px",textTransform:"uppercase"}}/>
+            <input value={postcode} onChange={e=>setPostcode(e.target.value.toUpperCase())} onClick={()=>setActiveField("postcode")} placeholder="E1 6AN" className="field" style={{marginBottom:11,fontSize:18,padding:"14px 16px",textTransform:"uppercase",borderColor:activeField==="postcode"?"#bf4626":undefined,borderWidth:activeField==="postcode"?2:1}}/>
           </>}
 
           <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>NOTES (OPTIONAL)</label>
-          <input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Gate code, buzzer name..." className="field" style={{marginBottom:14,fontSize:14,padding:"10px 14px"}}/>
+          <input value={notes} onChange={e=>setNotes(e.target.value)} onClick={()=>setActiveField("notes")} placeholder="Gate code, buzzer name..." className="field" style={{marginBottom:14,fontSize:16,padding:"12px 16px",borderColor:activeField==="notes"?"#bf4626":undefined,borderWidth:activeField==="notes"?2:1}}/>
 
           <p style={{fontSize:12,color:"#8a8078",fontWeight:700,marginBottom:6}}>Order Type:</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
@@ -4639,6 +4752,9 @@ function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push
 
       </div>
     </div>
+    
+    {/* Slide-up keyboard - shows when activeField is set */}
+    {activeField&&<SlideUpKeyboard mode={activeMode} value={activeVal} onChange={activeSetter} onSubmit={submitActive} onClose={()=>setActiveField(null)} sizePreset={keyboardSize}/>}
   </div>;
 }
 
