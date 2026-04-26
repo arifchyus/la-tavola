@@ -4298,8 +4298,8 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
 
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
-    {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,onClick:()=>{onOpenPos();setTimeout(()=>{try{var ev=new CustomEvent("pos-set-type",{detail:"dine-in"});window.dispatchEvent(ev);}catch(e){}},100);}},
-    {icon:EM.bag,label:"Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,onClick:()=>{onOpenPos();setTimeout(()=>{try{var ev=new CustomEvent("pos-set-type",{detail:"takeaway"});window.dispatchEvent(ev);}catch(e){}},100);}},
+    {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
+    {icon:EM.bag,label:"Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
     {icon:EM.pin,label:"Delivery",color:"#7c3aed",bgGradient:"linear-gradient(135deg,#7c3aed,#a855f7)",badge:deliveryActive>0?deliveryActive:null,onClick:()=>setView("phone")},
     {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:null,onClick:()=>setView("phone")},
     {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,onClick:()=>setView("incoming"),pulse:pendingIncoming>0},
@@ -4363,7 +4363,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
-  var [type,setType]=useState("dine-in");
+  var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   var [tbl,setTbl]=useState("");
   var [guests,setGuests]=useState("1");
   var [discPct,setDiscPct]=useState(0);
@@ -4624,7 +4624,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
-  var [type,setType]=useState("dine-in");
+  var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   var [tbl,setTbl]=useState("");
   var [showCart,setShowCart]=useState(false);
   var [search,setSearch]=useState("");
@@ -4819,7 +4819,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       return v;
     }
     return "";
-  }),[type,setType]=useState("dine-in");
+  }),[type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
