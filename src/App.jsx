@@ -4971,7 +4971,18 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate([50,50,50]);}
       return;
     }
-    var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+    // Build customer info - use phone customer if set
+    var customer,phoneNum,address,orderType,deliveryCode;
+    if(phoneCust){
+      customer=phoneCust.name+" ("+phoneCust.phone+")";
+      phoneNum=phoneCust.phone;
+      orderType=type==="takeaway"?"collection":(type==="dine-in"?"delivery":type);
+      address=orderType==="delivery"?phoneCust.address:null;
+      deliveryCode=String(Math.floor(1000+Math.random()*9000));
+    }else{
+      customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+      phoneNum=null;address=null;orderType=type;deliveryCode=null;
+    }
     var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
     // CONFLICT CHECK: If another order exists for this table already, warn
     if(tableId&&orders){
@@ -4983,20 +4994,23 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       }
     }
     var o={
-      id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,
+      id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,
       items:[...cart],subtotal:rawSub,discount:discAmt,
       serviceCharge:serviceCharge,total:total,
-      status:"preparing",time:nowT(),type,
+      status:"preparing",time:nowT(),type:orderType,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
-      tableId,source:"staff",guests:parseInt(guests)||1,
+      tableId,source:phoneCust?"phone":"staff",guests:parseInt(guests)||1,
+      address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,
     };
     onOrder(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied",guests:parseInt(guests)||1}:t));
     }
-    push({title:paid?"Paid - sent to kitchen":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
+    var msgBody=phoneCust?(phoneCust.name+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(total));
+    push({title:paid?"Paid - sent to kitchen":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
     clear();
+    setPhoneCust(null);
     if(onBackToDash)setTimeout(()=>onBackToDash(),300);
   };
 
@@ -5236,23 +5250,36 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       if(typeof window!=="undefined"&&window.navigator&&window.navigator.vibrate){window.navigator.vibrate([50,50,50]);}
       return;
     }
-    var customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+    var customer,phoneNum,address,orderType,deliveryCode;
+    if(phoneCust){
+      customer=phoneCust.name+" ("+phoneCust.phone+")";
+      phoneNum=phoneCust.phone;
+      orderType=type==="takeaway"?"collection":(type==="dine-in"?"delivery":type);
+      address=orderType==="delivery"?phoneCust.address:null;
+      deliveryCode=String(Math.floor(1000+Math.random()*9000));
+    }else{
+      customer=type==="dine-in"?(tbl?"Table "+tbl:"Walk-in"):"Counter";
+      phoneNum=null;address=null;orderType=type;deliveryCode=null;
+    }
     var tableId=type==="dine-in"&&tbl?parseInt(tbl):null;
     var o={
-      id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,
+      id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,
       items:[...cart],subtotal:rawSub,discount:0,
       serviceCharge:serviceCharge,total:total,
-      status:paid?"preparing":"pending",time:nowT(),type,
+      status:paid?"preparing":"pending",time:nowT(),type:orderType,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
-      tableId,source:"staff",
+      tableId,source:phoneCust?"phone":"staff",
+      address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,
     };
     onOrder(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied"}:t));
     }
-    push({title:paid?"Paid - sent":"Sent to kitchen",body:o.id+" - "+fmt(total),color:paid?"#059669":"#2563eb"});
+    var msgBody=phoneCust?(phoneCust.name+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(total));
+    push({title:paid?"Paid - sent":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
     clear();
+    setPhoneCust(null);
     if(onBackToDash)setTimeout(()=>onBackToDash(),300);
   };
 
@@ -5469,9 +5496,28 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
         if(!window.confirm(msg))return;
       }
     }
-    var customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
-    var o={id:uid(),branchId:branch?.id,userId:user?.id||"staff",customer,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:tip,total:total,status:"preparing",time:nowT(),type,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:"staff"};
-    onOrder(o);setLastOrder(o);push({title:paid?"Paid by "+method:"Sent to kitchen",body:o.id+" - "+fmt(o.total),color:paid?"#059669":"#2563eb"});
+    // Build customer & order details - use phone customer if set
+    var customer,phoneNum,address,orderType,deliveryCode;
+    if(phoneCust){
+      // PHONE ORDER - use saved customer details
+      customer=phoneCust.name+" ("+phoneCust.phone+")";
+      phoneNum=phoneCust.phone;
+      // type was set when phone customer was selected - "takeaway" for collection, but for delivery use proper type
+      orderType=type==="takeaway"?"collection":(type==="dine-in"?"delivery":type);
+      address=orderType==="delivery"?phoneCust.address:null;
+      // Auto-generate a 4-digit delivery code so driver verification still works
+      deliveryCode=String(Math.floor(1000+Math.random()*9000));
+    }else{
+      customer=type==="dine-in"?"Table "+(tbl||"?"):"Walk-in "+nowT();
+      phoneNum=null;
+      address=null;
+      orderType=type;
+      deliveryCode=null;
+    }
+    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:tip,total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false};
+    onOrder(o);setLastOrder(o);
+    var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
+    push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
     // Auto-update table status when dine-in order placed
     if(tableId&&setTables&&tables){
       var targetTable=tables.find(t=>t.id===tableId||t.table_number===tableId);
@@ -5485,6 +5531,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       }
     }
     clear();setPayStep(paid?"done":null);setCashGiven("");
+    setPhoneCust(null); // clear phone customer after order placed
     // If dashboard mode enabled and just sent (not paid - which has its own success screen), return to dashboard
     if(!paid&&onBackToDash){
       setTimeout(()=>onBackToDash(),300);
