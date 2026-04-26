@@ -5012,7 +5012,7 @@ function PosV(props){
 }
 
 // POS DASHBOARD - POSCUBE-style home screen with action tiles
-function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
+function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
   // Safety: ensure all props have defaults to prevent crashes
   orders=orders||[];
   tables=tables||[];
@@ -5081,7 +5081,7 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
         <h2 style={{fontSize:20,fontWeight:700,marginBottom:2}}>Welcome back, {user?.name||"Staff"}</h2>
         <p style={{fontSize:12,color:"rgba(255,255,255,.7)"}}>{branch?.name} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})} - {nowT()}</p>
       </div>
-      <div style={{display:"flex",gap:14}}>
+      <div style={{display:"flex",gap:14,alignItems:"center"}}>
         <div style={{textAlign:"center"}}>
           <p style={{fontSize:10,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>TODAY</p>
           <p style={{fontSize:20,fontWeight:700,color:"#d4952a"}}>{fmt(todayRevenue)}</p>
@@ -5090,6 +5090,7 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
           <p style={{fontSize:10,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>ORDERS</p>
           <p style={{fontSize:20,fontWeight:700,color:"#fff"}}>{todayOrders.length}</p>
         </div>
+        {setUser&&<button onClick={()=>{if(window.confirm("Sign out and return to login screen?")){setUser(null);if(setView)setView("menu");}}} style={{padding:"10px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 8px rgba(220,38,38,.3)",letterSpacing:.5,display:"flex",alignItems:"center",gap:5}}>{String.fromCharCode(0x21AA,0xFE0F)} EXIT</button>}
       </div>
     </div>
 
@@ -6367,7 +6368,7 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setView={setView} customers={customers} setCustomers={setCustomers}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
         // Store preselected table so POS can pick it up
