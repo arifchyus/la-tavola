@@ -4464,6 +4464,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   })();
 
   return <div style={{height:"calc(100vh - 100px)",display:"flex",flexDirection:"column",background:"#1a1208",color:"#fff",margin:-16,padding:8,overflow:"hidden"}}>
+    <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}`}</style>
     {/* Top bar - branch info + order type + table */}
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"linear-gradient(135deg,#2d1f12,#3d2e22)",borderRadius:8,marginBottom:6,flexWrap:"wrap"}}>
       {onBackToDash&&<button onClick={onBackToDash} style={{padding:"6px 11px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"< Dashboard"}</button>}
@@ -4519,9 +4520,8 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 
       {/* RIGHT: Running bill */}
       <div style={{width:240,display:"flex",flexDirection:"column",background:"#fff",color:"#1a1208",borderRadius:8,overflow:"hidden"}}>
-        <div style={{background:"#1a1208",color:"#fff",padding:"7px 10px",fontWeight:700,fontSize:12,textAlign:"center"}}>
-          {type==="dine-in"?"Dine In - Table "+(tbl||"?"):"Takeaway"}
-          {type==="dine-in"&&" - Guest: "+guests}
+        <div style={{background:type==="dine-in"&&!tbl?"#dc2626":"#1a1208",color:"#fff",padding:"7px 10px",fontWeight:700,fontSize:12,textAlign:"center"}}>
+          {type==="dine-in"?(tbl?"Dine In - Table "+tbl+" - Guest: "+guests:"DINE IN - PICK A TABLE!"):"Takeaway"}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:6}}>
           {cart.length===0?<p style={{fontSize:11,color:"#8a8078",textAlign:"center",padding:20}}>Tap items to add</p>:cart.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px dashed #ede8de",fontSize:11}}>
@@ -4544,15 +4544,20 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       </div>
     </div>
 
+    {/* Warning banner - dine-in needs table */}
+    {type==="dine-in"&&!tbl&&cart.length>0&&<div style={{padding:"8px 12px",background:"#dc2626",color:"#fff",borderRadius:7,marginTop:6,fontSize:12,fontWeight:700,textAlign:"center",animation:"pulse 1.5s ease-in-out infinite"}}>
+      Pick a table number to send the order. Click the yellow Pick button at the top.
+    </div>}
+
     {/* Bottom action bar */}
     <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
       <button onClick={clear} style={{padding:"10px 14px",background:"#dc2626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer",minWidth:80}}>Cancel</button>
       <button onClick={()=>setShowDiscModal(true)} disabled={cart.length===0} style={{padding:"10px 14px",background:"#d4952a",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:80}}>Discount</button>
       <button onClick={()=>setShowSplitModal(true)} disabled={cart.length===0||type!=="dine-in"} style={{padding:"10px 14px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:cart.length===0||type!=="dine-in"?"not-allowed":"pointer",opacity:cart.length===0||type!=="dine-in"?.5:1,minWidth:80}}>Split Bill</button>
       <div style={{flex:1}}/>
-      <button onClick={()=>sendOrder(false,null)} disabled={cart.length===0} style={{padding:"10px 18px",background:"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:120}}>Send to Kitchen</button>
-      <button onClick={()=>sendOrder(true,"cash")} disabled={cart.length===0} style={{padding:"10px 18px",background:"#059669",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:90}}>Pay Cash</button>
-      <button onClick={()=>sendOrder(true,"card")} disabled={cart.length===0} style={{padding:"10px 18px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0?"not-allowed":"pointer",opacity:cart.length===0?.5:1,minWidth:90}}>Pay Card</button>
+      <button onClick={()=>sendOrder(false,null)} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:120}}>Send to Kitchen</button>
+      <button onClick={()=>sendOrder(true,"cash")} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#059669",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:90}}>Pay Cash</button>
+      <button onClick={()=>sendOrder(true,"card")} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:90}}>Pay Card</button>
     </div>
 
     {/* Discount modal */}
