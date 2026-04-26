@@ -5012,7 +5012,8 @@ function PosV(props){
 }
 
 // POS DASHBOARD - POSCUBE-style home screen with action tiles
-function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
+function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,menu,customers,setView,onOpenPos,setUser,push}){
+  var [modalView,setModalView]=useState(null); // null, "incoming", "kitchen", "tables", "driver", "bookings", "report"
   // Safety: ensure all props have defaults to prevent crashes
   orders=orders||[];
   tables=tables||[];
@@ -5058,16 +5059,16 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
     {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
     {icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
     {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>{try{window.__posOpenPhonePopup=true;}catch(e){}onOpenPos();}},
-    {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setView("incoming"),pulse:pendingIncoming>0},
+    {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setModalView("incoming"),pulse:pendingIncoming>0},
 
     // ROW 2: MANAGE ACTIVE ORDERS (4 tiles)
-    {icon:EM.cook,label:"Kitchen",color:"#059669",bgGradient:"linear-gradient(135deg,#059669,#10b981)",badge:null,sublabel:"What to cook",onClick:()=>setView("kitchen")},
-    {icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,sublabel:"Floor view",onClick:()=>setView("tables")},
-    {icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,sublabel:"Deliveries",onClick:()=>setView("driver")},
-    {icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,sublabel:"Reservations",onClick:()=>setView("bookings")},
+    {icon:EM.cook,label:"Kitchen",color:"#059669",bgGradient:"linear-gradient(135deg,#059669,#10b981)",badge:null,sublabel:"What to cook",onClick:()=>setModalView("kitchen")},
+    {icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,sublabel:"Floor view",onClick:()=>setModalView("tables")},
+    {icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,sublabel:"Deliveries",onClick:()=>setModalView("driver")},
+    {icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,sublabel:"Reservations",onClick:()=>setModalView("bookings")},
 
     // ROW 3: MANAGEMENT (3 tiles)
-    {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setView("report")},
+    {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setModalView("report")},
     {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,sublabel:"Menu & settings",onClick:()=>setView("admin")},
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
     {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
@@ -5116,6 +5117,39 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
     <div style={{marginTop:18,padding:"10px 12px",background:"#fff",borderRadius:9,border:"1px solid #ede8de",textAlign:"center"}}>
       <p style={{fontSize:11,color:"#8a8078"}}>To disable this dashboard, go to Admin {String.fromCharCode(0x2192)} Settings {String.fromCharCode(0x2192)} POS Dashboard Home Screen</p>
     </div>
+
+    {/* MODAL VIEWS - Click tile opens these as overlays */}
+    {modalView&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 14px"}}>
+      <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:1200,width:"100%",maxHeight:"calc(100vh - 40px)",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        {/* Modal header */}
+        <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"3px solid #d4952a"}}>
+          <div>
+            <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2,marginBottom:2}}>POS DASHBOARD</p>
+            <h2 style={{fontSize:20,fontWeight:700}}>{
+              modalView==="incoming"?(EM.bag+" Incoming Orders"):
+              modalView==="kitchen"?(EM.cook+" Kitchen Stations"):
+              modalView==="tables"?(EM.pin+" Tables - Floor View"):
+              modalView==="driver"?(EM.bag+" Driver - Deliveries"):
+              modalView==="bookings"?(EM.cal+" Bookings & Reservations"):
+              modalView==="report"?(EM.chart+" Reports & Analytics"):
+              "View"
+            }</h2>
+          </div>
+          <button onClick={()=>setModalView(null)} style={{padding:"10px 18px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 8px rgba(220,38,38,.3)",display:"flex",alignItems:"center",gap:6}}>
+            x Close
+          </button>
+        </div>
+        {/* Modal content - scrollable */}
+        <div style={{flex:1,overflowY:"auto",padding:14}}>
+          {modalView==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables} stations={stations} menu={menu}/>}
+          {modalView==="kitchen"&&<KitchenV orders={orders} setOrders={setOrders} push={push} stations={stations} menu={menu}/>}
+          {modalView==="tables"&&<TablesV tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{setModalView(null);if(typeof window!=="undefined")window.__preselectedTable=tableId;onOpenPos();}}/>}
+          {modalView==="driver"&&<DriverV orders={orders} setOrders={setOrders} push={push} user={user} branch={branch}/>}
+          {modalView==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
+          {modalView==="report"&&<ReportV orders={orders}/>}
+        </div>
+      </div>
+    </div>}
   </div>;
 }
 
@@ -6368,7 +6402,7 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
         // Store preselected table so POS can pick it up
