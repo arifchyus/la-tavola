@@ -5414,6 +5414,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 // MODERN UI - the current existing UI (renamed from PosV)
 function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
   var [phoneCust,setPhoneCust]=useState(null); // when set, this is a delivery/collection order
+  var [showCodePopup,setShowCodePopup]=useState(null); // {code, customer, type, total} when set
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
@@ -5518,6 +5519,10 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
     onOrder(o);setLastOrder(o);
     var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
     push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
+    // Show big popup with delivery code for phone orders so staff can read to customer
+    if(phoneCust&&deliveryCode&&orderType==="delivery"){
+      setShowCodePopup({code:deliveryCode,customer:phoneCust.name,phone:phoneCust.phone,type:orderType,total:o.total,address:phoneCust.address});
+    }
     // Auto-update table status when dine-in order placed
     if(tableId&&setTables&&tables){
       var targetTable=tables.find(t=>t.id===tableId||t.table_number===tableId);
@@ -5602,6 +5607,28 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   </div>;
 
   return <div className="pos-wrap">
+    {/* DELIVERY CODE POPUP - big visible popup so staff can read to customer */}
+    {showCodePopup&&<div onClick={()=>setShowCodePopup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:16,padding:"30px 26px",maxWidth:480,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.5)",border:"3px solid #d4952a"}}>
+        <p style={{fontSize:13,color:"#d4952a",fontWeight:700,letterSpacing:3,marginBottom:10}}>{EM.check} ORDER SENT TO KITCHEN</p>
+        <h2 style={{fontSize:20,fontWeight:700,marginBottom:6,color:"#fff"}}>{showCodePopup.customer}</h2>
+        <p style={{fontSize:13,color:"rgba(255,255,255,.7)",marginBottom:14}}>{showCodePopup.phone} - {fmt(showCodePopup.total)}</p>
+        
+        <div style={{background:"#fff",color:"#1a1208",borderRadius:12,padding:"22px 16px",margin:"14px 0"}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>READ THIS CODE TO CUSTOMER</p>
+          <p style={{fontSize:64,fontWeight:700,letterSpacing:14,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1}}>{showCodePopup.code}</p>
+          <p style={{fontSize:12,color:"#8a8078",marginTop:8}}>Driver will ask for this code on delivery for cash payment</p>
+        </div>
+        
+        <div style={{padding:"12px",background:"rgba(255,255,255,.08)",borderRadius:9,marginBottom:14,textAlign:"left"}}>
+          <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:1,marginBottom:4}}>SAY TO CUSTOMER:</p>
+          <p style={{fontSize:13,fontStyle:"italic",lineHeight:1.4}}>"Your order has been sent to the kitchen. When the driver arrives, please give them this 4-digit code to confirm your order: <span style={{fontSize:18,fontWeight:700,color:"#fff"}}>{showCodePopup.code.split("").join(" ")}</span>"</p>
+        </div>
+        
+        <button onClick={()=>setShowCodePopup(null)} style={{padding:"14px 28px",background:"#bf4626",color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer",width:"100%"}}>OK - Customer Has Code</button>
+      </div>
+    </div>}
+    
     {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType(data.orderType);setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name+" - "+data.orderType,color:"#059669"});}}/>}
     
     {/* Phone customer banner (when in phone order mode) */}
