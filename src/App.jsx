@@ -4257,6 +4257,11 @@ function PosV(props){
 
 // POS DASHBOARD - POSCUBE-style home screen with action tiles
 function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
+  // Safety: ensure all props have defaults to prevent crashes
+  orders=orders||[];
+  tables=tables||[];
+  if(!setView)setView=()=>{};
+  if(!onOpenPos)onOpenPos=()=>{};
   // Live counts
   var pendingOrders=orders.filter(o=>!o.paid&&o.status!=="cancelled"&&(!branch||!o.branchId||o.branchId===branch.id));
   var dineInActive=pendingOrders.filter(o=>o.type==="dine-in"||o.type==="eatin").length;
