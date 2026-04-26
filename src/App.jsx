@@ -3400,6 +3400,9 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   var [flashId,setFlashId]=useState(null);
   var [lookingUp,setLookingUp]=useState(false);
   var [lookupResult,setLookupResult]=useState(null);
+  var [searchTerm,setSearchTerm]=useState("");
+  var [orderNotes,setOrderNotes]=useState("");
+  var [editNoteId,setEditNoteId]=useState(null);
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(()=>{if(!cat&&cats.length)setCat(cats[0]);},[cat]);
@@ -3452,11 +3455,41 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   };
 
   var addItem=it=>{
-    setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1}:x):[...c,{id:it.id,name:it.name,qty:1,price:it.price}];});
+    var typePrice=getItemPrice(it,orderType);
+    setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1,price:typePrice}:x):[...c,{id:it.id,name:it.name,qty:1,price:typePrice,note:""}];});
     setFlashId(it.id);setTimeout(()=>setFlashId(null),600);
   };
   var decItem=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
   var delItem=id=>setCart(c=>c.filter(x=>x.id!==id));
+  var setItemNote=(id,note)=>setCart(c=>c.map(x=>x.id===id?{...x,note:note}:x));
+
+  // Reorder last - copy items from last order to cart
+  var reorderLast=()=>{
+    if(!found)return;
+    var lastOrder=orders.filter(o=>o.userId===found.id||o.phone===found.phone).sort((a,b)=>{
+      var ta=new Date(a.created_at||a.time||0).getTime()||0;
+      var tb=new Date(b.created_at||b.time||0).getTime()||0;
+      return tb-ta;
+    })[0];
+    if(!lastOrder||!lastOrder.items||!lastOrder.items.length){
+      push({title:"No previous order",body:"This customer has not ordered before",color:"#dc2626"});
+      return;
+    }
+    var newCart=lastOrder.items.map(it=>{
+      var m=menu.find(x=>String(x.id)===String(it.id)||x.name===it.name);
+      var typePrice=m?getItemPrice(m,orderType):it.price;
+      return {id:it.id,name:it.name,qty:it.qty,price:typePrice,note:""};
+    });
+    setCart(newCart);
+    push({title:"Last order added",body:newCart.length+" items added to cart",color:"#059669"});
+  };
+
+  // Find customer's last order
+  var lastOrder=found?orders.filter(o=>o.userId===found.id||o.phone===found.phone).sort((a,b)=>{
+    var ta=new Date(a.created_at||a.time||0).getTime()||0;
+    var tb=new Date(b.created_at||b.time||0).getTime()||0;
+    return tb-ta;
+  })[0]:null;
 
   var subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
   var deliveryCheck=orderType==="delivery"&&found?checkDelivery(branch,{...found.address,distance:found.distance},subtotal):null;
@@ -3466,11 +3499,11 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   var placeOrder=(paid)=>{
     if(!cart.length)return;
     if(orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok){alert(deliveryCheck.reason);return;}
-    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone"};
+    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone",notes:orderNotes||""};
     onOrder(o);
     setCustomers(cs=>cs.map(c=>c.id===found.id?{...c,lastOrder:o.id,totalOrders:c.totalOrders+1,totalSpent:c.totalSpent+total}:c));
     push({title:"Phone order placed!",body:o.id+" - "+fmt(total),color:"#059669"});
-    setPhone("");setFound(null);setSearched(false);setStep("search");setCart([]);setNewCust({name:"",line1:"",postcode:"",notes:"",distance:0});
+    setPhone("");setFound(null);setSearched(false);setStep("search");setCart([]);setNewCust({name:"",line1:"",postcode:"",notes:"",distance:0});setOrderNotes("");
   };
 
   // Step 1: Search by phone
@@ -3563,71 +3596,150 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
     </div>
   </div>;
 
-  // Step 4: Ordering
-  return <div className="page" style={{maxWidth:800}}>
-    <button className="btn btn-g" onClick={()=>setStep("existing")} style={{marginBottom:10,fontSize:13}}>{"< Back to customer"}</button>
+  // Step 4: Ordering - REDESIGNED
+  // Build search-filtered list
+  var menuItems=(()=>{
+    var seen=new Set();
+    var q=searchTerm.trim().toLowerCase();
+    return menu.filter(i=>{
+      if(!i.avail)return false;
+      if(!isItemAvailable(i,orderType))return false;
+      if(q){
+        var hay=(i.name+" "+(i.desc||"")+" "+(i.cat||"")).toLowerCase();
+        return hay.includes(q);
+      }
+      return i.cat===cat;
+    }).filter(i=>{
+      var key=(i.name||"").toLowerCase().trim()+"|"+(i.cat||"");
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  })();
 
-    {/* Customer header */}
-    <div className="card" style={{marginBottom:10,padding:"10px 14px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
-        <div><p style={{fontWeight:700,fontSize:14}}>{found.name}</p><p style={{fontSize:11,color:"#8a8078"}}>{found.phone}</p></div>
-        <div style={{display:"flex",gap:4}}>
-          {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"6px 14px",borderRadius:7,fontWeight:700,fontSize:12,background:orderType===t?"#bf4626":"#f7f3ee",color:orderType===t?"#fff":"#1a1208",border:"none",cursor:"pointer"}}>{l}</button>)}
+  return <div className="page" style={{maxWidth:1200,padding:14}}>
+    <button className="btn btn-g" onClick={()=>setStep("existing")} style={{marginBottom:10,fontSize:12,padding:"6px 12px"}}>{"< Back to customer"}</button>
+
+    {/* Premium Customer Header */}
+    <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:14,padding:"14px 18px",marginBottom:10,boxShadow:"0 4px 12px rgba(0,0,0,.1)"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+        <div style={{flex:1,minWidth:200}}>
+          <h2 style={{fontSize:22,fontWeight:700,marginBottom:3,color:"#fff"}}>{found.name}</h2>
+          <p style={{fontSize:12,color:"rgba(255,255,255,.7)",marginBottom:6}}>{EM.phone} {found.phone}</p>
+          {orderType==="delivery"&&found.address&&<p style={{fontSize:12,color:"rgba(255,255,255,.85)",marginBottom:4}}>{EM.pin} {found.address.line1||"No address"}{found.address.postcode?", "+found.address.postcode:""}{found.distance?" - "+(typeof found.distance==="number"?found.distance.toFixed(1):found.distance)+" mi":""}</p>}
+          {(found.totalOrders>0||found.totalSpent>0)&&<p style={{fontSize:11,color:"#d4952a",fontWeight:700,marginTop:4}}>{found.totalOrders||0} previous orders - {fmt(found.totalSpent||0)} total spent</p>}
+        </div>
+        <div style={{display:"flex",gap:5}}>
+          {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"9px 16px",borderRadius:8,fontWeight:700,fontSize:12,background:orderType===t?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"2px solid "+(orderType===t?"#bf4626":"rgba(255,255,255,.2)"),cursor:"pointer"}}>{l}</button>)}
         </div>
       </div>
-      {orderType==="delivery"&&<div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #ede8de",fontSize:12,color:"#8a8078"}}>
-        {EM.pin} {found.address.line1}, {found.address.postcode} {found.distance?"("+found.distance.toFixed(1)+" mi)":""}
+
+      {lastOrder&&cart.length===0&&<div style={{marginTop:11,paddingTop:11,borderTop:"1px solid rgba(255,255,255,.15)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+          <div>
+            <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:1,marginBottom:2}}>LAST ORDER</p>
+            <p style={{fontSize:12,color:"rgba(255,255,255,.85)"}}>{(lastOrder.items||[]).map(i=>i.name+" x"+i.qty).slice(0,3).join(", ")}{(lastOrder.items||[]).length>3?", +"+((lastOrder.items||[]).length-3)+" more":""}</p>
+            <p style={{fontSize:11,color:"rgba(255,255,255,.6)",marginTop:2}}>{fmt(lastOrder.total||0)} - {lastOrder.time||"recent"}</p>
+          </div>
+          <button onClick={reorderLast} style={{padding:"9px 14px",borderRadius:7,fontSize:12,fontWeight:700,background:"#d4952a",color:"#1a1208",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0x21BB)} Reorder Same</button>
+        </div>
       </div>}
     </div>
 
-    {/* Delivery status bar */}
+    {/* Delivery status */}
     {orderType==="delivery"&&deliveryCheck&&<div style={{marginBottom:10,padding:"10px 14px",borderRadius:9,background:deliveryCheck.ok?"#d1fae5":"#fee2e2",border:"2px solid "+(deliveryCheck.ok?"#059669":"#dc2626"),fontSize:13,fontWeight:700,color:deliveryCheck.ok?"#065f46":"#991b1b",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
       <span>{deliveryCheck.ok?(EM.check+" Delivery OK"+(deliveryCheck.zone?" - "+deliveryCheck.zone:"")):(EM.cross+" "+deliveryCheck.reason)}</span>
-      {deliveryCheck.ok&&<span>{deliveryCheck.fee===0?"FREE":fmt(deliveryCheck.fee)+" fee"}</span>}
+      {deliveryCheck.ok&&<span style={{fontSize:14}}>{deliveryCheck.fee===0?"FREE DELIVERY":fmt(deliveryCheck.fee)+" fee"}</span>}
     </div>}
 
-    <div style={{display:"grid",gridTemplateColumns:cart.length?"1.5fr 1fr":"1fr",gap:10}}>
-      {/* Menu */}
+    {/* Two-column main area */}
+    <div style={{display:"grid",gridTemplateColumns:cart.length?"1.5fr 380px":"1fr",gap:12}}>
+      {/* LEFT: Menu */}
       <div>
-        <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:8,paddingBottom:4}}>
-          {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"6px 12px",borderRadius:7,fontWeight:700,fontSize:12,border:"none",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",cursor:"pointer",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.06)"}}>{c}</button>)}
+        {/* Search bar */}
+        <div style={{position:"relative",marginBottom:10}}>
+          <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search items..." className="field" style={{paddingLeft:32,fontSize:13}}/>
+          <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#8a8078"}}>{String.fromCharCode(0xD83D,0xDD0D)}</span>
+          {searchTerm&&<button onClick={()=>setSearchTerm("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"#ede8de",border:"none",width:24,height:24,borderRadius:12,cursor:"pointer",fontWeight:700,color:"#8a8078"}}>x</button>}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7}}>
-          {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,orderType)).filter(i=>{var key=(i.name||"").toLowerCase().trim()+"|"+(i.cat||"");if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{
+
+        {/* Categories */}
+        {!searchTerm&&<div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:10,paddingBottom:4}}>
+          {cats.map(c=>{
+            var count=menu.filter(m=>m.cat===c&&m.avail&&isItemAvailable(m,orderType)).length;
+            return <button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"9px 14px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid",borderColor:cat===c?"#1a1208":"#ede8de",background:cat===c?"#1a1208":"#fff",color:cat===c?"#d4952a":"#1a1208",cursor:"pointer",flexShrink:0,transition:"all .15s"}}>{c} <span style={{fontSize:10,opacity:.7,marginLeft:3}}>{count}</span></button>;
+          })}
+        </div>}
+
+        {/* Menu grid - bigger cards */}
+        {menuItems.length===0?<div className="card" style={{textAlign:"center",padding:30,color:"#8a8078"}}>
+          <p style={{fontSize:30,marginBottom:8}}>{EM.cook}</p>
+          <p style={{fontSize:13}}>{searchTerm?"No items match \""+searchTerm+"\"":"No items in "+cat}</p>
+        </div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:8}}>
+          {menuItems.map(item=>{
             var inCart=cart.find(c=>c.id===item.id);
             var displayPrice=getItemPrice(item,orderType);
-            return <button key={item.dbId||item.id} onClick={()=>addItem(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:9,padding:9,cursor:"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 12px rgba(191,70,38,.2)":"0 2px 6px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative",minHeight:100}}>
-              {inCart&&<div style={{position:"absolute",top:-5,right:-5,background:"#bf4626",color:"#fff",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
-              <span style={{fontSize:24}}>{EM[item.icon]||""}</span>
-              <p style={{fontSize:10,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
-              <p style={{fontSize:12,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</p>
+            return <button key={item.dbId||item.id} onClick={()=>addItem(item)} disabled={item.stock===0} style={{background:inCart?"linear-gradient(135deg,#fff5f3,#fff)":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:11,padding:"14px 10px",cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 6px 18px rgba(191,70,38,.25)":"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,position:"relative",minHeight:130,transition:"all .15s"}}>
+              {inCart&&<div style={{position:"absolute",top:-7,right:-7,background:"#bf4626",color:"#fff",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,border:"2px solid #fff",boxShadow:"0 2px 6px rgba(191,70,38,.4)"}}>{inCart.qty}</div>}
+              <span style={{fontSize:34}}>{EM[item.icon]||""}</span>
+              <p style={{fontSize:12,fontWeight:700,textAlign:"center",lineHeight:1.25}}>{item.name}</p>
+              <p style={{fontSize:14,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</p>
             </button>;
-          });})()}
-        </div>
+          })}
+        </div>}
       </div>
 
-      {/* Cart */}
-      {cart.length>0&&<div>
-        <div className="card" style={{padding:12}}>
-          <p style={{fontWeight:700,marginBottom:8,fontSize:13}}>Order Summary</p>
-          {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 0",borderBottom:"1px solid #ede8de",fontSize:12}}>
-            <div style={{flex:1}}><p style={{fontWeight:600}}>{it.name}</p><p style={{fontSize:10,color:"#8a8078"}}>{fmt(it.price)} x {it.qty}</p></div>
-            <div style={{display:"flex",alignItems:"center",gap:4,background:"#f7f3ee",borderRadius:50,padding:"2px 8px"}}>
-              <button onClick={()=>decItem(it.id)} style={{fontSize:16,color:"#bf4626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>-</button>
-              <span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{it.qty}</span>
-              <button onClick={()=>addItem(it)} style={{fontSize:16,color:"#bf4626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>+</button>
+      {/* RIGHT: Cart */}
+      {cart.length>0&&<div style={{position:"sticky",top:14,alignSelf:"flex-start"}}>
+        <div className="card" style={{padding:0,overflow:"hidden"}}>
+          {/* Cart header */}
+          <div style={{background:"#1a1208",color:"#fff",padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700}}>Order Summary</p>
+              <p style={{fontSize:11,color:"rgba(255,255,255,.65)"}}>{cart.reduce((s,i)=>s+i.qty,0)} items - {orderType==="delivery"?"Delivery":"Collection"}</p>
             </div>
-            <button onClick={()=>delItem(it.id)} style={{color:"#ccc",fontSize:14,border:"none",background:"none",cursor:"pointer"}}>x</button>
-          </div>)}
-          <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid #ede8de"}}>
+            <button onClick={()=>setCart([])} style={{padding:"5px 10px",fontSize:11,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:6,cursor:"pointer",fontWeight:700}}>Clear</button>
+          </div>
+
+          {/* Cart items */}
+          <div style={{maxHeight:380,overflowY:"auto",padding:"8px 12px"}}>
+            {cart.map(it=><div key={it.id} className={flashId===it.id?"flash":""} style={{padding:"9px 0",borderBottom:"1px solid #f5f0e8"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:700,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.name}</p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>{fmt(it.price)} each</p>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:5,background:"#f7f3ee",borderRadius:18,padding:"3px 6px"}}>
+                  <button onClick={()=>decItem(it.id)} style={{width:22,height:22,borderRadius:"50%",border:"none",background:"#fff",cursor:"pointer",fontSize:14,fontWeight:700,color:"#bf4626",lineHeight:1}}>-</button>
+                  <span style={{fontWeight:700,minWidth:18,textAlign:"center",fontSize:13}}>{it.qty}</span>
+                  <button onClick={()=>addItem(it)} style={{width:22,height:22,borderRadius:"50%",border:"none",background:"#fff",cursor:"pointer",fontSize:14,fontWeight:700,color:"#059669",lineHeight:1}}>+</button>
+                </div>
+                <p style={{fontWeight:700,fontSize:13,color:"#bf4626",minWidth:54,textAlign:"right"}}>{fmt(it.price*it.qty)}</p>
+                <button onClick={()=>delItem(it.id)} style={{width:22,height:22,borderRadius:"50%",border:"none",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontWeight:700,fontSize:11}}>x</button>
+              </div>
+              {/* Item note */}
+              {editNoteId===it.id?<input autoFocus value={it.note||""} onChange={e=>setItemNote(it.id,e.target.value)} onBlur={()=>setEditNoteId(null)} placeholder="No onions, extra spicy..." style={{width:"100%",marginTop:6,padding:"6px 9px",fontSize:11,border:"2px solid #d4952a",borderRadius:6}}/>:it.note?<div onClick={()=>setEditNoteId(it.id)} style={{marginTop:5,padding:"4px 8px",background:"#fef3c7",borderRadius:5,fontSize:10,color:"#92400e",cursor:"pointer",fontStyle:"italic"}}>Note: {it.note} (tap to edit)</div>:<button onClick={()=>setEditNoteId(it.id)} style={{marginTop:5,padding:"3px 7px",fontSize:10,background:"transparent",color:"#8a8078",border:"1px dashed #ddd",borderRadius:4,cursor:"pointer"}}>+ Add note</button>}
+            </div>)}
+          </div>
+
+          {/* Order notes */}
+          <div style={{padding:"8px 12px",borderTop:"1px solid #ede8de",background:"#fafaf5"}}>
+            <p style={{fontSize:11,fontWeight:700,marginBottom:5,color:"#8a8078",letterSpacing:1}}>ORDER NOTES (OPTIONAL)</p>
+            <textarea value={orderNotes} onChange={e=>setOrderNotes(e.target.value)} placeholder="Special delivery instructions, gate code, etc." style={{width:"100%",minHeight:50,padding:"7px 9px",border:"1px solid #ede8de",borderRadius:6,fontSize:12,fontFamily:"inherit",resize:"vertical"}}/>
+          </div>
+
+          {/* Totals */}
+          <div style={{padding:"10px 14px",background:"#fafaf5",borderTop:"1px solid #ede8de"}}>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:3}}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
             {orderType==="delivery"&&deliveryFee>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#8a8078",marginBottom:3}}><span>Delivery</span><span>{fmt(deliveryFee)}</span></div>}
             {orderType==="delivery"&&deliveryCheck?.ok&&deliveryFee===0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#059669",marginBottom:3,fontWeight:700}}><span>Delivery</span><span>FREE</span></div>}
-            <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:16}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,fontSize:20,marginTop:6,paddingTop:6,borderTop:"2px solid #ede8de"}}><span>Total</span><span style={{color:"#bf4626"}}>{fmt(total)}</span></div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginTop:10}}>
-            <button className="btn btn-r" disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(true)} style={{padding:"11px",fontSize:13}}>Paid</button>
-            <button className="btn btn-d" disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(false)} style={{padding:"11px",fontSize:13}}>COD</button>
+
+          {/* Action buttons */}
+          <div style={{padding:"10px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            <button disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(true)} style={{padding:"13px",fontSize:13,fontWeight:700,background:"#059669",color:"#fff",border:"none",borderRadius:9,cursor:orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok?"not-allowed":"pointer",opacity:orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok?.5:1}}>{EM.check} Customer Paid</button>
+            <button disabled={orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok} onClick={()=>placeOrder(false)} style={{padding:"13px",fontSize:13,fontWeight:700,background:"#bf4626",color:"#fff",border:"none",borderRadius:9,cursor:orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok?"not-allowed":"pointer",opacity:orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok?.5:1}}>{EM.pound} Cash on Delivery</button>
           </div>
         </div>
       </div>}
