@@ -3445,15 +3445,6 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
     push({title:"Customer added",body:c.name,color:"#059669"});
   };
 
-  var reorderLast=()=>{
-    if(!found?.lastOrder)return;
-    var last=orders.find(o=>o.id===found.lastOrder);
-    if(!last){alert("Previous order details not available");return;}
-    setCart(last.items.map(i=>({...i})));
-    setStep("ordering");
-    push({title:"Loaded last order",body:last.items.length+" items",color:"#2563eb"});
-  };
-
   var addItem=it=>{
     var typePrice=getItemPrice(it,orderType);
     setCart(c=>{var ex=c.find(x=>x.id===it.id);return ex?c.map(x=>x.id===it.id?{...x,qty:x.qty+1,price:typePrice}:x):[...c,{id:it.id,name:it.name,qty:1,price:typePrice,note:""}];});
