@@ -4409,18 +4409,22 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
 
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
-    {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
-    {icon:EM.bag,label:"Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
-    {icon:EM.pin,label:"Delivery",color:"#7c3aed",bgGradient:"linear-gradient(135deg,#7c3aed,#a855f7)",badge:deliveryActive>0?deliveryActive:null,onClick:()=>setView("phone")},
-    {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:null,onClick:()=>setView("phone")},
-    {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,onClick:()=>setView("incoming"),pulse:pendingIncoming>0},
-    {icon:EM.cook,label:"Kitchen",color:"#059669",bgGradient:"linear-gradient(135deg,#059669,#10b981)",badge:null,onClick:()=>setView("kitchen")},
-    {icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,onClick:()=>setView("tables")},
-    {icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,onClick:()=>setView("bookings")},
-    {icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,onClick:()=>setView("driver")},
-    {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,onClick:()=>setView("admin")},
-    {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,onClick:()=>setView("report")},
-    {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,onClick:()=>onOpenPos()},
+    // ROW 1: TAKE NEW ORDERS (4 tiles)
+    {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
+    {icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
+    {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>setView("phone")},
+    {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setView("incoming"),pulse:pendingIncoming>0},
+
+    // ROW 2: MANAGE ACTIVE ORDERS (4 tiles)
+    {icon:EM.cook,label:"Kitchen",color:"#059669",bgGradient:"linear-gradient(135deg,#059669,#10b981)",badge:null,sublabel:"What to cook",onClick:()=>setView("kitchen")},
+    {icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,sublabel:"Floor view",onClick:()=>setView("tables")},
+    {icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,sublabel:"Deliveries",onClick:()=>setView("driver")},
+    {icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,sublabel:"Reservations",onClick:()=>setView("bookings")},
+
+    // ROW 3: MANAGEMENT (3 tiles)
+    {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setView("report")},
+    {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,sublabel:"Menu & settings",onClick:()=>setView("admin")},
+    {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
   ];
 
   return <div className="page" style={{padding:14,minHeight:"calc(100vh - 100px)",background:"linear-gradient(135deg,#fafaf5,#f0ede5)"}}>
@@ -4454,10 +4458,11 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
 
     {/* Tile grid */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
-      {tiles.map((tile,i)=><button key={i} onClick={tile.onClick} style={{background:tile.bgGradient,color:"#fff",border:"none",borderRadius:14,padding:"22px 14px",cursor:"pointer",position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:8,minHeight:130,boxShadow:"0 4px 14px rgba(0,0,0,.12)",transition:"transform .15s",animation:tile.pulse?"pulse 1.5s ease-in-out infinite":"none"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.96)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} onTouchStart={e=>e.currentTarget.style.transform="scale(.96)"} onTouchEnd={e=>e.currentTarget.style.transform="scale(1)"}>
+      {tiles.map((tile,i)=><button key={i} onClick={tile.onClick} style={{background:tile.bgGradient,color:"#fff",border:"none",borderRadius:14,padding:"22px 14px",cursor:"pointer",position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:140,boxShadow:"0 4px 14px rgba(0,0,0,.12)",transition:"transform .15s",animation:tile.pulse?"pulse 1.5s ease-in-out infinite":"none"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.96)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} onTouchStart={e=>e.currentTarget.style.transform="scale(.96)"} onTouchEnd={e=>e.currentTarget.style.transform="scale(1)"}>
         {tile.badge&&<span style={{position:"absolute",top:9,right:9,background:"#fff",color:tile.color,borderRadius:11,padding:"2px 9px",fontSize:11,fontWeight:700,minWidth:22,textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}>{tile.badge}</span>}
-        <span style={{fontSize:38,lineHeight:1}}>{tile.icon}</span>
+        <span style={{fontSize:38,lineHeight:1,marginTop:5}}>{tile.icon}</span>
         <span style={{fontSize:14,fontWeight:700,letterSpacing:.5,textAlign:"center"}}>{tile.label}</span>
+        {tile.sublabel&&<span style={{fontSize:10,fontWeight:400,opacity:.85,textAlign:"center",letterSpacing:.3}}>{tile.sublabel}</span>}
       </button>)}
     </div>
 
