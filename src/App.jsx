@@ -1379,7 +1379,14 @@ function KitchenV({orders,setOrders,push,stations,menu}){
   var changeView=v=>{setView(v);try{localStorage.setItem("kitchen_view",v);}catch(e){}};
 
   var activeStations=(stations||[]).filter(s=>s.active!==false);
-  var allOrders=orders.filter(o=>o.status==="pending"||o.status==="preparing");
+  // Kitchen only shows ACCEPTED orders (preparing). Pending orders are awaiting staff acceptance in Incoming.
+  // EXCEPTION: Show pending orders that are NOT from "online" or "qr-table" sources (those need staff acceptance via Incoming)
+  // Staff/phone orders go straight to preparing, but if any pending staff orders exist, they should still show
+  var allOrders=orders.filter(o=>{
+    if(o.status==="preparing")return true;
+    if(o.status==="pending"&&o.source!=="online"&&o.source!=="qr-table")return true;
+    return false;
+  });
 
   // Helper: find station for menu item
   var stationForItem=(itemId,itemName)=>{
