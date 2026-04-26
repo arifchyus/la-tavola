@@ -4272,14 +4272,29 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
   var totalTables=(tables||[]).filter(t=>!branch||!t.branchId||t.branchId===branch.id).length;
   var driverActive=orders.filter(o=>o.type==="delivery"&&(o.status==="ready"||o.status==="out_for_delivery")&&(!branch||!o.branchId||o.branchId===branch.id)).length;
 
-  // Today's stats
-  var todayStr=new Date().toISOString().split("T")[0];
-  var todayOrders=orders.filter(o=>{
-    if(branch&&o.branchId&&o.branchId!==branch.id)return false;
-    if(!o.time)return false;
-    return new Date(o.time).toISOString().split("T")[0]===todayStr;
-  });
-  var todayRevenue=todayOrders.filter(o=>o.paid).reduce((s,o)=>s+(parseFloat(o.total)||0),0);
+  // Today's stats - extra defensive against bad date values
+  var todayStr="";
+  try{todayStr=new Date().toISOString().split("T")[0];}catch(e){todayStr="";}
+  var todayOrders=[];
+  try{
+    todayOrders=orders.filter(o=>{
+      if(!o)return false;
+      if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+      if(!o.time)return false;
+      // o.time might be "14:32" (just time) or full ISO date string
+      // Only count it if it's a valid full date
+      try{
+        var t=String(o.time);
+        // If it's just HH:MM format, treat it as today
+        if(/^\d{1,2}:\d{2}/.test(t)&&t.length<=8)return true;
+        var d=new Date(t);
+        if(!d||isNaN(d.getTime()))return false;
+        return d.toISOString().split("T")[0]===todayStr;
+      }catch(err){return false;}
+    });
+  }catch(e){todayOrders=[];}
+  var todayRevenue=0;
+  try{todayRevenue=todayOrders.filter(o=>o.paid).reduce((s,o)=>s+(parseFloat(o.total)||0),0);}catch(e){todayRevenue=0;}
 
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
