@@ -5070,6 +5070,7 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
     {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setView("report")},
     {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,sublabel:"Menu & settings",onClick:()=>setView("admin")},
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
+    {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
   ];
 
   return <div className="page" style={{padding:14,minHeight:"calc(100vh - 100px)",background:"linear-gradient(135deg,#fafaf5,#f0ede5)"}}>
@@ -5090,7 +5091,6 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos,setUser}){
           <p style={{fontSize:10,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>ORDERS</p>
           <p style={{fontSize:20,fontWeight:700,color:"#fff"}}>{todayOrders.length}</p>
         </div>
-        {setUser&&<button onClick={()=>{if(window.confirm("Sign out and return to login screen?")){setUser(null);if(setView)setView("menu");}}} style={{padding:"10px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 8px rgba(220,38,38,.3)",letterSpacing:.5,display:"flex",alignItems:"center",gap:5}}>{String.fromCharCode(0x21AA,0xFE0F)} EXIT</button>}
       </div>
     </div>
 
