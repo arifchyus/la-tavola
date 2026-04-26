@@ -4332,6 +4332,315 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
 }
 
 // POS UI router - dispatches to correct UI based on user preference
+// PHONE ORDER CUSTOMER POPUP - opens from POS to capture customer for delivery/collection
+function PhoneCustomerPopup({onClose,onCustomerReady,customers,setCustomers,push,branch,initialPhone}){
+  var [step,setStep]=useState(initialPhone?"search":"phone"); // phone, search, existing, postcode, address, manual
+  var [phone,setPhone]=useState(initialPhone||"");
+  var [found,setFound]=useState(null);
+  var [orderType,setOrderType]=useState("delivery");
+  var [postcode,setPostcode]=useState("");
+  var [postcodeOptions,setPostcodeOptions]=useState([]);
+  var [lookingUp,setLookingUp]=useState(false);
+  var [postcodeError,setPostcodeError]=useState("");
+  var [selectedPostcode,setSelectedPostcode]=useState(null);
+  var [doorNum,setDoorNum]=useState("");
+  var [streetName,setStreetName]=useState("");
+  var [name,setName]=useState("");
+  var [notes,setNotes]=useState("");
+
+  // On mount, if initialPhone provided, search immediately
+  useEffect(()=>{
+    if(initialPhone){
+      var clean=initialPhone.replace(/\s+/g,"").replace(/^0/,"").replace(/^\+?44/,"0");
+      var full=clean.startsWith("0")?clean:"0"+clean;
+      var c=customers.find(x=>x.phone&&x.phone.replace(/\s+/g,"")===full);
+      if(c){setFound(c);setName(c.name);setStep("existing");}
+      else{setStep("postcode");}
+    }
+  },[]);
+
+  // Search by phone
+  var searchPhone=()=>{
+    var clean=phone.replace(/\s+/g,"").replace(/^0/,"").replace(/^\+?44/,"0");
+    var full=clean.startsWith("0")?clean:"0"+clean;
+    if(full.length<10){push({title:"Invalid phone",body:"Enter a valid UK phone number",color:"#dc2626"});return;}
+    var c=customers.find(x=>x.phone&&x.phone.replace(/\s+/g,"")===full);
+    if(c){setFound(c);setName(c.name);setStep("existing");}
+    else{setStep("postcode");}
+  };
+
+  // Postcode lookup using postcodes.io (free)
+  var lookupPostcodeIO=()=>{
+    if(!postcode.trim()){push({title:"Enter postcode",body:"Type a postcode first",color:"#dc2626"});return;}
+    setLookingUp(true);setPostcodeError("");setPostcodeOptions([]);
+    var clean=postcode.trim().toUpperCase().replace(/\s+/g,"");
+    // First try autocomplete (returns multiple matches)
+    fetch("https://api.postcodes.io/postcodes/"+encodeURIComponent(clean)+"/autocomplete")
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.result&&data.result.length>0){
+          // Get details for each suggestion (lat/lng to validate)
+          var promises=data.result.slice(0,8).map(pc=>fetch("https://api.postcodes.io/postcodes/"+encodeURIComponent(pc)).then(r=>r.json()).catch(()=>null));
+          Promise.all(promises).then(results=>{
+            var valid=results.filter(r=>r&&r.result).map(r=>({
+              postcode:r.result.postcode,
+              lat:r.result.latitude,
+              lng:r.result.longitude,
+              area:r.result.admin_district||r.result.region||"",
+              parish:r.result.parish||"",
+            }));
+            setPostcodeOptions(valid);
+            setLookingUp(false);
+            if(valid.length===0)setPostcodeError("No matches found. Try typing more or enter manually.");
+          });
+        }else{
+          // Try direct lookup (full postcode)
+          fetch("https://api.postcodes.io/postcodes/"+encodeURIComponent(clean))
+            .then(r=>r.json())
+            .then(data2=>{
+              if(data2.result){
+                setPostcodeOptions([{
+                  postcode:data2.result.postcode,
+                  lat:data2.result.latitude,
+                  lng:data2.result.longitude,
+                  area:data2.result.admin_district||"",
+                  parish:data2.result.parish||"",
+                }]);
+              }else{
+                setPostcodeError("Not a valid UK postcode. Type more or enter manually.");
+              }
+              setLookingUp(false);
+            }).catch(()=>{setPostcodeError("Lookup failed - check internet");setLookingUp(false);});
+        }
+      })
+      .catch(()=>{setPostcodeError("Lookup failed - check internet");setLookingUp(false);});
+  };
+
+  // Calculate distance from branch to selected postcode
+  var calculateDistance=(lat,lng)=>{
+    if(!branch||!branch.lat||!branch.lng)return 0;
+    var R=3958.8; // miles
+    var dLat=(lat-branch.lat)*Math.PI/180;
+    var dLng=(lng-branch.lng)*Math.PI/180;
+    var a=Math.sin(dLat/2)**2+Math.cos(branch.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+    var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    return R*c;
+  };
+
+  // Confirm address & save customer
+  var confirmAddress=()=>{
+    if(!name.trim()){push({title:"Name required",body:"Enter customer name",color:"#dc2626"});return;}
+    if(orderType==="delivery"){
+      if(!doorNum.trim()){push({title:"Door number required",body:"Enter door/flat number",color:"#dc2626"});return;}
+      if(!streetName.trim()){push({title:"Street required",body:"Enter street/road name",color:"#dc2626"});return;}
+      if(!selectedPostcode&&!postcode.trim()){push({title:"Postcode required",body:"Enter postcode",color:"#dc2626"});return;}
+    }
+    var pcStr=selectedPostcode?selectedPostcode.postcode:postcode.toUpperCase();
+    var addressLine1=doorNum+" "+streetName;
+    var distance=selectedPostcode?calculateDistance(selectedPostcode.lat,selectedPostcode.lng):0;
+    
+    var c={
+      id:"c"+Date.now(),
+      phone:phone,
+      name:name,
+      address:{line1:addressLine1,postcode:pcStr,notes:notes},
+      distance:distance,
+      lastOrder:null,totalOrders:0,totalSpent:0,notes:"",
+    };
+    
+    // Add to local state
+    setCustomers(cs=>[...cs,c]);
+    
+    // Save to DB
+    if(typeof dbSaveCustomer!=="undefined"){
+      dbSaveCustomer({phone:phone,name:name,address:c.address,distance:distance,notes:""}).then(r=>{
+        if(r&&r.data&&r.data.id){
+          setCustomers(cs=>cs.map(x=>x.id===c.id?{...x,id:r.data.id,dbId:r.data.id}:x));
+        }
+      }).catch(e=>console.log("Customer save failed (kept locally):",e));
+    }
+    
+    push({title:"Customer saved",body:c.name,color:"#059669"});
+    onCustomerReady({customer:c,orderType:orderType});
+  };
+
+  // Existing customer - just confirm and continue
+  var continueExisting=()=>{
+    onCustomerReady({customer:found,orderType:orderType});
+  };
+
+  // On-screen keyboard helper
+  var keyboardKey=(k,wide)=>{
+    var doKey=()=>{
+      if(k==="DEL"){
+        if(step==="phone")setPhone(p=>p.slice(0,-1));
+        else if(step==="postcode")setPostcode(p=>p.slice(0,-1));
+      }else if(k==="SPACE"){
+        if(step==="postcode")setPostcode(p=>p+" ");
+      }else if(k==="OK"){
+        if(step==="phone")searchPhone();
+        else if(step==="postcode")lookupPostcodeIO();
+      }else{
+        if(step==="phone"){if(/[0-9]/.test(k))setPhone(p=>p+k);}
+        else if(step==="postcode")setPostcode(p=>p+k);
+      }
+    };
+    var bg=k==="DEL"?"#dc2626":k==="OK"?"#059669":"#fff";
+    var color=k==="DEL"||k==="OK"?"#fff":"#1a1208";
+    return <button key={k} onClick={doKey} style={{padding:"14px 0",background:bg,color:color,border:"2px solid "+(k==="OK"||k==="DEL"?bg:"#ede8de"),borderRadius:8,fontSize:18,fontWeight:700,cursor:"pointer",gridColumn:wide?"span 2":"span 1",minHeight:54,boxShadow:"0 2px 4px rgba(0,0,0,.06)"}}>{k==="DEL"?"<X":k==="OK"?"OK":k==="SPACE"?"_____":k}</button>;
+  };
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 50px rgba(0,0,0,.4)"}}>
+
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2}}>PHONE ORDER</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>
+            {step==="phone"?"Customer Phone Number":""}
+            {step==="search"?"Searching...":""}
+            {step==="existing"?"Existing Customer":""}
+            {step==="postcode"?"New Customer - Postcode":""}
+            {step==="address"?"Confirm Address":""}
+          </h2>
+        </div>
+        <button onClick={onClose} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+      </div>
+
+      {/* Content - scrollable */}
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+
+        {/* STEP: PHONE ENTRY */}
+        {step==="phone"&&<>
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{display:"inline-block",padding:"14px 28px",background:"#fff",borderRadius:11,fontSize:32,fontWeight:700,letterSpacing:3,minWidth:280,border:"3px solid #d4952a",color:"#1a1208"}}>
+              {phone||"_______"}
+            </div>
+            <p style={{fontSize:12,color:"#8a8078",marginTop:8}}>Enter customer phone number</p>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,maxWidth:340,margin:"0 auto"}}>
+            {["1","2","3","4","5","6","7","8","9","DEL","0","OK"].map(k=>keyboardKey(k))}
+          </div>
+        </>}
+
+        {/* STEP: EXISTING CUSTOMER */}
+        {step==="existing"&&found&&<>
+          <div style={{padding:14,background:"#d1fae5",border:"2px solid #059669",borderRadius:11,marginBottom:14}}>
+            <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:1,marginBottom:5}}>{EM.check} CUSTOMER FOUND</p>
+            <h3 style={{fontSize:20,fontWeight:700,color:"#065f46"}}>{found.name}</h3>
+            <p style={{fontSize:13,color:"#065f46",marginTop:3}}>{found.phone}</p>
+          </div>
+
+          <div className="card" style={{padding:12,marginBottom:11}}>
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>SAVED ADDRESS</p>
+            {found.address?<div>
+              <p style={{fontSize:14,fontWeight:600}}>{found.address.line1||"(no address)"}</p>
+              <p style={{fontSize:13,color:"#8a8078"}}>{found.address.postcode||""}</p>
+              {found.distance>0&&<p style={{fontSize:12,color:"#bf4626",marginTop:3}}>{(typeof found.distance==="number"?found.distance.toFixed(1):found.distance)} miles from branch</p>}
+            </div>:<p style={{fontSize:13,color:"#8a8078",fontStyle:"italic"}}>No saved address - will need to add</p>}
+            <button onClick={()=>{setName(found.name);setDoorNum(found.address?.line1?.split(" ")[0]||"");setStreetName(found.address?.line1?.split(" ").slice(1).join(" ")||"");setPostcode(found.address?.postcode||"");setStep("postcode");}} style={{marginTop:10,padding:"7px 12px",background:"#f7f3ee",border:"1px solid #ede8de",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit Address</button>
+          </div>
+
+          {found.totalOrders>0&&<div className="card" style={{padding:12,marginBottom:11,background:"#f5f3ff",borderLeft:"3px solid #7c3aed"}}>
+            <p style={{fontSize:13,fontWeight:700,color:"#7c3aed"}}>{found.totalOrders} previous orders</p>
+            <p style={{fontSize:12,color:"#7c3aed",marginTop:2}}>Total spent: {fmt(found.totalSpent||0)}</p>
+          </div>}
+
+          <p style={{fontSize:12,color:"#8a8078",fontWeight:700,marginBottom:6}}>Order Type:</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
+            {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"14px",borderRadius:9,fontWeight:700,fontSize:13,background:orderType===t?"#bf4626":"#fff",color:orderType===t?"#fff":"#1a1208",border:"2px solid "+(orderType===t?"#bf4626":"#ede8de"),cursor:"pointer"}}>{l}</button>)}
+          </div>
+
+          <button onClick={continueExisting} style={{width:"100%",padding:"15px",background:"#059669",color:"#fff",border:"none",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer"}}>{EM.check} Continue with this customer</button>
+        </>}
+
+        {/* STEP: POSTCODE ENTRY */}
+        {step==="postcode"&&<>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:6}}>Phone: <span style={{fontWeight:700,color:"#1a1208"}}>{phone}</span></p>
+          <div style={{marginBottom:11}}>
+            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>POSTCODE</label>
+            <div style={{display:"inline-block",padding:"12px 18px",background:"#fff",borderRadius:9,fontSize:28,fontWeight:700,letterSpacing:2,minWidth:240,border:"3px solid #d4952a",color:"#1a1208",textAlign:"center",width:"100%",boxSizing:"border-box"}}>
+              {postcode||"_______"}
+            </div>
+          </div>
+
+          {/* Postcode keyboard - alphanumeric */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:8}}>
+            {["1","2","3","4","5","6","7"].map(k=>keyboardKey(k))}
+            {["8","9","0","Q","W","E","R"].map(k=>keyboardKey(k))}
+            {["T","Y","U","I","O","P","A"].map(k=>keyboardKey(k))}
+            {["S","D","F","G","H","J","K"].map(k=>keyboardKey(k))}
+            {["L","Z","X","C","V","B","N"].map(k=>keyboardKey(k))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:4,marginBottom:11}}>
+            {keyboardKey("M")}
+            {keyboardKey("SPACE",true)}
+            {keyboardKey("DEL")}
+          </div>
+
+          <button onClick={lookupPostcodeIO} disabled={!postcode||lookingUp} style={{width:"100%",padding:"13px",background:lookingUp?"#8a8078":"#2563eb",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:lookingUp?"not-allowed":"pointer",marginBottom:11}}>
+            {lookingUp?"Looking up...":"Search Postcodes"}
+          </button>
+
+          {/* Postcode results */}
+          {postcodeError&&<div style={{padding:11,background:"#fee2e2",border:"1px solid #dc2626",borderRadius:7,fontSize:12,color:"#991b1b",marginBottom:11}}>{postcodeError}</div>}
+
+          {postcodeOptions.length>0&&<div style={{marginBottom:11}}>
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:6}}>SELECT POSTCODE ({postcodeOptions.length} found)</p>
+            <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:200,overflowY:"auto"}}>
+              {postcodeOptions.map((pc,i)=><button key={i} onClick={()=>{setSelectedPostcode(pc);setPostcode(pc.postcode);setStep("address");}} style={{padding:"12px 14px",background:"#fff",border:"2px solid #ede8de",borderRadius:8,cursor:"pointer",textAlign:"left",fontSize:14,fontWeight:700,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span>{pc.postcode}</span>
+                <span style={{fontSize:11,color:"#8a8078",fontWeight:400}}>{pc.area} - {calculateDistance(pc.lat,pc.lng).toFixed(1)} mi</span>
+              </button>)}
+            </div>
+          </div>}
+
+          <button onClick={()=>{setSelectedPostcode(null);setStep("address");}} style={{width:"100%",padding:"11px",background:"transparent",color:"#8a8078",border:"2px dashed #ede8de",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer"}}>Skip - Enter Address Manually</button>
+        </>}
+
+        {/* STEP: ADDRESS DETAILS */}
+        {step==="address"&&<>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:11}}>Phone: <span style={{fontWeight:700,color:"#1a1208"}}>{phone}</span> {selectedPostcode&&<>- Postcode: <span style={{fontWeight:700,color:"#1a1208"}}>{selectedPostcode.postcode}</span> ({calculateDistance(selectedPostcode.lat,selectedPostcode.lng).toFixed(1)} mi)</>}</p>
+
+          <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>CUSTOMER NAME</label>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Mr Smith" autoFocus className="field" style={{marginBottom:11,fontSize:16,padding:"12px 14px"}}/>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8,marginBottom:11}}>
+            <div>
+              <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>DOOR / FLAT</label>
+              <input value={doorNum} onChange={e=>setDoorNum(e.target.value)} placeholder="23" className="field" style={{fontSize:16,padding:"12px 14px"}}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>STREET / ROAD</label>
+              <input value={streetName} onChange={e=>setStreetName(e.target.value)} placeholder="High Street" className="field" style={{fontSize:16,padding:"12px 14px"}}/>
+            </div>
+          </div>
+
+          {!selectedPostcode&&<>
+            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>POSTCODE</label>
+            <input value={postcode} onChange={e=>setPostcode(e.target.value.toUpperCase())} placeholder="E1 6AN" className="field" style={{marginBottom:11,fontSize:16,padding:"12px 14px",textTransform:"uppercase"}}/>
+          </>}
+
+          <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>NOTES (OPTIONAL)</label>
+          <input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Gate code, buzzer name..." className="field" style={{marginBottom:14,fontSize:14,padding:"10px 14px"}}/>
+
+          <p style={{fontSize:12,color:"#8a8078",fontWeight:700,marginBottom:6}}>Order Type:</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
+            {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"14px",borderRadius:9,fontWeight:700,fontSize:13,background:orderType===t?"#bf4626":"#fff",color:orderType===t?"#fff":"#1a1208",border:"2px solid "+(orderType===t?"#bf4626":"#ede8de"),cursor:"pointer"}}>{l}</button>)}
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:6}}>
+            <button onClick={()=>setStep("postcode")} style={{padding:"15px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>{"< Back"}</button>
+            <button onClick={confirmAddress} style={{padding:"15px",background:"#059669",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>{EM.check} Save & Take Order</button>
+          </div>
+        </>}
+
+      </div>
+    </div>
+  </div>;
+}
+
 function PosV(props){
   var [uiStyle,setUiStyle]=useState(()=>{
     try{return localStorage.getItem("pos_ui_style")||"modern";}catch(e){return "modern";}
@@ -4412,7 +4721,7 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
     // ROW 1: TAKE NEW ORDERS (4 tiles)
     {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
     {icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
-    {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>setView("phone")},
+    {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>{try{window.__posOpenPhonePopup=true;}catch(e){}onOpenPos();}},
     {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setView("incoming"),pulse:pendingIncoming>0},
 
     // ROW 2: MANAGE ACTIVE ORDERS (4 tiles)
@@ -4475,7 +4784,9 @@ function PosDashboard({orders,user,branch,tables,setView,onOpenPos}){
 
 // CLASSIC UI - POSCUBE-style with category buttons on left, items in middle, bill on right
 // CLASSIC POSCUBE-style POS - traditional EPOS layout with categories on left, items in middle, bill on right
-function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
+function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+  var [phoneCust,setPhoneCust]=useState(null);
+  var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
@@ -4581,10 +4892,23 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 
   return <div style={{height:"calc(100vh - 100px)",display:"flex",flexDirection:"column",background:"#1a1208",color:"#fff",margin:-16,padding:8,overflow:"hidden"}}>
     <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}`}</style>
+    {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType(data.orderType==="collection"?"takeaway":"takeaway");setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name+" - "+data.orderType,color:"#059669"});}}/>}
+    
+    {/* Phone customer banner */}
+    {phoneCust&&<div style={{background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",padding:"8px 12px",borderRadius:8,marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+      <div style={{flex:1,minWidth:200}}>
+        <p style={{fontSize:9,fontWeight:700,letterSpacing:2,opacity:.85}}>PHONE ORDER</p>
+        <p style={{fontSize:13,fontWeight:700}}>{phoneCust.name} - {phoneCust.phone}</p>
+        {phoneCust.address&&<p style={{fontSize:10,opacity:.85}}>{EM.pin} {phoneCust.address.line1}, {phoneCust.address.postcode}</p>}
+      </div>
+      <button onClick={()=>setPhoneCust(null)} style={{padding:"5px 10px",borderRadius:5,fontSize:10,fontWeight:700,background:"rgba(255,255,255,.15)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",cursor:"pointer"}}>Clear</button>
+    </div>}
+    
     {/* Top bar - branch info + order type + table */}
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"linear-gradient(135deg,#2d1f12,#3d2e22)",borderRadius:8,marginBottom:6,flexWrap:"wrap"}}>
       {onBackToDash&&<button onClick={onBackToDash} style={{padding:"6px 11px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"< Dashboard"}</button>}
-      <div style={{flex:1,minWidth:140}}>
+      <button onClick={()=>setShowPhonePopup(true)} style={{padding:"6px 11px",borderRadius:6,fontSize:11,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",cursor:"pointer"}}>{EM.phone} Phone</button>
+      <div style={{flex:1,minWidth:120}}>
         <p style={{fontSize:11,color:"rgba(255,255,255,.6)",fontWeight:700,letterSpacing:1}}>POSCUBE STYLE</p>
         <p style={{fontSize:14,fontWeight:700,color:"#d4952a"}}>{branch?.name} - {user?.name}</p>
       </div>
@@ -4736,7 +5060,9 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     })()}
   </div>;
 }
-function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
+function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+  var [phoneCust,setPhoneCust]=useState(null);
+  var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
@@ -4926,7 +5252,9 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 }
 
 // MODERN UI - the current existing UI (renamed from PosV)
-function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash}){
+function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+  var [phoneCust,setPhoneCust]=useState(null); // when set, this is a delivery/collection order
+  var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState([]),[tbl,setTbl]=useState(()=>{
     if(typeof window!=="undefined"&&window.__preselectedTable){
@@ -5094,10 +5422,22 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   </div>;
 
   return <div className="pos-wrap">
+    {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType(data.orderType);setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name+" - "+data.orderType,color:"#059669"});}}/>}
+    
+    {/* Phone customer banner (when in phone order mode) */}
+    {phoneCust&&<div style={{background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+      <div style={{flex:1,minWidth:200}}>
+        <p style={{fontSize:10,fontWeight:700,letterSpacing:2,opacity:.85}}>PHONE ORDER - {(type||"DELIVERY").toUpperCase()}</p>
+        <p style={{fontSize:14,fontWeight:700}}>{phoneCust.name} - {phoneCust.phone}</p>
+        {phoneCust.address&&<p style={{fontSize:11,opacity:.85}}>{EM.pin} {phoneCust.address.line1}, {phoneCust.address.postcode}{phoneCust.distance>0?" - "+(typeof phoneCust.distance==="number"?phoneCust.distance.toFixed(1):phoneCust.distance)+" mi":""}</p>}
+      </div>
+      <button onClick={()=>{setPhoneCust(null);setType("dine-in");}} style={{padding:"6px 12px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.15)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",cursor:"pointer"}}>Clear & Switch to Walk-in</button>
+    </div>}
     
     <div style={{background:"#1a1208",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       {onBackToDash&&<button onClick={onBackToDash} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer"}}>{"< Dashboard"}</button>}
       <p style={{color:"#d4952a",fontWeight:700,fontSize:14}}>POS</p>
+      <button onClick={()=>setShowPhonePopup(true)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>{EM.phone} Phone Order</button>
       <div style={{display:"flex",gap:4}}>
         {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));var newPrice=m?getItemPrice(m,tp):it.price;return{...it,price:newPrice};}));}} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
@@ -5598,7 +5938,7 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setView={setView}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setView={setView} customers={customers} setCustomers={setCustomers}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
         // Store preselected table so POS can pick it up
