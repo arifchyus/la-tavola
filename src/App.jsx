@@ -946,6 +946,259 @@ function printItemSplitReceipts(o,b){
   });
 }
 
+// THERMAL REFUND RECEIPT - HMRC compliant credit note
+function printRefundThermal(o,b){
+  var w=window.open("","_blank","width=380,height=700");if(!w)return;
+  var s=getReceiptSettings();
+  var refundAmt=parseFloat(o.voidAmount||o.total||0);
+  var voidType=o.voidType||"refund";
+  var voidLabel=voidType==="void"?"VOID":(voidType==="partial-refund"?"PARTIAL REFUND":"FULL REFUND");
+  
+  // Items section - show ALL items with refund highlighting
+  var rows=(o.items||[]).map(i=>{
+    var line=`<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">${fmt(i.price*i.qty)}</td></tr>`;
+    if(i.note)line+=`<tr><td colspan="2" style="font-size:10px;color:#666;font-style:italic;padding-left:8px">> ${i.note}</td></tr>`;
+    return line;
+  }).join("");
+  
+  // VAT breakdown of refund
+  var vatSection="";
+  if(s.showVAT){
+    var vatAmt=refundAmt*(s.vatRate/(100+s.vatRate));
+    var netAmt=refundAmt-vatAmt;
+    vatSection=`<div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:6px;font-size:11px">
+      <p style="font-weight:700;margin-bottom:4px;color:#dc2626">REFUND VAT BREAKDOWN:</p>
+      <table style="width:100%">
+        <tr><td>Net refund (excl VAT)</td><td style="text-align:right">-${fmt(netAmt)}</td></tr>
+        <tr><td>VAT @ ${s.vatRate}% refund</td><td style="text-align:right">-${fmt(vatAmt)}</td></tr>
+      </table>
+      <p style="margin-top:4px;font-size:10px">VAT No: ${s.vatNumber}</p>
+    </div>`;
+  }
+  
+  var refundDate=new Date().toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  var origDate=formatReceiptDate(o);
+  
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Refund Receipt ${o.id}</title><style>
+    body{font-family:'Courier New',monospace;padding:14px;font-size:13px;max-width:320px;margin:0 auto;color:#000}
+    h2{color:#dc2626;margin:0 0 4px;text-align:center;font-size:18px}
+    p{margin:3px 0}
+    table{width:100%;border-collapse:collapse;margin:8px 0}
+    td{padding:3px 0}
+    .header{text-align:center;border-bottom:3px double #dc2626;padding-bottom:8px;margin-bottom:8px}
+    .header p{font-size:11px;color:#666;margin:1px 0}
+    .refund-banner{background:#dc2626;color:#fff;padding:10px;text-align:center;margin:8px 0;border-radius:4px}
+    .refund-banner h3{font-size:18px;margin:0;letter-spacing:3px}
+    .order-info{border-bottom:1px dashed #999;padding-bottom:8px;margin-bottom:8px;font-size:12px}
+    .items td{border-bottom:1px dotted #ddd;padding:4px 0}
+    .refund-amount{font-weight:700;font-size:18px;color:#dc2626;border-top:3px double #dc2626;padding-top:8px!important;margin-top:8px}
+    .reason-box{background:#fef3c7;border:1px dashed #d97706;padding:8px;margin:8px 0;font-size:11px}
+    .footer{text-align:center;color:#666;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
+    .signature-line{margin-top:18px;padding-top:8px;border-top:1px solid #000;text-align:center;font-size:10px;color:#666}
+  </style></head><body>
+    <div class="header">
+      <h2>LA TAVOLA</h2>
+      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+    </div>
+    
+    <div class="refund-banner">
+      <h3>${voidLabel}</h3>
+      <p style="font-size:11px;margin-top:4px">Credit Note / Refund Receipt</p>
+    </div>
+    
+    <div class="order-info">
+      <p><b>Refund Ref:</b> REF-${o.id}</p>
+      <p><b>Refund Date:</b> ${refundDate}</p>
+      <p><b>Original Order:</b> ${o.id}</p>
+      <p><b>Original Date:</b> ${origDate}</p>
+      <p><b>Type:</b> ${(o.type||"").toUpperCase()}${o.tableId?" - TABLE "+o.tableId:""}</p>
+      ${o.customer?`<p><b>Customer:</b> ${o.customer}</p>`:""}
+      ${o.takenBy?`<p><b>Original staff:</b> ${o.takenBy}</p>`:""}
+    </div>
+    
+    <p style="font-size:11px;color:#666;letter-spacing:1px;text-align:center;margin-bottom:5px">ORIGINAL ITEMS</p>
+    <table class="items">${rows}</table>
+    <table>
+      <tr><td>Original Total</td><td style="text-align:right">${fmt(o.total)}</td></tr>
+    </table>
+    
+    <div class="reason-box">
+      <p style="font-weight:700;margin-bottom:3px;color:#92400e">REFUND REASON:</p>
+      <p style="font-style:italic">${o.voidReason||"Not specified"}</p>
+      <p style="margin-top:6px;font-size:10px"><b>Approved by:</b> ${o.voidApprovedBy||"Manager"}</p>
+    </div>
+    
+    <table>
+      <tr class="refund-amount"><td>${voidType==="partial-refund"?"PARTIAL REFUND":"REFUND AMOUNT"}</td><td style="text-align:right;color:#dc2626">-${fmt(refundAmt)}</td></tr>
+    </table>
+    
+    ${vatSection}
+    
+    <div class="signature-line">
+      <p>Customer signature</p>
+      <br>
+      <p>_______________________________</p>
+    </div>
+    
+    <div class="footer">
+      <p style="font-weight:700;color:#dc2626">${String.fromCharCode(0x2713)} REFUND PROCESSED</p>
+      <p style="margin-top:6px">Keep this receipt for your records</p>
+      <p>www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
+  var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
+  w.document.close();
+}
+
+// A4 REFUND INVOICE - HMRC compliant credit note
+function printRefundA4(o,b){
+  var w=window.open("","_blank","width=800,height=1100");if(!w)return;
+  var s=getReceiptSettings();
+  var refundAmt=parseFloat(o.voidAmount||o.total||0);
+  var voidType=o.voidType||"refund";
+  var voidLabel=voidType==="void"?"VOID":(voidType==="partial-refund"?"PARTIAL REFUND":"FULL REFUND");
+  
+  var rows=(o.items||[]).map(i=>{
+    var lineTotal=i.price*i.qty;
+    return `<tr><td>${i.name}${i.note?'<br><span style="font-size:11px;color:#666;font-style:italic">Note: '+i.note+'</span>':""}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${fmt(i.price)}</td><td style="text-align:right">${fmt(lineTotal)}</td></tr>`;
+  }).join("");
+  
+  // VAT breakdown
+  var vatSection="";
+  if(s.showVAT){
+    var vatAmt=refundAmt*(s.vatRate/(100+s.vatRate));
+    var netAmt=refundAmt-vatAmt;
+    vatSection=`<div style="margin-top:14px;padding:13px;background:#fee2e2;border-left:4px solid #dc2626;border-radius:7px">
+      <p style="font-weight:700;color:#991b1b;margin-bottom:7px;font-size:13px">REFUND VAT BREAKDOWN (HMRC)</p>
+      <table style="width:100%;font-size:13px">
+        <tr><td>Net refund (excl VAT)</td><td style="text-align:right">-${fmt(netAmt)}</td></tr>
+        <tr><td>VAT @ ${s.vatRate}% refund</td><td style="text-align:right">-${fmt(vatAmt)}</td></tr>
+        <tr style="border-top:1px solid #dc2626;font-weight:700"><td style="padding-top:5px">Total refund</td><td style="text-align:right;padding-top:5px">-${fmt(refundAmt)}</td></tr>
+      </table>
+      <p style="margin-top:8px;font-size:11px;color:#666">VAT Registration: ${s.vatNumber}</p>
+    </div>`;
+  }
+  
+  var refundDate=new Date().toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  var origDate=formatReceiptDate(o);
+  var addrText=o.address?(typeof o.address==="object"?[o.address.line1,o.address.postcode].filter(Boolean).join(", "):o.address):"";
+  
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Refund ${o.id}</title><style>
+    body{font-family:Arial,sans-serif;padding:36px;color:#1a1208;max-width:720px;margin:0 auto;font-size:14px}
+    h1{color:#dc2626;margin:0;font-size:32px}
+    h2{font-size:18px;margin:16px 0 6px}
+    .header{display:flex;justify-content:space-between;border-bottom:4px solid #dc2626;padding-bottom:18px;margin-bottom:18px}
+    .header-left h1{margin-bottom:6px}
+    .header-left p{margin:1px 0;font-size:12px;color:#666}
+    .header-right{text-align:right}
+    .header-right h2{color:#dc2626;font-size:24px;margin:0;letter-spacing:2px}
+    .header-right p{margin:1px 0;font-size:12px}
+    .credit-banner{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;padding:18px;text-align:center;margin-bottom:18px;border-radius:9px}
+    .credit-banner h2{font-size:28px;margin:0;letter-spacing:3px}
+    .credit-banner p{margin-top:5px;font-size:13px;opacity:.9}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;padding:14px;background:#fef3c7;border-radius:9px;border:2px solid #d97706}
+    .info-grid h3{font-size:11px;color:#92400e;letter-spacing:2px;font-weight:700;margin:0 0 5px}
+    .info-grid p{margin:1px 0;font-size:13px}
+    .reason-box{padding:14px;background:#fee2e2;border-left:5px solid #dc2626;margin:14px 0;border-radius:7px}
+    .reason-box p{margin:0;font-size:13px}
+    .reason-box .label{font-size:11px;color:#991b1b;letter-spacing:2px;font-weight:700;margin-bottom:4px}
+    table.items{width:100%;border-collapse:collapse;margin:14px 0}
+    table.items th{background:#1a1208;color:#fff;padding:11px;text-align:left;font-size:12px;letter-spacing:1px}
+    table.items th:nth-child(2){text-align:center}
+    table.items th:nth-child(3),table.items th:nth-child(4){text-align:right}
+    table.items td{padding:10px 11px;border-bottom:1px solid #ede8de}
+    .totals{margin-top:14px;display:flex;justify-content:flex-end}
+    .totals table{min-width:340px;border-collapse:collapse}
+    .totals td{padding:7px 14px;font-size:14px}
+    .totals .refund-row{border-top:3px solid #dc2626;border-bottom:3px solid #dc2626;font-weight:700;font-size:22px;color:#dc2626;background:#fef2f2}
+    .signature-section{margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:36px}
+    .sig-box{padding-top:22px;border-top:1px solid #1a1208;text-align:center;font-size:12px;color:#666}
+    .footer{margin-top:36px;padding-top:14px;border-top:1px solid #ccc;text-align:center;color:#666;font-size:11px}
+  </style></head><body>
+    <div class="header">
+      <div class="header-left">
+        <h1>LA TAVOLA</h1>
+        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      </div>
+      <div class="header-right">
+        <h2>CREDIT NOTE</h2>
+        <p><b>REF-${o.id}</b></p>
+        <p>${refundDate}</p>
+        <p style="margin-top:8px;color:#dc2626;font-weight:700">${voidLabel}</p>
+      </div>
+    </div>
+    
+    <div class="credit-banner">
+      <h2>${voidLabel}</h2>
+      <p>Refund Receipt / Credit Note for HMRC Records</p>
+    </div>
+    
+    <div class="info-grid">
+      <div>
+        <h3>ORIGINAL ORDER</h3>
+        <p>Order #: <b>${o.id}</b></p>
+        <p>Date: ${origDate}</p>
+        <p>Type: <b>${(o.type||"").toUpperCase()}</b></p>
+        ${o.payMethod?`<p>Payment: ${o.payMethod}</p>`:""}
+        <p>Original Total: <b>${fmt(o.total)}</b></p>
+      </div>
+      <div>
+        <h3>CUSTOMER</h3>
+        <p><b>${o.customer||"Customer"}</b></p>
+        ${o.phone?`<p>${o.phone}</p>`:""}
+        ${addrText?`<p>${addrText}</p>`:""}
+        ${o.takenBy?`<p style="margin-top:8px;font-size:11px;color:#666">Original staff: ${o.takenBy}</p>`:""}
+      </div>
+    </div>
+    
+    <h3 style="margin-top:18px;font-size:13px;color:#666;letter-spacing:2px">ORIGINAL ITEMS</h3>
+    <table class="items">
+      <thead><tr><th>ITEM</th><th>QTY</th><th>PRICE</th><th>SUBTOTAL</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    
+    <div class="reason-box">
+      <p class="label">REFUND REASON</p>
+      <p style="font-style:italic;font-size:14px;margin-bottom:8px">${o.voidReason||"Not specified"}</p>
+      <p><b>Approved by:</b> ${o.voidApprovedBy||"Manager"}</p>
+      <p><b>Processed by:</b> Restaurant staff</p>
+    </div>
+    
+    <div class="totals">
+      <table>
+        <tr><td>Original total:</td><td style="text-align:right">${fmt(o.total)}</td></tr>
+        <tr class="refund-row"><td>${voidType==="partial-refund"?"PARTIAL REFUND":"REFUND AMOUNT"}:</td><td style="text-align:right">-${fmt(refundAmt)}</td></tr>
+      </table>
+    </div>
+    
+    ${vatSection}
+    
+    <div class="signature-section">
+      <div class="sig-box">Manager Signature</div>
+      <div class="sig-box">Customer Signature</div>
+    </div>
+    
+    <div class="footer">
+      <p style="font-weight:700;color:#dc2626;font-size:13px">${String.fromCharCode(0x2713)} REFUND PROCESSED - Keep for HMRC Records</p>
+      <p style="margin-top:6px">This is a credit note. Please retain for accounting purposes.</p>
+      <p>www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
+  var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
+  w.document.close();
+}
+
+// Smart refund receipt - auto-picks thermal vs A4
+function printRefundReceipt(o,b){
+  if(o.type==="delivery"){
+    printRefundA4(o,b);
+  }else{
+    printRefundThermal(o,b);
+  }
+}
+
 function printR(o,b){
   // Delivery orders get A4 invoice (more professional, customer keeps it)
   // All other types get thermal receipt
@@ -2877,9 +3130,24 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       // Update order status to cancelled if void or full refund
       if(result.statusUpdate&&result.statusUpdate==="cancelled"){
         // Update local state
-        setOrders(os=>os.map(o=>o.id===refundOrder.id?{...o,status:"cancelled",voidReason:result.reason,voidApprovedBy:result.manager,voidType:result.voidType,voidAmount:result.amount}:o));
+        var updatedOrder={...refundOrder,status:"cancelled",voidReason:result.reason,voidApprovedBy:result.manager,voidType:result.voidType,voidAmount:result.amount};
+        setOrders(os=>os.map(o=>o.id===refundOrder.id?updatedOrder:o));
         // Save to database so it persists on refresh
         dbUpdateOrderStatus(refundOrder.id,"cancelled").catch(e=>console.log("Failed to save cancelled status:",e));
+        // AUTO-PRINT refund receipt
+        setTimeout(()=>{
+          var bb=branches.find(b=>b.id===refundOrder.branchId);
+          printRefundReceipt(updatedOrder,bb);
+        },500);
+      }else if(result.voidType==="partial-refund"){
+        // Partial refund - keep order active but log refund amount
+        var partial={...refundOrder,voidReason:result.reason,voidApprovedBy:result.manager,voidType:"partial-refund",voidAmount:result.amount};
+        setOrders(os=>os.map(o=>o.id===refundOrder.id?partial:o));
+        // AUTO-PRINT partial refund receipt
+        setTimeout(()=>{
+          var bb=branches.find(b=>b.id===refundOrder.branchId);
+          printRefundReceipt(partial,bb);
+        },500);
       }
     }}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
@@ -3028,6 +3296,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
               <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Receipt</button>
               <button onClick={()=>printKitchenTicket(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83C,0xDF73)} Kitchen Ticket</button>
+              {(o.status==="cancelled"||o.voidType==="partial-refund")&&<button onClick={()=>printRefundReceipt(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCB0)} Refund Receipt</button>}
               {o.status!=="cancelled"&&<button onClick={()=>setRefundOrder(o)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD12)} Void/Refund</button>}
             </div>
           </div>)}</div>
