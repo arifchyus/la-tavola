@@ -953,3 +953,128 @@ export async function saveBranchHoursConfig(config) {
   if (error) console.error('saveBranchHoursConfig:', error);
   return { data: data?.[0], error };
 }
+
+// ===========================================================
+// CASH MANAGEMENT, SHIFTS, VOIDS
+// ===========================================================
+
+export async function recordPayment(payment) {
+  // payment = { order_id, branch_id, payment_method, amount, cash_given, change_returned, tip_amount, taken_by, shift_id }
+  const { data, error } = await supabase.from('order_payments').insert(payment).select();
+  if (error) console.error('recordPayment:', error);
+  return { data: data?.[0], error };
+}
+
+export async function fetchOrderPayments(orderId) {
+  const { data } = await supabase.from('order_payments').select('*').eq('order_id', orderId);
+  return data || [];
+}
+
+// SHIFTS
+export async function openShift(branchId, staffName, openingFloat) {
+  const { data, error } = await supabase
+    .from('staff_shifts')
+    .insert({ branch_id: branchId, staff_name: staffName, opening_float: openingFloat || 0, status: 'open' })
+    .select();
+  if (error) console.error('openShift:', error);
+  return { data: data?.[0], error };
+}
+
+export async function closeShift(shiftId, actualCash, notes) {
+  // Fetch shift to compute variance
+  const { data: shift } = await supabase.from('staff_shifts').select('*').eq('id', shiftId).single();
+  if (!shift) return { error: 'Shift not found' };
+  const expectedCash = parseFloat(shift.opening_float || 0) + parseFloat(shift.cash_sales || 0);
+  const variance = parseFloat(actualCash) - expectedCash;
+  const { data, error } = await supabase
+    .from('staff_shifts')
+    .update({
+      closed_at: new Date().toISOString(),
+      actual_cash: actualCash,
+      expected_cash: expectedCash,
+      variance,
+      notes,
+      status: 'closed',
+    })
+    .eq('id', shiftId)
+    .select();
+  if (error) console.error('closeShift:', error);
+  return { data: data?.[0], variance, error };
+}
+
+export async function fetchOpenShift(branchId, staffName) {
+  const { data } = await supabase
+    .from('staff_shifts')
+    .select('*')
+    .eq('branch_id', branchId)
+    .eq('staff_name', staffName)
+    .eq('status', 'open')
+    .maybeSingle();
+  return data;
+}
+
+export async function fetchShifts(branchId) {
+  let q = supabase.from('staff_shifts').select('*').order('opened_at', { ascending: false }).limit(50);
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data } = await q;
+  return data || [];
+}
+
+export async function updateShiftSales(shiftId, cashAmount, cardAmount, tipAmount) {
+  // Increment shift totals
+  const { data: shift } = await supabase.from('staff_shifts').select('cash_sales, card_sales, tips_collected').eq('id', shiftId).single();
+  if (!shift) return;
+  await supabase
+    .from('staff_shifts')
+    .update({
+      cash_sales: parseFloat(shift.cash_sales || 0) + (cashAmount || 0),
+      card_sales: parseFloat(shift.card_sales || 0) + (cardAmount || 0),
+      tips_collected: parseFloat(shift.tips_collected || 0) + (tipAmount || 0),
+    })
+    .eq('id', shiftId);
+}
+
+// VOIDS & REFUNDS
+export async function recordVoid(voidData) {
+  // voidData = { order_id, branch_id, void_type, amount, reason, approved_by, staff_member }
+  const { data, error } = await supabase.from('order_voids').insert(voidData).select();
+  if (error) console.error('recordVoid:', error);
+  return { data: data?.[0], error };
+}
+
+export async function fetchVoids(branchId) {
+  let q = supabase.from('order_voids').select('*').order('created_at', { ascending: false }).limit(100);
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data } = await q;
+  return data || [];
+}
+
+// MANAGER PINS
+export async function verifyManagerPin(pin, branchId) {
+  let q = supabase.from('manager_pins').select('*').eq('pin_hash', pin).eq('active', true);
+  const { data } = await q;
+  if (!data || !data.length) return null;
+  // Match: prefer exact branch match, fallback to global (null branch_id)
+  const branchMatch = data.find(p => p.branch_id === branchId);
+  return branchMatch || data.find(p => !p.branch_id) || null;
+}
+
+export async function fetchManagerPins(branchId) {
+  let q = supabase.from('manager_pins').select('*').eq('active', true);
+  if (branchId) q = q.or(`branch_id.eq.${branchId},branch_id.is.null`);
+  const { data } = await q;
+  return data || [];
+}
+
+export async function saveManagerPin(pinData) {
+  const { data, error } = await supabase.from('manager_pins').insert(pinData).select();
+  if (error) console.error('saveManagerPin:', error);
+  return { data: data?.[0], error };
+}
+
+// DRAWER EVENTS
+export async function recordDrawerEvent(event) {
+  const { data, error } = await supabase.from('drawer_events').insert(event).select();
+  if (error) console.error('recordDrawerEvent:', error);
+  return { data: data?.[0], error };
+}

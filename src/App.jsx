@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -4802,6 +4802,275 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
 }
 
 // POS UI router - dispatches to correct UI based on user preference
+// ============================================================
+// CASH DRAWER ALERT - shows when drawer should open
+// ============================================================
+function DrawerOpenAlert({onClose,cashGiven,changeReturn,total}){
+  // Play beep sound on mount
+  useEffect(()=>{
+    try{
+      var AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)return;
+      var ctx=new AudioCtx();
+      [0,0.15,0.3].forEach(delay=>{
+        var osc=ctx.createOscillator();
+        var gain=ctx.createGain();
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.frequency.value=880;
+        osc.type="sine";
+        gain.gain.setValueAtTime(0,ctx.currentTime+delay);
+        gain.gain.linearRampToValueAtTime(0.3,ctx.currentTime+delay+0.02);
+        gain.gain.linearRampToValueAtTime(0,ctx.currentTime+delay+0.12);
+        osc.start(ctx.currentTime+delay);
+        osc.stop(ctx.currentTime+delay+0.13);
+      });
+    }catch(e){}
+  },[]);
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.95)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",borderRadius:18,padding:"36px 30px",maxWidth:500,width:"100%",textAlign:"center",boxShadow:"0 30px 80px rgba(5,150,105,.5)",border:"5px solid #fff",animation:"shake .5s"}}>
+      <style>{`@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}@keyframes pulseBig{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}`}</style>
+      <p style={{fontSize:64,marginBottom:5,animation:"pulseBig 1s ease-in-out infinite"}}>{String.fromCharCode(0xD83D,0xDCB5)}</p>
+      <h2 style={{fontSize:32,fontWeight:700,marginBottom:14,letterSpacing:2}}>OPEN DRAWER NOW</h2>
+      
+      <div style={{background:"rgba(0,0,0,.2)",borderRadius:12,padding:"18px",marginBottom:16}}>
+        <p style={{fontSize:13,opacity:.85,fontWeight:700,letterSpacing:2,marginBottom:6}}>CUSTOMER GAVE</p>
+        <p style={{fontSize:38,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{fmt(cashGiven)}</p>
+      </div>
+      
+      {changeReturn>0&&<div style={{background:"#fff",color:"#1a1208",borderRadius:12,padding:"22px 18px",marginBottom:16,border:"3px solid #d4952a"}}>
+        <p style={{fontSize:13,color:"#bf4626",fontWeight:700,letterSpacing:2,marginBottom:6}}>RETURN CHANGE</p>
+        <p style={{fontSize:54,fontWeight:700,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(changeReturn)}</p>
+      </div>}
+      
+      {changeReturn===0&&<div style={{padding:"14px",background:"rgba(255,255,255,.2)",borderRadius:9,marginBottom:16}}>
+        <p style={{fontSize:18,fontWeight:700}}>Exact amount - No change</p>
+      </div>}
+      
+      <p style={{fontSize:13,opacity:.85,marginBottom:16}}>Place {fmt(total)} in drawer{changeReturn>0?", give "+fmt(changeReturn)+" change":""}</p>
+      
+      <button onClick={onClose} style={{padding:"18px 36px",background:"#fff",color:"#059669",border:"none",borderRadius:12,fontSize:18,fontWeight:700,cursor:"pointer",width:"100%",boxShadow:"0 6px 18px rgba(0,0,0,.25)",letterSpacing:1}}>{EM.check} DONE - Close Drawer</button>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// PAYMENT FLOW - reusable for all 3 POS UIs (cash/card/split)
+// ============================================================
+function PaymentFlow({total,onComplete,onCancel,branch,user,orderId}){
+  var [step,setStep]=useState("choose"); // choose, cash, card, split, drawer
+  var [cashGiven,setCashGiven]=useState("");
+  var [tipAmount,setTipAmount]=useState(0);
+  var [splitCash,setSplitCash]=useState("");
+  var [splitCard,setSplitCard]=useState("");
+  var [splitCashGiven,setSplitCashGiven]=useState("");
+  var [showDrawer,setShowDrawer]=useState(null); // { cashGiven, changeReturn, total }
+
+  var changeReturn=Math.max(0,parseFloat(cashGiven||0)-(total+tipAmount));
+  var totalWithTip=total+tipAmount;
+  var splitTotal=parseFloat(splitCash||0)+parseFloat(splitCard||0);
+  var splitChange=Math.max(0,parseFloat(splitCashGiven||0)-parseFloat(splitCash||0));
+
+  // CASH FLOW
+  var confirmCash=()=>{
+    if(parseFloat(cashGiven||0)<totalWithTip){alert("Insufficient cash given");return;}
+    var paymentData={
+      method:"cash",
+      total:totalWithTip,
+      tip:tipAmount,
+      cashGiven:parseFloat(cashGiven),
+      changeReturn:changeReturn,
+      payments:[{method:"cash",amount:totalWithTip,cashGiven:parseFloat(cashGiven),changeReturned:changeReturn}],
+    };
+    // Save to DB
+    if(orderId){
+      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"cash",amount:totalWithTip,cash_given:parseFloat(cashGiven),change_returned:changeReturn,tip_amount:tipAmount,taken_by:user?.name}).catch(e=>console.log("Payment save fail:",e));
+      dbRecordDrawer({branch_id:branch?.id,event_type:"opened-payment",staff_name:user?.name,order_id:orderId,amount:totalWithTip}).catch(e=>{});
+    }
+    // Show drawer alert, then complete
+    setShowDrawer({cashGiven:parseFloat(cashGiven),changeReturn,total:totalWithTip});
+    setTimeout(()=>{
+      onComplete(paymentData);
+    },100);
+  };
+
+  // CARD FLOW (simulated - in real life would integrate with terminal)
+  var confirmCard=()=>{
+    var paymentData={
+      method:"card",
+      total:totalWithTip,
+      tip:tipAmount,
+      payments:[{method:"card",amount:totalWithTip}],
+    };
+    if(orderId){
+      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"card",amount:totalWithTip,tip_amount:tipAmount,taken_by:user?.name}).catch(e=>{});
+    }
+    onComplete(paymentData);
+  };
+
+  // SPLIT FLOW
+  var confirmSplit=()=>{
+    if(Math.abs(splitTotal-totalWithTip)>0.01){alert("Split amounts don't add up to total: "+fmt(totalWithTip));return;}
+    if(parseFloat(splitCashGiven||0)<parseFloat(splitCash||0)){alert("Cash given less than cash portion");return;}
+    var paymentData={
+      method:"split",
+      total:totalWithTip,
+      tip:tipAmount,
+      cashPart:parseFloat(splitCash),
+      cardPart:parseFloat(splitCard),
+      cashGiven:parseFloat(splitCashGiven||0),
+      changeReturn:splitChange,
+      payments:[
+        {method:"cash",amount:parseFloat(splitCash),cashGiven:parseFloat(splitCashGiven||0),changeReturned:splitChange},
+        {method:"card",amount:parseFloat(splitCard)},
+      ],
+    };
+    if(orderId){
+      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"split-cash",amount:parseFloat(splitCash),cash_given:parseFloat(splitCashGiven||0),change_returned:splitChange,taken_by:user?.name}).catch(e=>{});
+      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"split-card",amount:parseFloat(splitCard),tip_amount:tipAmount,taken_by:user?.name}).catch(e=>{});
+      dbRecordDrawer({branch_id:branch?.id,event_type:"opened-payment",staff_name:user?.name,order_id:orderId,amount:parseFloat(splitCash)}).catch(e=>{});
+    }
+    setShowDrawer({cashGiven:parseFloat(splitCashGiven||0),changeReturn:splitChange,total:parseFloat(splitCash)});
+    setTimeout(()=>onComplete(paymentData),100);
+  };
+
+  // QUICK AMOUNT BUTTONS
+  var quickAmounts=[5,10,20,50,100];
+  // Round up suggestions: total 17.44 -> suggest 20
+  var roundUp=Math.ceil(totalWithTip/5)*5;
+  if(!quickAmounts.includes(roundUp))quickAmounts.push(roundUp);
+  quickAmounts.sort((a,b)=>a-b);
+
+  if(showDrawer){
+    return <DrawerOpenAlert {...showDrawer} onClose={()=>{setShowDrawer(null);}}/>;
+  }
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:540,width:"100%",maxHeight:"92vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2}}>PAYMENT</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{
+            step==="choose"?"How is customer paying?":
+            step==="cash"?"Cash Payment":
+            step==="card"?"Card Payment":
+            step==="split"?"Split Payment":""
+          }</h2>
+        </div>
+        <button onClick={onCancel} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        
+        {/* Total display */}
+        <div style={{textAlign:"center",marginBottom:18,padding:"18px",background:"#fff",borderRadius:12,border:"3px solid #d4952a"}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:5}}>TOTAL DUE</p>
+          <p style={{fontSize:46,fontWeight:700,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(totalWithTip)}</p>
+          {tipAmount>0&&<p style={{fontSize:11,color:"#7c3aed",marginTop:5}}>Includes {fmt(tipAmount)} tip</p>}
+        </div>
+
+        {/* STEP: CHOOSE PAYMENT METHOD */}
+        {step==="choose"&&<>
+          {/* Tip selector */}
+          <div style={{marginBottom:14}}>
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>OPTIONAL TIP</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+              {[0,1,2,5,10].map(t=><button key={t} onClick={()=>setTipAmount(t)} style={{padding:"10px 4px",border:"2px solid "+(tipAmount===t?"#7c3aed":"#ede8de"),borderRadius:7,background:tipAmount===t?"#f5f3ff":"#fff",fontWeight:700,fontSize:13,cursor:"pointer",color:tipAmount===t?"#7c3aed":"#1a1208"}}>{t===0?"No tip":fmt(t)}</button>)}
+            </div>
+          </div>
+
+          {/* Payment method buttons - HUGE */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <button onClick={()=>setStep("cash")} style={{padding:"30px 14px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(5,150,105,.3)",fontWeight:700}}>
+              <p style={{fontSize:48,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}</p>
+              <p style={{fontSize:16,letterSpacing:1}}>CASH</p>
+            </button>
+            <button onClick={()=>setStep("card")} style={{padding:"30px 14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(37,99,235,.3)",fontWeight:700}}>
+              <p style={{fontSize:48,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
+              <p style={{fontSize:16,letterSpacing:1}}>CARD</p>
+            </button>
+            <button onClick={()=>{var half=(totalWithTip/2).toFixed(2);setSplitCash(half);setSplitCard(half);setStep("split");}} style={{padding:"30px 14px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(124,58,237,.3)",fontWeight:700}}>
+              <p style={{fontSize:32,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}+{String.fromCharCode(0xD83D,0xDCB3)}</p>
+              <p style={{fontSize:14,letterSpacing:1}}>SPLIT</p>
+            </button>
+          </div>
+        </>}
+
+        {/* STEP: CASH */}
+        {step==="cash"&&<>
+          <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>AMOUNT GIVEN BY CUSTOMER</p>
+          <input type="number" step="0.01" value={cashGiven} onChange={e=>setCashGiven(e.target.value)} placeholder="0.00" autoFocus style={{width:"100%",padding:"16px 18px",border:"3px solid #d4952a",borderRadius:11,fontSize:32,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",marginBottom:8,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>QUICK AMOUNTS</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:11}}>
+            {quickAmounts.map(v=><button key={v} onClick={()=>setCashGiven(v.toFixed(2))} style={{padding:"12px 5px",background:"#fff",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer"}}>{fmt(v)}</button>)}
+            <button onClick={()=>setCashGiven(totalWithTip.toFixed(2))} style={{padding:"12px 5px",background:"#d4952a",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer",gridColumn:"span 3"}}>Exact: {fmt(totalWithTip)}</button>
+          </div>
+
+          {parseFloat(cashGiven||0)>0&&<div style={{padding:"18px",background:parseFloat(cashGiven)>=totalWithTip?"#d1fae5":"#fee2e2",borderRadius:11,border:"3px solid "+(parseFloat(cashGiven)>=totalWithTip?"#059669":"#dc2626"),marginBottom:11,textAlign:"center"}}>
+            {parseFloat(cashGiven)>=totalWithTip?<>
+              <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:2,marginBottom:5}}>CHANGE TO RETURN</p>
+              <p style={{fontSize:46,fontWeight:700,color:"#059669",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(changeReturn)}</p>
+            </>:<>
+              <p style={{fontSize:11,color:"#991b1b",fontWeight:700,letterSpacing:2,marginBottom:5}}>INSUFFICIENT</p>
+              <p style={{fontSize:24,fontWeight:700,color:"#dc2626"}}>Need {fmt(totalWithTip-parseFloat(cashGiven))} more</p>
+            </>}
+          </div>}
+
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
+            <button disabled={!cashGiven||parseFloat(cashGiven)<totalWithTip} onClick={confirmCash} style={{flex:2,padding:"14px",background:!cashGiven||parseFloat(cashGiven)<totalWithTip?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:!cashGiven||parseFloat(cashGiven)<totalWithTip?"not-allowed":"pointer"}}>{EM.check} Confirm & Open Drawer</button>
+          </div>
+        </>}
+
+        {/* STEP: CARD */}
+        {step==="card"&&<>
+          <div style={{padding:30,background:"#fff",borderRadius:11,marginBottom:14,textAlign:"center",border:"2px dashed #2563eb"}}>
+            <p style={{fontSize:48,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
+            <p style={{fontSize:14,color:"#1a1208",fontWeight:700,marginBottom:5}}>Insert / Tap card on terminal</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>Customer should follow prompts on card terminal</p>
+          </div>
+
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
+            <button onClick={confirmCard} style={{flex:2,padding:"14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{EM.check} Card Approved</button>
+          </div>
+        </>}
+
+        {/* STEP: SPLIT */}
+        {step==="split"&&<>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:11,fontStyle:"italic"}}>Split between cash and card. Total must equal {fmt(totalWithTip)}.</p>
+          
+          <div style={{padding:"12px",background:"#d1fae5",borderRadius:9,marginBottom:9,borderLeft:"3px solid #059669"}}>
+            <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB5)} CASH PORTION</p>
+            <input type="number" step="0.01" value={splitCash} onChange={e=>setSplitCash(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"11px",border:"2px solid #059669",borderRadius:7,fontSize:18,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",marginBottom:6,boxSizing:"border-box"}}/>
+            <p style={{fontSize:10,color:"#065f46",marginBottom:3}}>Cash given:</p>
+            <input type="number" step="0.01" value={splitCashGiven} onChange={e=>setSplitCashGiven(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"9px",border:"1px solid #059669",borderRadius:6,fontSize:14,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",boxSizing:"border-box"}}/>
+            {splitChange>0&&<p style={{fontSize:11,color:"#059669",fontWeight:700,marginTop:4}}>Change: {fmt(splitChange)}</p>}
+          </div>
+
+          <div style={{padding:"12px",background:"#dbeafe",borderRadius:9,marginBottom:11,borderLeft:"3px solid #2563eb"}}>
+            <p style={{fontSize:11,color:"#1e3a8a",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB3)} CARD PORTION</p>
+            <input type="number" step="0.01" value={splitCard} onChange={e=>setSplitCard(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"11px",border:"2px solid #2563eb",borderRadius:7,fontSize:18,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",boxSizing:"border-box"}}/>
+          </div>
+
+          <div style={{padding:"11px",background:Math.abs(splitTotal-totalWithTip)<0.01?"#d1fae5":"#fee2e2",borderRadius:9,marginBottom:11,textAlign:"center",border:"2px solid "+(Math.abs(splitTotal-totalWithTip)<0.01?"#059669":"#dc2626")}}>
+            <p style={{fontSize:11,fontWeight:700,letterSpacing:1,color:Math.abs(splitTotal-totalWithTip)<0.01?"#065f46":"#991b1b"}}>SPLIT TOTAL: {fmt(splitTotal)} of {fmt(totalWithTip)}</p>
+            {Math.abs(splitTotal-totalWithTip)>=0.01&&<p style={{fontSize:11,color:"#dc2626",marginTop:3,fontWeight:700}}>Difference: {fmt(splitTotal-totalWithTip)}</p>}
+          </div>
+
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
+            <button onClick={confirmSplit} disabled={Math.abs(splitTotal-totalWithTip)>=0.01} style={{flex:2,padding:"14px",background:Math.abs(splitTotal-totalWithTip)>=0.01?"#9ca3af":"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:Math.abs(splitTotal-totalWithTip)>=0.01?"not-allowed":"pointer"}}>{EM.check} Confirm Split Payment</button>
+          </div>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
 // PHONE ORDER CUSTOMER POPUP - opens from POS to capture customer for delivery/collection
 // SLIDE-UP KEYBOARD - reusable touch keyboard that appears from bottom
 function SlideUpKeyboard({mode,value,onChange,onSubmit,onClose,sizePreset}){
@@ -5912,6 +6181,8 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
     return "";
   }),[type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
+  var [showPayment,setShowPayment]=useState(false);
+  var [pendingOrderForPayment,setPendingOrderForPayment]=useState(null);
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
   var [lastOrder,setLastOrder]=useState(null);
@@ -5965,7 +6236,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   var dec=id=>setCart(c=>c.map(x=>x.id===id?{...x,qty:x.qty-1}:x).filter(x=>x.qty>0));
   var del=id=>setCart(c=>c.filter(x=>x.id!==id));
   var clear=()=>{setCart([]);setTbl("");setTip(0);setDiscPct(0);setDiscReason("");setSplitN(1);};
-  var send=(paid,method)=>{
+  var send=(paid,method,payData)=>{
     if(!cart.length)return;
     // VALIDATION: Dine-in requires table number
     if(type==="dine-in"&&!tbl){
@@ -6001,7 +6272,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       orderType=type;
       deliveryCode=null;
     }
-    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:tip,total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false};
+    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&payData.method==="split"?{cash:payData.cashPart,card:payData.cardPart}:null};
     onOrder(o);setLastOrder(o);
     var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
     push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
@@ -6096,6 +6367,13 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   </div>;
 
   return <div className="pos-wrap">
+    {/* PAYMENT FLOW - new cash/card/split popup */}
+    {showPayment&&<PaymentFlow total={total} branch={branch} user={user} orderId={null} onCancel={()=>setShowPayment(false)} onComplete={(payData)=>{
+      setShowPayment(false);
+      // Place the order with payment data
+      send(true,payData.method,payData);
+    }}/>}
+    
     {/* DELIVERY CODE POPUP - big visible popup so staff can read to customer */}
     {showCodePopup&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
       <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:16,padding:"30px 26px",maxWidth:520,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.6)",border:"4px solid #d4952a"}}>
@@ -6242,9 +6520,10 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
               <br/>Your new items will be added to the same bill.
             </div>;
           })()}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:6}}>
-            <button className="btn btn-d" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("cash")} style={{padding:"14px",fontSize:14}}>Cash</button>
-            <button className="btn btn-p" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setPayStep("card")} style={{padding:"14px",fontSize:14}}>Card</button>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:6}}>
+            <button className="btn btn-d" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setShowPayment(true)} style={{padding:"14px",fontSize:14,background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none"}}>{String.fromCharCode(0xD83D,0xDCB5)} Cash</button>
+            <button className="btn btn-p" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setShowPayment(true)} style={{padding:"14px",fontSize:14,background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none"}}>{String.fromCharCode(0xD83D,0xDCB3)} Card</button>
+            <button disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>setShowPayment(true)} style={{padding:"14px",fontSize:14,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,opacity:!cart.length||(type==="dine-in"&&!tbl)?.5:1}}>Split</button>
           </div>
           <button className="btn btn-o" disabled={!cart.length||(type==="dine-in"&&!tbl)} onClick={()=>send(false,null)} style={{width:"100%",padding:"10px",fontSize:13}}>Send to kitchen (pay later)</button>
         </div>
