@@ -2536,7 +2536,6 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[tab,branch?.id]);
-  var [refundOrder,setRefundOrder]=useState(null);
   var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
   var [holidays,setHolidays]=useState({}); // { branchId: [{ id, holiday_date, ... }] }
   var [hoursConfig,setHoursConfig]=useState({}); // { branchId: { use_per_service_hours, ... } }
@@ -7140,7 +7139,6 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [splitN,setSplitN]=useState(2);
   var [posDeliv,setPosDeliv]=useState(null);
   var [showPayment,setShowPayment]=useState(false);
-  var [lastOrderClassic,setLastOrderClassic]=useState(null);
 
   // Color palette for categories - rotates through traditional EPOS colors
   var catColors=["#f59e0b","#fbbf24","#fcd34d","#fb923c","#fca5a5","#a78bfa","#60a5fa","#34d399"];
@@ -7427,7 +7425,6 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [phoneCust,setPhoneCust]=useState(null);
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var [showPayment,setShowPayment]=useState(false);
-  var [lastOrderCompact,setLastOrderCompact]=useState(null);
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
