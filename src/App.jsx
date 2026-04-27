@@ -5860,18 +5860,62 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
   var [tipAmount,setTipAmount]=useState(0);
   var [showAddPayment,setShowAddPayment]=useState(null); // null, "cash", "card"
   var [showDrawer,setShowDrawer]=useState(null);
-  var [itemSplitMode,setItemSplitMode]=useState(false); // when true, show item assignment
-  var [customerCount,setCustomerCount]=useState(0); // 0 = not chosen yet
-  var [customerItems,setCustomerItems]=useState({}); // { customerNumber: [itemIds], shared: [itemIds] }
-  var [activeCustomer,setActiveCustomer]=useState(1); // currently selected customer for assignment
-  var [payingCustomer,setPayingCustomer]=useState(0); // when paying each customer one by one
-  var [customerPayments,setCustomerPayments]=useState({}); // { customerNumber: payment }
+  var [itemSplitMode,setItemSplitMode]=useState(false);
+  var [customerCount,setCustomerCount]=useState(0);
+  var [customerItems,setCustomerItems]=useState({});
+  var [activeCustomer,setActiveCustomer]=useState(1);
+  var [payingCustomer,setPayingCustomer]=useState(0);
+  var [customerPayments,setCustomerPayments]=useState({});
+  // Voucher state
+  var [showVoucherInput,setShowVoucherInput]=useState(false);
+  var [voucherCodeInput,setVoucherCodeInput]=useState("");
+  var [voucherError,setVoucherError]=useState("");
+  var [voucherChecking,setVoucherChecking]=useState(false);
+  var [appliedVoucher,setAppliedVoucher]=useState(null); // {code, amount, dbId}
   
   // Calculations
-  var totalWithTip=total+tipAmount;
+  var voucherDiscount=appliedVoucher?Math.min(parseFloat(appliedVoucher.amount||0),total+tipAmount):0;
+  var totalWithTip=Math.max(0,(total+tipAmount)-voucherDiscount);
   var paidSoFar=payments.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
   var remaining=Math.max(0,totalWithTip-paidSoFar);
   var isComplete=Math.abs(remaining)<0.01;
+
+  // VOUCHER APPLY - look up code in DB
+  var applyVoucher=()=>{
+    var code=voucherCodeInput.trim().toUpperCase();
+    if(!code){setVoucherError("Enter a code");return;}
+    setVoucherChecking(true);
+    setVoucherError("");
+    dbFetchCodes().then(codes=>{
+      setVoucherChecking(false);
+      var found=(codes||[]).find(c=>(c.code||"").toUpperCase()===code);
+      if(!found){setVoucherError("Code not found");return;}
+      if(!found.active){setVoucherError("This code is no longer active");return;}
+      // Check expiry
+      if(found.expiresAt){
+        var exp=new Date(found.expiresAt);
+        if(exp<new Date()){setVoucherError("This voucher expired on "+exp.toLocaleDateString("en-GB"));return;}
+      }
+      // Check usage limit
+      if(found.maxUses&&found.uses>=found.maxUses){setVoucherError("This voucher has already been used");return;}
+      // Check if there are already payments - voucher applied first
+      if(payments.length>0){setVoucherError("Remove existing payments first to apply voucher");return;}
+      // Apply!
+      var voucherValue=found.type==="fixed"?parseFloat(found.value):(parseFloat(found.value)/100*total);
+      setAppliedVoucher({code:code,amount:voucherValue,dbId:found.dbId,uses:found.uses||0,maxUses:found.maxUses||1});
+      setShowVoucherInput(false);
+      setVoucherCodeInput("");
+      setVoucherError("");
+    }).catch(e=>{
+      setVoucherChecking(false);
+      setVoucherError("Error checking voucher: "+e.message);
+    });
+  };
+  
+  var removeVoucher=()=>{
+    if(!window.confirm("Remove voucher? You can apply it again later."))return;
+    setAppliedVoucher(null);
+  };
 
   var addPayment=(p)=>{
     setPayments(prev=>[...prev,{...p,id:Date.now()+Math.random()}]);
@@ -5904,6 +5948,20 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
       }
     });
     
+    // Mark voucher as used (increment uses, deactivate if max reached)
+    if(appliedVoucher&&appliedVoucher.dbId){
+      var newUses=(appliedVoucher.uses||0)+1;
+      dbSaveCode({
+        dbId:appliedVoucher.dbId,
+        code:appliedVoucher.code,
+        type:"fixed",
+        value:appliedVoucher.amount,
+        uses:newUses,
+        maxUses:appliedVoucher.maxUses,
+        active:newUses<appliedVoucher.maxUses,
+      }).catch(e=>console.log("Voucher mark used fail:",e));
+    }
+    
     var totalCash=payments.filter(p=>p.method==="cash").reduce((s,p)=>s+p.amount,0);
     var totalCard=payments.filter(p=>p.method==="card").reduce((s,p)=>s+p.amount,0);
     
@@ -5922,6 +5980,10 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
       payments:payments,
       totalCash,
       totalCard,
+      // Voucher info
+      voucher:appliedVoucher?{code:appliedVoucher.code,amount:voucherDiscount}:null,
+      voucherDiscount:voucherDiscount,
+      originalTotal:total+tipAmount,
       // For backward compat
       cashGiven:payments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.cashGiven||p.amount),0),
       changeReturn:payments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.change||0),0),
@@ -6067,6 +6129,10 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
         
         {/* Total + Status display */}
         <div style={{textAlign:"center",marginBottom:12,padding:"14px",background:"#fff",borderRadius:11,border:"3px solid "+(isComplete?"#059669":"#d4952a")}}>
+          {voucherDiscount>0&&<>
+            <p style={{fontSize:10,color:"#8a8078",letterSpacing:1,marginBottom:1}}>Original: {fmt(total+tipAmount)}</p>
+            <p style={{fontSize:11,color:"#7c3aed",fontWeight:700,marginBottom:5}}>Voucher: -{fmt(voucherDiscount)}</p>
+          </>}
           <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:3}}>TOTAL DUE</p>
           <p style={{fontSize:36,fontWeight:700,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1,marginBottom:9}}>{fmt(totalWithTip)}</p>
           
@@ -6081,6 +6147,26 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
             </div>
           </div>
         </div>
+
+        {/* Voucher section */}
+        {payments.length===0&&<div style={{marginBottom:11}}>
+          {appliedVoucher?<div style={{padding:11,background:"#f5f3ff",borderRadius:9,border:"2px solid #7c3aed",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <p style={{fontSize:11,color:"#7c3aed",fontWeight:700,letterSpacing:2,marginBottom:2}}>{String.fromCharCode(0xD83C,0xDF81)} VOUCHER APPLIED</p>
+              <p style={{fontSize:13,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{appliedVoucher.code}</p>
+              <p style={{fontSize:11,color:"#5b21b6"}}>Discount: -{fmt(voucherDiscount)}</p>
+            </div>
+            <button onClick={removeVoucher} style={{padding:"7px 11px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>Remove</button>
+          </div>:!showVoucherInput?<button onClick={()=>setShowVoucherInput(true)} style={{width:"100%",padding:"11px",background:"#fff",border:"2px dashed #7c3aed",color:"#7c3aed",borderRadius:9,fontSize:12,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83C,0xDF81)} Have a voucher? Apply code</button>:<div style={{padding:11,background:"#fff",borderRadius:9,border:"2px solid #7c3aed"}}>
+            <p style={{fontSize:11,color:"#7c3aed",fontWeight:700,letterSpacing:1,marginBottom:5}}>ENTER VOUCHER CODE</p>
+            <div style={{display:"flex",gap:5,marginBottom:5}}>
+              <input value={voucherCodeInput} onChange={e=>{setVoucherCodeInput(e.target.value.toUpperCase());setVoucherError("");}} placeholder="A4F8K2" autoFocus style={{flex:1,padding:"11px 14px",border:"2px solid #ede8de",borderRadius:7,fontSize:18,fontWeight:700,fontFamily:"'Courier New',monospace",letterSpacing:3,textAlign:"center",textTransform:"uppercase",boxSizing:"border-box"}}/>
+              <button onClick={applyVoucher} disabled={voucherChecking||!voucherCodeInput} style={{padding:"11px 14px",background:voucherChecking||!voucherCodeInput?"#9ca3af":"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:voucherChecking||!voucherCodeInput?"not-allowed":"pointer"}}>{voucherChecking?"Checking...":"Apply"}</button>
+            </div>
+            {voucherError&&<p style={{fontSize:11,color:"#dc2626",fontWeight:700,marginTop:5}}>{String.fromCharCode(0x26A0,0xFE0F)} {voucherError}</p>}
+            <button onClick={()=>{setShowVoucherInput(false);setVoucherError("");setVoucherCodeInput("");}} style={{marginTop:6,padding:"5px",background:"none",border:"none",color:"#8a8078",fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Cancel</button>
+          </div>}
+        </div>}
 
         {/* Tip selector - only when no payments yet */}
         {payments.length===0&&<div style={{marginBottom:11,padding:11,background:"#fff",borderRadius:9,border:"1px solid #ede8de"}}>
