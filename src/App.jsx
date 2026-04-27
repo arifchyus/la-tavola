@@ -5204,217 +5204,315 @@ function DrawerOpenAlert({onClose,cashGiven,changeReturn,total}){
 }
 
 // ============================================================
-// PAYMENT FLOW - reusable for all 3 POS UIs (cash/card/split)
+// NUMBER PAD - calculator-style for amount entry
+// ============================================================
+function NumberPad({value,onChange,onSubmit}){
+  var press=k=>{
+    if(k==="DEL"){
+      onChange(String(value).slice(0,-1));
+    }else if(k==="CLR"){
+      onChange("");
+    }else if(k==="."){
+      if(!String(value).includes("."))onChange(String(value)+".");
+    }else if(k==="OK"){
+      if(onSubmit)onSubmit();
+    }else{
+      onChange(String(value)+k);
+    }
+  };
+  var btnStyle=(special)=>({
+    height:60,fontSize:24,fontWeight:700,
+    background:special==="del"?"linear-gradient(180deg,#fbbf24,#d97706)":
+              special==="clr"?"linear-gradient(180deg,#dc2626,#991b1b)":
+              special==="ok"?"linear-gradient(180deg,#059669,#047857)":
+              "linear-gradient(180deg,#fff,#f5f0e8)",
+    color:special?"#fff":"#1a1208",
+    border:"1px solid "+(special?"transparent":"#d4b896"),
+    borderRadius:9,cursor:"pointer",
+    boxShadow:"0 2px 0 rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.5)",
+  });
+  var pressDown=e=>{e.currentTarget.style.transform="translateY(2px)";};
+  var pressUp=e=>{e.currentTarget.style.transform="translateY(0)";};
+
+  return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:5}}>
+    {[
+      ["1","2","3","DEL"],
+      ["4","5","6","CLR"],
+      ["7","8","9","."],
+      ["00","0","OK"]
+    ].flat().map((k,i)=>{
+      if(k==="OK")return <button key={i} onClick={()=>press(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={{...btnStyle("ok"),gridColumn:"span 2"}}>{String.fromCharCode(0x2713)} OK</button>;
+      var sp=k==="DEL"?"del":k==="CLR"?"clr":null;
+      return <button key={i} onClick={()=>press(k)} onMouseDown={pressDown} onMouseUp={pressUp} onMouseLeave={pressUp} onTouchStart={pressDown} onTouchEnd={pressUp} style={btnStyle(sp)}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>;
+    })}
+  </div>;
+}
+
+// ============================================================
+// PAYMENT FLOW - LEDGER STYLE
+// Multiple payments allowed (5 customers, mixed cash/card)
 // ============================================================
 function PaymentFlow({total,onComplete,onCancel,branch,user,orderId}){
-  var [step,setStep]=useState("choose"); // choose, cash, card, split, drawer
-  var [cashGiven,setCashGiven]=useState("");
+  var [payments,setPayments]=useState([]); // [{id, method, amount, cashGiven, change}]
   var [tipAmount,setTipAmount]=useState(0);
-  var [splitCash,setSplitCash]=useState("");
-  var [splitCard,setSplitCard]=useState("");
-  var [splitCashGiven,setSplitCashGiven]=useState("");
-  var [showDrawer,setShowDrawer]=useState(null); // { cashGiven, changeReturn, total }
-
-  var changeReturn=Math.max(0,parseFloat(cashGiven||0)-(total+tipAmount));
+  var [showAddPayment,setShowAddPayment]=useState(null); // null, "cash", "card"
+  var [showDrawer,setShowDrawer]=useState(null);
+  
+  // Calculations
   var totalWithTip=total+tipAmount;
-  var splitTotal=parseFloat(splitCash||0)+parseFloat(splitCard||0);
-  var splitChange=Math.max(0,parseFloat(splitCashGiven||0)-parseFloat(splitCash||0));
+  var paidSoFar=payments.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+  var remaining=Math.max(0,totalWithTip-paidSoFar);
+  var isComplete=Math.abs(remaining)<0.01;
 
-  // CASH FLOW
-  var confirmCash=()=>{
-    if(parseFloat(cashGiven||0)<totalWithTip){alert("Insufficient cash given");return;}
-    var paymentData={
-      method:"cash",
-      total:totalWithTip,
-      tip:tipAmount,
-      cashGiven:parseFloat(cashGiven),
-      changeReturn:changeReturn,
-      payments:[{method:"cash",amount:totalWithTip,cashGiven:parseFloat(cashGiven),changeReturned:changeReturn}],
-    };
-    // Save to DB
-    if(orderId){
-      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"cash",amount:totalWithTip,cash_given:parseFloat(cashGiven),change_returned:changeReturn,tip_amount:tipAmount,taken_by:user?.name}).catch(e=>console.log("Payment save fail:",e));
-      dbRecordDrawer({branch_id:branch?.id,event_type:"opened-payment",staff_name:user?.name,order_id:orderId,amount:totalWithTip}).catch(e=>{});
+  var addPayment=(p)=>{
+    setPayments(prev=>[...prev,{...p,id:Date.now()+Math.random()}]);
+    setShowAddPayment(null);
+    if(p.method==="cash"&&p.cashGiven&&p.change>0){
+      // Show drawer alert briefly
+      setShowDrawer({cashGiven:p.cashGiven,changeReturn:p.change,total:p.amount});
+    }else if(p.method==="cash"){
+      // Exact cash - still open drawer
+      setShowDrawer({cashGiven:p.amount,changeReturn:0,total:p.amount});
     }
-    // Show drawer alert, then complete
-    setShowDrawer({cashGiven:parseFloat(cashGiven),changeReturn,total:totalWithTip});
-    setTimeout(()=>{
-      onComplete(paymentData);
-    },100);
   };
 
-  // CARD FLOW (simulated - in real life would integrate with terminal)
-  var confirmCard=()=>{
-    var paymentData={
-      method:"card",
-      total:totalWithTip,
-      tip:tipAmount,
-      payments:[{method:"card",amount:totalWithTip}],
-    };
-    if(orderId){
-      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"card",amount:totalWithTip,tip_amount:tipAmount,taken_by:user?.name}).catch(e=>{});
-    }
-    onComplete(paymentData);
+  var removePayment=(id)=>{
+    if(!window.confirm("Remove this payment?"))return;
+    setPayments(prev=>prev.filter(p=>p.id!==id));
   };
 
-  // SPLIT FLOW
-  var confirmSplit=()=>{
-    if(Math.abs(splitTotal-totalWithTip)>0.01){alert("Split amounts don't add up to total: "+fmt(totalWithTip));return;}
-    if(parseFloat(splitCashGiven||0)<parseFloat(splitCash||0)){alert("Cash given less than cash portion");return;}
-    var paymentData={
-      method:"split",
+  var completePayment=()=>{
+    // Save payments to DB
+    payments.forEach(p=>{
+      if(orderId){
+        dbRecordPayment({
+          order_id:orderId,branch_id:branch?.id,
+          payment_method:p.method,amount:p.amount,
+          cash_given:p.cashGiven||null,change_returned:p.change||null,
+          tip_amount:p===payments[payments.length-1]?tipAmount:0,
+          taken_by:user?.name,
+        }).catch(e=>console.log("Payment save fail:",e));
+      }
+    });
+    
+    var totalCash=payments.filter(p=>p.method==="cash").reduce((s,p)=>s+p.amount,0);
+    var totalCard=payments.filter(p=>p.method==="card").reduce((s,p)=>s+p.amount,0);
+    
+    onComplete({
+      method:payments.length===1?payments[0].method:"split",
       total:totalWithTip,
       tip:tipAmount,
-      cashPart:parseFloat(splitCash),
-      cardPart:parseFloat(splitCard),
-      cashGiven:parseFloat(splitCashGiven||0),
-      changeReturn:splitChange,
-      payments:[
-        {method:"cash",amount:parseFloat(splitCash),cashGiven:parseFloat(splitCashGiven||0),changeReturned:splitChange},
-        {method:"card",amount:parseFloat(splitCard)},
-      ],
-    };
-    if(orderId){
-      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"split-cash",amount:parseFloat(splitCash),cash_given:parseFloat(splitCashGiven||0),change_returned:splitChange,taken_by:user?.name}).catch(e=>{});
-      dbRecordPayment({order_id:orderId,branch_id:branch?.id,payment_method:"split-card",amount:parseFloat(splitCard),tip_amount:tipAmount,taken_by:user?.name}).catch(e=>{});
-      dbRecordDrawer({branch_id:branch?.id,event_type:"opened-payment",staff_name:user?.name,order_id:orderId,amount:parseFloat(splitCash)}).catch(e=>{});
-    }
-    setShowDrawer({cashGiven:parseFloat(splitCashGiven||0),changeReturn:splitChange,total:parseFloat(splitCash)});
-    setTimeout(()=>onComplete(paymentData),100);
+      payments:payments,
+      totalCash,
+      totalCard,
+      // For backward compat
+      cashGiven:payments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.cashGiven||p.amount),0),
+      changeReturn:payments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.change||0),0),
+      cashPart:totalCash,
+      cardPart:totalCard,
+    });
   };
-
-  // QUICK AMOUNT BUTTONS
-  var quickAmounts=[5,10,20,50,100];
-  // Round up suggestions: total 17.44 -> suggest 20
-  var roundUp=Math.ceil(totalWithTip/5)*5;
-  if(!quickAmounts.includes(roundUp))quickAmounts.push(roundUp);
-  quickAmounts.sort((a,b)=>a-b);
 
   if(showDrawer){
-    return <DrawerOpenAlert {...showDrawer} onClose={()=>{setShowDrawer(null);}}/>;
+    return <DrawerOpenAlert {...showDrawer} onClose={()=>setShowDrawer(null)}/>;
+  }
+
+  if(showAddPayment){
+    return <AddPaymentScreen
+      mode={showAddPayment}
+      remaining={remaining}
+      onCancel={()=>setShowAddPayment(null)}
+      onSave={(p)=>addPayment(p)}
+    />;
   }
 
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:540,width:"100%",maxHeight:"92vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:560,width:"100%",maxHeight:"94vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
       
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2}}>PAYMENT</p>
-          <h2 style={{fontSize:18,fontWeight:700}}>{
-            step==="choose"?"How is customer paying?":
-            step==="cash"?"Cash Payment":
-            step==="card"?"Card Payment":
-            step==="split"?"Split Payment":""
-          }</h2>
+          <h2 style={{fontSize:18,fontWeight:700}}>Payment Ledger</h2>
         </div>
         <button onClick={onCancel} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:18}}>
+      <div style={{flex:1,overflowY:"auto",padding:14}}>
         
-        {/* Total display */}
-        <div style={{textAlign:"center",marginBottom:18,padding:"18px",background:"#fff",borderRadius:12,border:"3px solid #d4952a"}}>
-          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:5}}>TOTAL DUE</p>
-          <p style={{fontSize:46,fontWeight:700,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(totalWithTip)}</p>
-          {tipAmount>0&&<p style={{fontSize:11,color:"#7c3aed",marginTop:5}}>Includes {fmt(tipAmount)} tip</p>}
-        </div>
-
-        {/* STEP: CHOOSE PAYMENT METHOD */}
-        {step==="choose"&&<>
-          {/* Tip selector */}
-          <div style={{marginBottom:14}}>
-            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>OPTIONAL TIP</p>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
-              {[0,1,2,5,10].map(t=><button key={t} onClick={()=>setTipAmount(t)} style={{padding:"10px 4px",border:"2px solid "+(tipAmount===t?"#7c3aed":"#ede8de"),borderRadius:7,background:tipAmount===t?"#f5f3ff":"#fff",fontWeight:700,fontSize:13,cursor:"pointer",color:tipAmount===t?"#7c3aed":"#1a1208"}}>{t===0?"No tip":fmt(t)}</button>)}
+        {/* Total + Status display */}
+        <div style={{textAlign:"center",marginBottom:12,padding:"14px",background:"#fff",borderRadius:11,border:"3px solid "+(isComplete?"#059669":"#d4952a")}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:3}}>TOTAL DUE</p>
+          <p style={{fontSize:36,fontWeight:700,color:"#bf4626",fontFamily:"'Courier New',monospace",lineHeight:1,marginBottom:9}}>{fmt(totalWithTip)}</p>
+          
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,paddingTop:9,borderTop:"1px solid #ede8de"}}>
+            <div>
+              <p style={{fontSize:10,color:"#059669",fontWeight:700,letterSpacing:2}}>PAID SO FAR</p>
+              <p style={{fontSize:22,fontWeight:700,color:"#059669",fontFamily:"'Courier New',monospace"}}>{fmt(paidSoFar)}</p>
+            </div>
+            <div>
+              <p style={{fontSize:10,color:isComplete?"#059669":"#dc2626",fontWeight:700,letterSpacing:2}}>{isComplete?"COMPLETE":"REMAINING"}</p>
+              <p style={{fontSize:22,fontWeight:700,color:isComplete?"#059669":"#dc2626",fontFamily:"'Courier New',monospace"}}>{isComplete?String.fromCharCode(0x2713):fmt(remaining)}</p>
             </div>
           </div>
+        </div>
 
-          {/* Payment method buttons - HUGE */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-            <button onClick={()=>setStep("cash")} style={{padding:"30px 14px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(5,150,105,.3)",fontWeight:700}}>
-              <p style={{fontSize:48,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}</p>
-              <p style={{fontSize:16,letterSpacing:1}}>CASH</p>
+        {/* Tip selector - only when no payments yet */}
+        {payments.length===0&&<div style={{marginBottom:11,padding:11,background:"#fff",borderRadius:9,border:"1px solid #ede8de"}}>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>OPTIONAL TIP</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:5}}>
+            {[0,1,2,5,10].map(t=><button key={t} onClick={()=>setTipAmount(t)} style={{padding:"9px 4px",border:"2px solid "+(tipAmount===t?"#7c3aed":"#ede8de"),borderRadius:7,background:tipAmount===t?"#f5f3ff":"#fff",fontWeight:700,fontSize:12,cursor:"pointer",color:tipAmount===t?"#7c3aed":"#1a1208"}}>{t===0?"None":fmt(t)}</button>)}
+          </div>
+        </div>}
+
+        {/* Payment ledger */}
+        {payments.length>0&&<div style={{marginBottom:11}}>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>PAYMENTS RECEIVED ({payments.length})</p>
+          {payments.map((p,i)=><div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:"#fff",border:"2px solid "+(p.method==="cash"?"#059669":"#2563eb"),borderRadius:9,marginBottom:5}}>
+            <span style={{fontSize:24}}>{p.method==="cash"?String.fromCharCode(0xD83D,0xDCB5):String.fromCharCode(0xD83D,0xDCB3)}</span>
+            <div style={{flex:1}}>
+              <p style={{fontSize:13,fontWeight:700}}>{p.method==="cash"?"Cash":"Card"} #{i+1}: {fmt(p.amount)}</p>
+              {p.method==="cash"&&p.cashGiven&&<p style={{fontSize:10,color:"#8a8078"}}>Given {fmt(p.cashGiven)} - Change {fmt(p.change||0)}</p>}
+              {p.method==="card"&&<p style={{fontSize:10,color:"#059669",fontWeight:700}}>{String.fromCharCode(0x2713)} Approved</p>}
+            </div>
+            <button onClick={()=>removePayment(p.id)} style={{width:26,height:26,borderRadius:"50%",background:"#fee2e2",color:"#dc2626",border:"none",cursor:"pointer",fontWeight:700,fontSize:12}}>x</button>
+          </div>)}
+        </div>}
+
+        {/* Add payment buttons */}
+        {!isComplete&&<>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>ADD PAYMENT</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:11}}>
+            <button onClick={()=>setShowAddPayment("cash")} style={{padding:"22px 14px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(5,150,105,.3)",fontWeight:700}}>
+              <p style={{fontSize:38,marginBottom:4,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}</p>
+              <p style={{fontSize:14,letterSpacing:1}}>ADD CASH</p>
             </button>
-            <button onClick={()=>setStep("card")} style={{padding:"30px 14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(37,99,235,.3)",fontWeight:700}}>
-              <p style={{fontSize:48,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
-              <p style={{fontSize:16,letterSpacing:1}}>CARD</p>
+            <button onClick={()=>setShowAddPayment("card")} style={{padding:"22px 14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(37,99,235,.3)",fontWeight:700}}>
+              <p style={{fontSize:38,marginBottom:4,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
+              <p style={{fontSize:14,letterSpacing:1}}>ADD CARD</p>
             </button>
-            <button onClick={()=>{var half=(totalWithTip/2).toFixed(2);setSplitCash(half);setSplitCard(half);setStep("split");}} style={{padding:"30px 14px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 14px rgba(124,58,237,.3)",fontWeight:700}}>
-              <p style={{fontSize:32,marginBottom:8,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}+{String.fromCharCode(0xD83D,0xDCB3)}</p>
-              <p style={{fontSize:14,letterSpacing:1}}>SPLIT</p>
-            </button>
+          </div>
+          
+          {/* Quick "pay all remaining" buttons */}
+          <p style={{fontSize:10,color:"#8a8078",fontStyle:"italic",textAlign:"center",marginBottom:10}}>Or pay all remaining ({fmt(remaining)}) at once:</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:9}}>
+            <button onClick={()=>setShowAddPayment("cash")} style={{padding:"9px",background:"#fff",border:"1px solid #059669",color:"#059669",borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>All Cash {fmt(remaining)}</button>
+            <button onClick={()=>addPayment({method:"card",amount:remaining})} style={{padding:"9px",background:"#fff",border:"1px solid #2563eb",color:"#2563eb",borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>All Card {fmt(remaining)}</button>
           </div>
         </>}
 
-        {/* STEP: CASH */}
-        {step==="cash"&&<>
-          <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>AMOUNT GIVEN BY CUSTOMER</p>
-          <input type="number" step="0.01" value={cashGiven} onChange={e=>setCashGiven(e.target.value)} placeholder="0.00" autoFocus style={{width:"100%",padding:"16px 18px",border:"3px solid #d4952a",borderRadius:11,fontSize:32,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",marginBottom:8,boxSizing:"border-box"}}/>
-          
-          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>QUICK AMOUNTS</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginBottom:11}}>
-            {quickAmounts.map(v=><button key={v} onClick={()=>setCashGiven(v.toFixed(2))} style={{padding:"12px 5px",background:"#fff",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer"}}>{fmt(v)}</button>)}
-            <button onClick={()=>setCashGiven(totalWithTip.toFixed(2))} style={{padding:"12px 5px",background:"#d4952a",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer",gridColumn:"span 3"}}>Exact: {fmt(totalWithTip)}</button>
-          </div>
+        {/* Complete button */}
+        {isComplete&&<button onClick={completePayment} style={{width:"100%",padding:"18px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:11,fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px rgba(5,150,105,.4)",letterSpacing:1}}>{String.fromCharCode(0x2713)} PAYMENT COMPLETE - Place Order</button>}
+      </div>
+    </div>
+  </div>;
+}
 
-          {parseFloat(cashGiven||0)>0&&<div style={{padding:"18px",background:parseFloat(cashGiven)>=totalWithTip?"#d1fae5":"#fee2e2",borderRadius:11,border:"3px solid "+(parseFloat(cashGiven)>=totalWithTip?"#059669":"#dc2626"),marginBottom:11,textAlign:"center"}}>
-            {parseFloat(cashGiven)>=totalWithTip?<>
-              <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:2,marginBottom:5}}>CHANGE TO RETURN</p>
-              <p style={{fontSize:46,fontWeight:700,color:"#059669",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(changeReturn)}</p>
+// ============================================================
+// ADD PAYMENT SCREEN - amount entry with number pad
+// ============================================================
+function AddPaymentScreen({mode,remaining,onCancel,onSave}){
+  var [amount,setAmount]=useState(remaining.toFixed(2));
+  var [cashGiven,setCashGiven]=useState("");
+  var [activeField,setActiveField]=useState("amount"); // "amount" or "cashGiven"
+  
+  var amountNum=parseFloat(amount)||0;
+  var cashGivenNum=parseFloat(cashGiven)||0;
+  var change=Math.max(0,cashGivenNum-amountNum);
+  
+  var canSave=()=>{
+    if(!amountNum||amountNum<=0)return false;
+    if(amountNum>remaining+0.01)return false;
+    if(mode==="cash"&&cashGivenNum<amountNum)return false;
+    return true;
+  };
+
+  var handleSave=()=>{
+    if(!canSave())return;
+    if(mode==="cash"){
+      onSave({method:"cash",amount:amountNum,cashGiven:cashGivenNum,change:change});
+    }else{
+      onSave({method:"card",amount:amountNum});
+    }
+  };
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:9100,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      
+      {/* Header */}
+      <div style={{background:mode==="cash"?"linear-gradient(135deg,#059669,#047857)":"linear-gradient(135deg,#2563eb,#1e40af)",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>ADD PAYMENT</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{mode==="cash"?(String.fromCharCode(0xD83D,0xDCB5)+" Cash Payment"):(String.fromCharCode(0xD83D,0xDCB3)+" Card Payment")}</h2>
+        </div>
+        <button onClick={onCancel} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:14}}>
+        
+        {/* Remaining amount info */}
+        <div style={{padding:"9px 14px",background:"#fef3c7",borderRadius:7,marginBottom:11,textAlign:"center",fontSize:12,fontWeight:700,color:"#92400e"}}>
+          Remaining to pay: {fmt(remaining)}
+        </div>
+
+        {/* AMOUNT field */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>HOW MUCH {mode==="cash"?"CASH":"CARD"}?</p>
+        <div onClick={()=>setActiveField("amount")} style={{padding:"14px",background:"#fff",borderRadius:11,border:activeField==="amount"?"3px solid #d4952a":"2px solid #ede8de",marginBottom:9,fontSize:36,fontWeight:700,textAlign:"center",fontFamily:"'Courier New',monospace",color:"#1a1208",cursor:"pointer"}}>
+          {String.fromCharCode(0xA3)}{amount||"0.00"}
+        </div>
+
+        {/* Quick amounts */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>QUICK AMOUNTS</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:9}}>
+          {[5,10,20,50,100,remaining].filter((v,i,arr)=>arr.indexOf(v)===i).map(v=><button key={v} onClick={()=>{setAmount(v.toFixed(2));setActiveField("amount");}} style={{padding:"10px 4px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>{fmt(v)}</button>)}
+        </div>
+        <button onClick={()=>{setAmount(remaining.toFixed(2));setActiveField("amount");}} style={{width:"100%",padding:"10px",background:"#d4952a",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:11}}>Pay All Remaining: {fmt(remaining)}</button>
+
+        {/* Cash given field - only for cash payments */}
+        {mode==="cash"&&<>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>CUSTOMER GAVE</p>
+          <div onClick={()=>setActiveField("cashGiven")} style={{padding:"14px",background:"#fff",borderRadius:11,border:activeField==="cashGiven"?"3px solid #d4952a":"2px solid #ede8de",marginBottom:9,fontSize:32,fontWeight:700,textAlign:"center",fontFamily:"'Courier New',monospace",color:"#1a1208",cursor:"pointer"}}>
+            {String.fromCharCode(0xA3)}{cashGiven||"0.00"}
+          </div>
+          
+          {/* Quick cash given amounts */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4,marginBottom:9}}>
+            {[5,10,20,50,100].map(v=><button key={v} onClick={()=>{setCashGiven(v.toFixed(2));setActiveField("cashGiven");}} style={{padding:"8px 2px",background:"#fff",border:"2px solid #ede8de",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{fmt(v)}</button>)}
+          </div>
+          <button onClick={()=>{setCashGiven(amountNum.toFixed(2));setActiveField("cashGiven");}} style={{width:"100%",padding:"8px",background:"#fff",border:"2px solid #059669",color:"#059669",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:9}}>Exact Amount: {fmt(amountNum)}</button>
+          
+          {/* Change display */}
+          {cashGivenNum>0&&amountNum>0&&<div style={{padding:"14px",background:cashGivenNum>=amountNum?"#d1fae5":"#fee2e2",borderRadius:11,border:"3px solid "+(cashGivenNum>=amountNum?"#059669":"#dc2626"),marginBottom:9,textAlign:"center"}}>
+            {cashGivenNum>=amountNum?<>
+              <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:2,marginBottom:4}}>CHANGE TO RETURN</p>
+              <p style={{fontSize:34,fontWeight:700,color:"#059669",fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(change)}</p>
             </>:<>
-              <p style={{fontSize:11,color:"#991b1b",fontWeight:700,letterSpacing:2,marginBottom:5}}>INSUFFICIENT</p>
-              <p style={{fontSize:24,fontWeight:700,color:"#dc2626"}}>Need {fmt(totalWithTip-parseFloat(cashGiven))} more</p>
+              <p style={{fontSize:11,color:"#991b1b",fontWeight:700,letterSpacing:2,marginBottom:4}}>INSUFFICIENT</p>
+              <p style={{fontSize:18,fontWeight:700,color:"#dc2626"}}>Need {fmt(amountNum-cashGivenNum)} more</p>
             </>}
           </div>}
-
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
-            <button disabled={!cashGiven||parseFloat(cashGiven)<totalWithTip} onClick={confirmCash} style={{flex:2,padding:"14px",background:!cashGiven||parseFloat(cashGiven)<totalWithTip?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:!cashGiven||parseFloat(cashGiven)<totalWithTip?"not-allowed":"pointer"}}>{EM.check} Confirm & Open Drawer</button>
-          </div>
         </>}
 
-        {/* STEP: CARD */}
-        {step==="card"&&<>
-          <div style={{padding:30,background:"#fff",borderRadius:11,marginBottom:14,textAlign:"center",border:"2px dashed #2563eb"}}>
-            <p style={{fontSize:48,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
-            <p style={{fontSize:14,color:"#1a1208",fontWeight:700,marginBottom:5}}>Insert / Tap card on terminal</p>
-            <p style={{fontSize:12,color:"#8a8078"}}>Customer should follow prompts on card terminal</p>
-          </div>
+        {/* Card flow */}
+        {mode==="card"&&<div style={{padding:18,background:"#dbeafe",borderRadius:11,marginBottom:9,textAlign:"center",border:"2px dashed #2563eb"}}>
+          <p style={{fontSize:36,marginBottom:6}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
+          <p style={{fontSize:14,fontWeight:700,color:"#1e40af",marginBottom:3}}>Charge {fmt(amountNum)} on card terminal</p>
+          <p style={{fontSize:11,color:"#3b82f6"}}>Customer: insert/tap card on terminal</p>
+        </div>}
 
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
-            <button onClick={confirmCard} style={{flex:2,padding:"14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{EM.check} Card Approved</button>
-          </div>
-        </>}
+        {/* Number pad */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>NUMBER PAD</p>
+        <NumberPad
+          value={activeField==="amount"?amount:cashGiven}
+          onChange={(v)=>{if(activeField==="amount")setAmount(v);else setCashGiven(v);}}
+          onSubmit={handleSave}
+        />
+      </div>
 
-        {/* STEP: SPLIT */}
-        {step==="split"&&<>
-          <p style={{fontSize:12,color:"#8a8078",marginBottom:11,fontStyle:"italic"}}>Split between cash and card. Total must equal {fmt(totalWithTip)}.</p>
-          
-          <div style={{padding:"12px",background:"#d1fae5",borderRadius:9,marginBottom:9,borderLeft:"3px solid #059669"}}>
-            <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB5)} CASH PORTION</p>
-            <input type="number" step="0.01" value={splitCash} onChange={e=>setSplitCash(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"11px",border:"2px solid #059669",borderRadius:7,fontSize:18,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",marginBottom:6,boxSizing:"border-box"}}/>
-            <p style={{fontSize:10,color:"#065f46",marginBottom:3}}>Cash given:</p>
-            <input type="number" step="0.01" value={splitCashGiven} onChange={e=>setSplitCashGiven(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"9px",border:"1px solid #059669",borderRadius:6,fontSize:14,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",boxSizing:"border-box"}}/>
-            {splitChange>0&&<p style={{fontSize:11,color:"#059669",fontWeight:700,marginTop:4}}>Change: {fmt(splitChange)}</p>}
-          </div>
-
-          <div style={{padding:"12px",background:"#dbeafe",borderRadius:9,marginBottom:11,borderLeft:"3px solid #2563eb"}}>
-            <p style={{fontSize:11,color:"#1e3a8a",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB3)} CARD PORTION</p>
-            <input type="number" step="0.01" value={splitCard} onChange={e=>setSplitCard(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"11px",border:"2px solid #2563eb",borderRadius:7,fontSize:18,fontWeight:700,textAlign:"right",fontFamily:"'Courier New',monospace",boxSizing:"border-box"}}/>
-          </div>
-
-          <div style={{padding:"11px",background:Math.abs(splitTotal-totalWithTip)<0.01?"#d1fae5":"#fee2e2",borderRadius:9,marginBottom:11,textAlign:"center",border:"2px solid "+(Math.abs(splitTotal-totalWithTip)<0.01?"#059669":"#dc2626")}}>
-            <p style={{fontSize:11,fontWeight:700,letterSpacing:1,color:Math.abs(splitTotal-totalWithTip)<0.01?"#065f46":"#991b1b"}}>SPLIT TOTAL: {fmt(splitTotal)} of {fmt(totalWithTip)}</p>
-            {Math.abs(splitTotal-totalWithTip)>=0.01&&<p style={{fontSize:11,color:"#dc2626",marginTop:3,fontWeight:700}}>Difference: {fmt(splitTotal-totalWithTip)}</p>}
-          </div>
-
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>setStep("choose")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"< Back"}</button>
-            <button onClick={confirmSplit} disabled={Math.abs(splitTotal-totalWithTip)>=0.01} style={{flex:2,padding:"14px",background:Math.abs(splitTotal-totalWithTip)>=0.01?"#9ca3af":"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:Math.abs(splitTotal-totalWithTip)>=0.01?"not-allowed":"pointer"}}>{EM.check} Confirm Split Payment</button>
-          </div>
-        </>}
+      {/* Action buttons */}
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>Cancel</button>
+        <button onClick={handleSave} disabled={!canSave()} style={{flex:2,padding:"15px",background:!canSave()?"#9ca3af":(mode==="cash"?"linear-gradient(135deg,#059669,#10b981)":"linear-gradient(135deg,#2563eb,#3b82f6)"),color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:!canSave()?"not-allowed":"pointer"}}>{mode==="cash"?(String.fromCharCode(0x2713)+" Add Cash & Open Drawer"):(String.fromCharCode(0x2713)+" Card Approved")}</button>
       </div>
     </div>
   </div>;
