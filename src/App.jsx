@@ -6182,7 +6182,6 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   }),[type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
   var [showPayment,setShowPayment]=useState(false);
-  var [pendingOrderForPayment,setPendingOrderForPayment]=useState(null);
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
   var [lastOrder,setLastOrder]=useState(null);
