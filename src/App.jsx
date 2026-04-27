@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -2916,6 +2916,273 @@ function TableEditor({table,onSave,onClose,existingTables}){
   </div>;
 }
 
+// ============================================================
+// EXPENSE FORM - add or edit an expense
+// ============================================================
+function ExpenseForm({categories,branch,user,editing,onCancel,onSave}){
+  var [amount,setAmount]=useState(editing?String(editing.amount):"");
+  var [categoryId,setCategoryId]=useState(editing?editing.category_id:(categories[0]?.id||""));
+  var [description,setDescription]=useState(editing?editing.description:"");
+  var [expenseDate,setExpenseDate]=useState(editing?editing.expense_date:new Date().toISOString().split("T")[0]);
+  var [photoUrl,setPhotoUrl]=useState(editing?editing.receipt_photo_url||"":"");
+  var [notes,setNotes]=useState(editing?editing.notes||"":"");
+  var [isRecurring,setIsRecurring]=useState(false);
+  var [recurringFreq,setRecurringFreq]=useState("monthly");
+  var [recurringDay,setRecurringDay]=useState(1);
+  var [submitting,setSubmitting]=useState(false);
+  var [showPhotoInput,setShowPhotoInput]=useState(false);
+  
+  var activeCats=categories.filter(c=>c.active!==false);
+  var selectedCat=activeCats.find(c=>c.id===categoryId);
+  
+  var save=()=>{
+    if(!amount||parseFloat(amount)<=0){alert("Enter a valid amount");return;}
+    if(!description.trim()){alert("Enter a description");return;}
+    if(!categoryId){alert("Select a category");return;}
+    setSubmitting(true);
+    
+    var expense={
+      id:editing?editing.id:undefined,
+      branchId:branch?.id,
+      categoryId:categoryId,
+      categoryName:selectedCat?.name||"Other",
+      amount:parseFloat(amount),
+      description:description.trim(),
+      expenseDate:expenseDate,
+      recordedBy:user?.name||"Staff",
+      recordedByRole:user?.role==="owner"||user?.role==="manager"?"manager":"staff",
+      receiptPhotoUrl:photoUrl||null,
+      notes:notes||null,
+      isRecurring:false,
+    };
+    
+    dbSaveExpense(expense).then(r=>{
+      if(r.error){alert("Failed: "+JSON.stringify(r.error));setSubmitting(false);return;}
+      // If user wants this to be recurring, also save a recurring template
+      if(isRecurring){
+        dbSaveRecurring({
+          branchId:branch?.id,
+          categoryId:categoryId,
+          categoryName:selectedCat?.name||"Other",
+          amount:parseFloat(amount),
+          description:description.trim(),
+          frequency:recurringFreq,
+          dayOfMonth:recurringDay,
+          startDate:expenseDate,
+          notes:"Auto-generated from expense "+(r.data?.id||""),
+        }).catch(e=>console.log("Recurring save fail:",e));
+      }
+      setSubmitting(false);
+      onSave(r.data);
+    }).catch(e=>{
+      setSubmitting(false);
+      alert("Error: "+e.message);
+    });
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:540,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>FINANCE</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{editing?"Edit Expense":"Add Expense"}</h2>
+        </div>
+        <button onClick={onCancel} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        {/* Amount */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>AMOUNT (REQUIRED)</p>
+        <input type="number" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00" autoFocus style={{width:"100%",padding:"14px",border:"3px solid #dc2626",borderRadius:9,fontSize:24,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"right",marginBottom:11,boxSizing:"border-box"}}/>
+        
+        {/* Category */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>CATEGORY (REQUIRED)</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:11}}>
+          {activeCats.map(c=><button key={c.id} onClick={()=>setCategoryId(c.id)} style={{padding:"10px",background:categoryId===c.id?c.color:"#fff",color:categoryId===c.id?"#fff":"#1a1208",border:"2px solid "+(categoryId===c.id?c.color:"#ede8de"),borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:18}}>{c.icon||String.fromCharCode(0xD83D,0xDCDD)}</span>
+            <span>{c.name}</span>
+          </button>)}
+        </div>
+        
+        {/* Description */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DESCRIPTION (REQUIRED)</p>
+        <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="What is this expense for?" style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,marginBottom:11,boxSizing:"border-box"}}/>
+        
+        {/* Date */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DATE</p>
+        <input type="date" value={expenseDate} max={new Date().toISOString().split("T")[0]} onChange={e=>setExpenseDate(e.target.value)} style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,marginBottom:11,boxSizing:"border-box"}}/>
+        
+        {/* Receipt photo */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>RECEIPT PHOTO (OPTIONAL)</p>
+        {!showPhotoInput?<button onClick={()=>setShowPhotoInput(true)} style={{width:"100%",padding:"11px",background:"#fff",border:"2px dashed #d4952a",color:"#d4952a",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCF7)} Add Receipt Photo URL</button>:<>
+          <input value={photoUrl} onChange={e=>setPhotoUrl(e.target.value)} placeholder="https://..." style={{width:"100%",padding:"11px",border:"2px solid #d4952a",borderRadius:7,fontSize:12,marginBottom:5,boxSizing:"border-box"}}/>
+          <p style={{fontSize:10,color:"#8a8078",marginBottom:11,fontStyle:"italic"}}>Paste a URL of the receipt photo (upload to Imgur, Google Drive, etc.)</p>
+        </>}
+        
+        {/* Notes */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>NOTES (OPTIONAL)</p>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Additional notes..." rows={2} style={{width:"100%",padding:"10px",border:"2px solid #ede8de",borderRadius:7,fontSize:12,fontFamily:"inherit",resize:"vertical",marginBottom:11,boxSizing:"border-box"}}/>
+        
+        {/* Recurring toggle */}
+        {!editing&&<div style={{padding:11,background:"#fff",borderRadius:7,border:"2px solid #ede8de",marginBottom:11}}>
+          <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer"}}>
+            <input type="checkbox" checked={isRecurring} onChange={e=>setIsRecurring(e.target.checked)} style={{width:18,height:18,cursor:"pointer"}}/>
+            <span style={{fontWeight:700,fontSize:13}}>{String.fromCharCode(0xD83D,0xDD04)} Make this a recurring expense</span>
+          </label>
+          {isRecurring&&<div style={{marginTop:9,padding:9,background:"#f7f3ee",borderRadius:6}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+              <div>
+                <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>FREQUENCY</p>
+                <select value={recurringFreq} onChange={e=>setRecurringFreq(e.target.value)} className="field" style={{padding:"7px 9px",fontSize:12}}>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              {recurringFreq==="monthly"&&<div>
+                <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>DAY OF MONTH</p>
+                <input type="number" min="1" max="28" value={recurringDay} onChange={e=>setRecurringDay(parseInt(e.target.value)||1)} className="field" style={{padding:"7px 9px",fontSize:12}}/>
+              </div>}
+            </div>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:5,fontStyle:"italic"}}>This expense will auto-create on the schedule.</p>
+          </div>}
+        </div>}
+      </div>
+      
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onCancel} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+        <button onClick={save} disabled={submitting||!amount||!description.trim()||!categoryId} style={{flex:2,padding:"14px",background:submitting||!amount||!description.trim()||!categoryId?"#9ca3af":"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:submitting?"not-allowed":"pointer"}}>{submitting?"Saving...":(String.fromCharCode(0x2713)+" Save Expense")}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// CATEGORY MANAGER - add/edit/delete custom expense categories
+// ============================================================
+function CategoryManager({categories,branch,onClose,onUpdate,push}){
+  var [list,setList]=useState(categories);
+  var [editing,setEditing]=useState(null);
+  var [showAdd,setShowAdd]=useState(false);
+  
+  var emptyCategory={name:"",icon:"",color:"#bf4626",description:""};
+  var [formCat,setFormCat]=useState(emptyCategory);
+  
+  var icons=[String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),String.fromCharCode(0xD83C,0xDFE0),String.fromCharCode(0xD83E,0xDD58),String.fromCharCode(0xD83D,0xDCA1),String.fromCharCode(0xD83D,0xDCDE),String.fromCharCode(0xD83D,0xDD27),String.fromCharCode(0xD83E,0xDDF9),String.fromCharCode(0xD83D,0xDCE2),String.fromCharCode(0xD83D,0xDEE1,0xFE0F),String.fromCharCode(0xD83D,0xDCDD),String.fromCharCode(0xD83D,0xDCB3),String.fromCharCode(0xD83D,0xDED2),String.fromCharCode(0xD83D,0xDE9A),String.fromCharCode(0xD83D,0xDD0C),String.fromCharCode(0xD83D,0xDCDA),String.fromCharCode(0xD83C,0xDF7D,0xFE0F)];
+  var colors=["#dc2626","#7c3aed","#059669","#d97706","#2563eb","#0891b2","#0d9488","#ea580c","#1e40af","#6b7280","#bf4626","#84cc16","#f59e0b","#ec4899","#6366f1","#10b981"];
+  
+  var startEdit=(c)=>{
+    setEditing(c);
+    setFormCat({name:c.name,icon:c.icon||"",color:c.color||"#bf4626",description:c.description||""});
+    setShowAdd(true);
+  };
+  
+  var startAdd=()=>{
+    setEditing(null);
+    setFormCat({...emptyCategory,icon:icons[0],color:colors[0]});
+    setShowAdd(true);
+  };
+  
+  var saveCategory=()=>{
+    if(!formCat.name.trim()){alert("Enter a category name");return;}
+    var payload={
+      id:editing?editing.id:undefined,
+      branchId:null, // global for now
+      name:formCat.name.trim(),
+      icon:formCat.icon,
+      color:formCat.color,
+      description:formCat.description,
+      displayOrder:editing?editing.display_order:list.length+1,
+    };
+    dbSaveExpenseCat(payload).then(r=>{
+      if(r.error){alert("Failed: "+JSON.stringify(r.error));return;}
+      var newList;
+      if(editing){
+        newList=list.map(c=>c.id===editing.id?r.data:c);
+      }else{
+        newList=[...list,r.data];
+      }
+      setList(newList);
+      onUpdate(newList);
+      setShowAdd(false);
+      setEditing(null);
+      push&&push({title:editing?"Category updated":"Category added",body:formCat.name,color:formCat.color});
+    });
+  };
+  
+  var deleteCat=(c)=>{
+    if(!window.confirm("Delete category \""+c.name+"\"? Existing expenses will keep their category name but you cannot use this category for new expenses."))return;
+    dbDeleteExpenseCat(c.id).then(()=>{
+      var newList=list.filter(x=>x.id!==c.id);
+      setList(newList);
+      onUpdate(newList);
+      push&&push({title:"Category deleted",body:c.name,color:"#dc2626"});
+    });
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:600,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>FINANCE</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCC1)} Manage Expense Categories</h2>
+        </div>
+        <button onClick={onClose} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        {!showAdd?<>
+          <button onClick={startAdd} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:11}}>{String.fromCharCode(0x2B)} Add New Category</button>
+          
+          <div>
+            {list.filter(c=>c.active!==false).map(c=><div key={c.id} style={{padding:11,border:"2px solid #ede8de",borderRadius:9,marginBottom:6,display:"flex",alignItems:"center",gap:10,borderLeft:"5px solid "+(c.color||"#bf4626")}}>
+              <span style={{fontSize:24}}>{c.icon||String.fromCharCode(0xD83D,0xDCDD)}</span>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:700}}>{c.name}</p>
+                {c.description&&<p style={{fontSize:11,color:"#8a8078"}}>{c.description}</p>}
+              </div>
+              <button onClick={()=>startEdit(c)} style={{padding:"5px 9px",background:"#fef3c7",color:"#92400e",border:"none",borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x270F,0xFE0F)} Edit</button>
+              <button onClick={()=>deleteCat(c)} style={{padding:"5px 9px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDD1,0xFE0F)}</button>
+            </div>)}
+          </div>
+        </>:<>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:11}}>{editing?"Edit Category":"New Category"}</h3>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>NAME</p>
+          <input value={formCat.name} onChange={e=>setFormCat({...formCat,name:e.target.value})} placeholder="e.g., Pest Control" autoFocus style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DESCRIPTION (OPTIONAL)</p>
+          <input value={formCat.description} onChange={e=>setFormCat({...formCat,description:e.target.value})} placeholder="What types of expenses go here?" style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>ICON</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:5,marginBottom:11}}>
+            {icons.map((ic,i)=><button key={i} onClick={()=>setFormCat({...formCat,icon:ic})} style={{padding:"9px",fontSize:18,background:formCat.icon===ic?formCat.color:"#fff",border:"2px solid "+(formCat.icon===ic?formCat.color:"#ede8de"),borderRadius:6,cursor:"pointer"}}>{ic}</button>)}
+          </div>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>COLOR</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:5,marginBottom:11}}>
+            {colors.map(c=><button key={c} onClick={()=>setFormCat({...formCat,color:c})} style={{padding:"14px",background:c,border:"3px solid "+(formCat.color===c?"#1a1208":"transparent"),borderRadius:6,cursor:"pointer"}}/>)}
+          </div>
+          
+          <div style={{padding:11,background:"#fff",borderRadius:7,border:"2px solid "+formCat.color,marginBottom:11,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:24}}>{formCat.icon||String.fromCharCode(0xD83D,0xDCDD)}</span>
+            <div>
+              <p style={{fontSize:13,fontWeight:700}}>{formCat.name||"Preview"}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{formCat.description||"Description will appear here"}</p>
+            </div>
+          </div>
+          
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>{setShowAdd(false);setEditing(null);}} style={{flex:1,padding:"13px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+            <button onClick={saveCategory} style={{flex:2,padding:"13px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2713)} Save Category</button>
+          </div>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations,user}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
@@ -2944,6 +3211,16 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [refundOrder,setRefundOrder]=useState(null);
   var [shiftsList,setShiftsList]=useState([]);
   var [shiftsLoading,setShiftsLoading]=useState(false);
+  // Finance state
+  var [expenses,setExpenses]=useState([]);
+  var [expenseCategories,setExpenseCategories]=useState([]);
+  var [recurringExpenses,setRecurringExpenses]=useState([]);
+  var [financeLoading,setFinanceLoading]=useState(false);
+  var [financeFromDate,setFinanceFromDate]=useState(()=>{var d=new Date();d.setDate(1);return d.toISOString().split("T")[0];});
+  var [financeToDate,setFinanceToDate]=useState(()=>new Date().toISOString().split("T")[0]);
+  var [showAddExpense,setShowAddExpense]=useState(false);
+  var [showCategoryManager,setShowCategoryManager]=useState(false);
+  var [editingExpense,setEditingExpense]=useState(null);
 
   // Load shifts when shifts tab is active
   useEffect(()=>{
@@ -2956,6 +3233,25 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[tab,branch?.id]);
+
+  // Load finance data when finance tab is active
+  useEffect(()=>{
+    if(tab==="finance"){
+      setFinanceLoading(true);
+      Promise.all([
+        dbFetchExpenseCats(branch?.id||null),
+        dbFetchExpenses(branch?.id||null,financeFromDate,financeToDate),
+        dbFetchRecurring(branch?.id||null),
+      ]).then(([cats,exp,rec])=>{
+        setExpenseCategories(cats||[]);
+        setExpenses(exp||[]);
+        setRecurringExpenses(rec||[]);
+        setFinanceLoading(false);
+      }).catch(e=>{console.log("Finance load failed:",e);setFinanceLoading(false);});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab,branch?.id,financeFromDate,financeToDate]);
+
   var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
   var [holidays,setHolidays]=useState({}); // { branchId: [{ id, holiday_date, ... }] }
   var [hoursConfig,setHoursConfig]=useState({}); // { branchId: { use_per_service_hours, ... } }
@@ -3230,7 +3526,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   
   // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
   var searchedOrders=(()=>{
@@ -3308,6 +3604,33 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       }
       // Note: Auto-print removed - print prompt now appears in the flow itself
     }}/>}
+    
+    {showAddExpense&&<ExpenseForm
+      categories={expenseCategories}
+      branch={branch}
+      user={user}
+      editing={editingExpense}
+      onCancel={()=>{setShowAddExpense(false);setEditingExpense(null);}}
+      onSave={(saved)=>{
+        if(editingExpense){
+          setExpenses(es=>es.map(x=>x.id===saved.id?saved:x));
+        }else{
+          setExpenses(es=>[saved,...es]);
+        }
+        setShowAddExpense(false);
+        setEditingExpense(null);
+        push&&push({title:"Expense saved",body:saved.description+" - "+fmt(saved.amount),color:"#dc2626"});
+      }}
+    />}
+    
+    {showCategoryManager&&<CategoryManager
+      categories={expenseCategories}
+      branch={branch}
+      onClose={()=>setShowCategoryManager(false)}
+      onUpdate={(cats)=>setExpenseCategories(cats)}
+      push={push}
+    />}
+    
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
     <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":(k==="settings"?"#7c3aed":"#ede8de"),background:tab===k?"#1a1208":(k==="settings"?"#f5f3ff":"#fff"),color:tab===k?"#fff":(k==="settings"?"#7c3aed":"#1a1208"),cursor:"pointer",flexShrink:0}}>{k==="settings"?String.fromCharCode(0x2699,0xFE0F)+" ":""}{l}</button>)}</div>
@@ -4097,6 +4420,169 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
 
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
+    {tab==="finance"&&(()=>{
+      // Calculate totals from orders + expenses for selected period
+      var fromDateOnly=financeFromDate;
+      var toDateOnly=financeToDate;
+      var periodOrders=fil.filter(o=>{
+        try{
+          var d=new Date(o.placedAt||o.createdAt||0).toISOString().split("T")[0];
+          return d>=fromDateOnly&&d<=toDateOnly&&o.status!=="cancelled";
+        }catch(e){return false;}
+      });
+      var totalRevenue=periodOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+      var totalExpenses=expenses.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+      var profit=totalRevenue-totalExpenses;
+      var profitMargin=totalRevenue>0?(profit/totalRevenue)*100:0;
+      
+      // Group expenses by category
+      var expensesByCategory={};
+      expenses.forEach(e=>{
+        var cat=e.category_name||"Other";
+        if(!expensesByCategory[cat])expensesByCategory[cat]={name:cat,total:0,count:0,items:[]};
+        expensesByCategory[cat].total+=parseFloat(e.amount||0);
+        expensesByCategory[cat].count++;
+        expensesByCategory[cat].items.push(e);
+      });
+      var catBreakdown=Object.values(expensesByCategory).sort((a,b)=>b.total-a.total);
+      
+      // Income breakdown by order type
+      var incomeByType={};
+      periodOrders.forEach(o=>{
+        var t=o.type||"other";
+        if(!incomeByType[t])incomeByType[t]={name:t,total:0,count:0};
+        incomeByType[t].total+=parseFloat(o.total||0);
+        incomeByType[t].count++;
+      });
+      var incomeBreakdown=Object.values(incomeByType).sort((a,b)=>b.total-a.total);
+      
+      var formatDate=(d)=>{try{return new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}catch(e){return d;}};
+      var todayStr=new Date().toISOString().split("T")[0];
+      var setQuickRange=(type)=>{
+        var to=new Date();
+        var from=new Date();
+        if(type==="today"){from=new Date();}
+        else if(type==="week"){from.setDate(from.getDate()-6);}
+        else if(type==="month"){from=new Date(from.getFullYear(),from.getMonth(),1);}
+        else if(type==="quarter"){var q=Math.floor(from.getMonth()/3);from=new Date(from.getFullYear(),q*3,1);}
+        else if(type==="year"){from=new Date(from.getFullYear(),0,1);}
+        else if(type==="lastmonth"){from=new Date(from.getFullYear(),from.getMonth()-1,1);to=new Date(from.getFullYear(),from.getMonth()+1,0);}
+        setFinanceFromDate(from.toISOString().split("T")[0]);
+        setFinanceToDate(to.toISOString().split("T")[0]);
+      };
+      
+      return <div>
+        {/* Header banner */}
+        <div className="card" style={{padding:14,marginBottom:11,background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff"}}>
+          <h3 style={{fontSize:17,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB0)} Finance & Profit/Loss</h3>
+          <p style={{fontSize:12,opacity:.85}}>Track expenses, view P&L, and analyze profit margins for any date range.</p>
+        </div>
+        
+        {/* Date Range Picker */}
+        <div className="card" style={{padding:13,marginBottom:11}}>
+          <div style={{display:"flex",gap:7,alignItems:"end",flexWrap:"wrap",marginBottom:9}}>
+            <div>
+              <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>FROM</p>
+              <input type="date" className="field" value={financeFromDate} onChange={e=>setFinanceFromDate(e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+            </div>
+            <div>
+              <p style={{fontSize:9,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>TO</p>
+              <input type="date" className="field" value={financeToDate} max={todayStr} onChange={e=>setFinanceToDate(e.target.value)} style={{padding:"7px 9px",fontSize:12}}/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {[["today","Today"],["week","Last 7 Days"],["month","This Month"],["lastmonth","Last Month"],["quarter","This Quarter"],["year","This Year"]].map(([k,l])=><button key={k} onClick={()=>setQuickRange(k)} style={{padding:"6px 11px",borderRadius:6,fontSize:11,fontWeight:700,border:"1px solid #ede8de",background:"#fff",cursor:"pointer"}}>{l}</button>)}
+          </div>
+        </div>
+        
+        {/* Summary Cards: Income / Expenses / Profit */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:9,marginBottom:11}}>
+          <div className="card" style={{padding:14,borderLeft:"5px solid #059669"}}>
+            <p style={{fontSize:10,color:"#059669",fontWeight:700,letterSpacing:2,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB5)} INCOME</p>
+            <p style={{fontSize:24,fontWeight:700,color:"#059669",fontFamily:"'Courier New',monospace"}}>{fmt(totalRevenue)}</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>{periodOrders.length} order(s)</p>
+          </div>
+          <div className="card" style={{padding:14,borderLeft:"5px solid #dc2626"}}>
+            <p style={{fontSize:10,color:"#dc2626",fontWeight:700,letterSpacing:2,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB8)} EXPENSES</p>
+            <p style={{fontSize:24,fontWeight:700,color:"#dc2626",fontFamily:"'Courier New',monospace"}}>{fmt(totalExpenses)}</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>{expenses.length} expense(s)</p>
+          </div>
+          <div className="card" style={{padding:14,borderLeft:"5px solid "+(profit>=0?"#d4952a":"#7f1d1d"),background:profit>=0?"#fffbeb":"#fef2f2"}}>
+            <p style={{fontSize:10,color:profit>=0?"#d4952a":"#7f1d1d",fontWeight:700,letterSpacing:2,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCC8)} {profit>=0?"PROFIT":"LOSS"}</p>
+            <p style={{fontSize:24,fontWeight:700,color:profit>=0?"#d4952a":"#7f1d1d",fontFamily:"'Courier New',monospace"}}>{profit>=0?fmt(profit):"-"+fmt(Math.abs(profit))}</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>Margin: {profitMargin.toFixed(1)}%</p>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div style={{display:"flex",gap:7,marginBottom:11,flexWrap:"wrap"}}>
+          <button onClick={()=>setShowAddExpense(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0x2B)} Add Expense</button>
+          <button onClick={()=>setShowCategoryManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCC1)} Manage Categories ({expenseCategories.filter(c=>c.active).length})</button>
+        </div>
+        
+        {/* Income breakdown */}
+        <div className="card" style={{padding:14,marginBottom:11}}>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB0)} Income Breakdown</h3>
+          {incomeBreakdown.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No orders in this period</p>:
+            incomeBreakdown.map(i=><div key={i.name} style={{marginBottom:7}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+                <span style={{fontWeight:600}}>{i.name.charAt(0).toUpperCase()+i.name.slice(1)} ({i.count})</span>
+                <span style={{fontWeight:700,color:"#059669"}}>{fmt(i.total)}</span>
+              </div>
+              <div style={{height:8,background:"#f7f3ee",borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",background:"linear-gradient(90deg,#059669,#10b981)",width:totalRevenue>0?(i.total/totalRevenue*100)+"%":"0%"}}/>
+              </div>
+            </div>)
+          }
+        </div>
+        
+        {/* Expense breakdown */}
+        <div className="card" style={{padding:14,marginBottom:11}}>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB8)} Expense Breakdown</h3>
+          {catBreakdown.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No expenses recorded for this period. Click "Add Expense" above to start tracking.</p>:
+            catBreakdown.map(c=><div key={c.name} style={{marginBottom:7}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+                <span style={{fontWeight:600}}>{c.name} ({c.count})</span>
+                <span style={{fontWeight:700,color:"#dc2626"}}>{fmt(c.total)}</span>
+              </div>
+              <div style={{height:8,background:"#f7f3ee",borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",background:"linear-gradient(90deg,#dc2626,#f87171)",width:totalExpenses>0?(c.total/totalExpenses*100)+"%":"0%"}}/>
+              </div>
+            </div>)
+          }
+        </div>
+        
+        {/* Recent expenses list */}
+        <div className="card" style={{padding:14,marginBottom:11}}>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCDD)} Recent Expenses ({expenses.length})</h3>
+          {financeLoading?<p style={{fontSize:12,color:"#8a8078"}}>Loading...</p>:
+           expenses.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No expenses yet for this date range.</p>:
+            <div style={{maxHeight:400,overflowY:"auto"}}>
+              {expenses.slice(0,50).map(e=>{
+                var cat=expenseCategories.find(c=>c.id===e.category_id);
+                return <div key={e.id} style={{padding:"9px 11px",border:"1px solid #ede8de",borderRadius:7,marginBottom:5,display:"flex",alignItems:"center",gap:10,borderLeft:"4px solid "+(cat?.color||"#bf4626")}}>
+                  <span style={{fontSize:22}}>{cat?.icon||String.fromCharCode(0xD83D,0xDCDD)}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:13,fontWeight:700}}>{e.description}</p>
+                    <p style={{fontSize:10,color:"#8a8078"}}>{e.category_name} - {formatDate(e.expense_date)} - by {e.recorded_by}</p>
+                  </div>
+                  <p style={{fontSize:15,fontWeight:700,color:"#dc2626",fontFamily:"'Courier New',monospace",whiteSpace:"nowrap"}}>{fmt(e.amount)}</p>
+                  <button onClick={()=>{
+                    if(window.confirm("Delete this expense?")){
+                      dbDeleteExpense(e.id).then(()=>{
+                        setExpenses(es=>es.filter(x=>x.id!==e.id));
+                        push&&push({title:"Expense deleted",body:e.description,color:"#dc2626"});
+                      });
+                    }
+                  }} style={{padding:"4px 7px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:4,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDD1,0xFE0F)}</button>
+                </div>;
+              })}
+            </div>
+          }
+        </div>
+      </div>;
+    })()}
+    
     {tab==="shifts"&&<div>
       <div className="card" style={{marginBottom:11,padding:14,background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff"}}>
         <h3 style={{fontSize:17,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF05)} Staff Shifts</h3>

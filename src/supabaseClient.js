@@ -1078,3 +1078,122 @@ export async function recordDrawerEvent(event) {
   if (error) console.error('recordDrawerEvent:', error);
   return { data: data?.[0], error };
 }
+
+// ===========================================================
+// EXPENSE TRACKING
+// ===========================================================
+
+// Categories
+export async function fetchExpenseCategories(branchId) {
+  let q = supabase.from('expense_categories').select('*').eq('active', true).order('display_order');
+  // Get global (branch_id IS NULL) and branch-specific
+  const { data, error } = await q;
+  if (error) console.error('fetchExpenseCategories:', error);
+  return data || [];
+}
+
+export async function saveExpenseCategory(category) {
+  const payload = {
+    branch_id: category.branchId || null,
+    name: category.name,
+    icon: category.icon || null,
+    color: category.color || '#bf4626',
+    description: category.description || null,
+    active: category.active !== false,
+    display_order: category.displayOrder || 0,
+  };
+  if (category.id) {
+    const { data, error } = await supabase.from('expense_categories')
+      .update(payload).eq('id', category.id).select().single();
+    return { data, error };
+  }
+  const { data, error } = await supabase.from('expense_categories')
+    .insert(payload).select().single();
+  return { data, error };
+}
+
+export async function deleteExpenseCategory(id) {
+  const { error } = await supabase.from('expense_categories')
+    .update({ active: false }).eq('id', id);
+  return { error };
+}
+
+// Expenses
+export async function fetchExpenses(branchId, fromDate, toDate) {
+  let q = supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+  if (branchId) q = q.eq('branch_id', branchId);
+  if (fromDate) q = q.gte('expense_date', fromDate);
+  if (toDate) q = q.lte('expense_date', toDate);
+  const { data, error } = await q;
+  if (error) console.error('fetchExpenses:', error);
+  return data || [];
+}
+
+export async function saveExpense(expense) {
+  const payload = {
+    branch_id: expense.branchId,
+    category_id: expense.categoryId || null,
+    category_name: expense.categoryName,
+    amount: parseFloat(expense.amount),
+    description: expense.description,
+    expense_date: expense.expenseDate || new Date().toISOString().split('T')[0],
+    recorded_by: expense.recordedBy,
+    recorded_by_role: expense.recordedByRole || 'staff',
+    receipt_photo_url: expense.receiptPhotoUrl || null,
+    is_recurring: expense.isRecurring || false,
+    recurring_id: expense.recurringId || null,
+    notes: expense.notes || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (expense.id) {
+    const { data, error } = await supabase.from('expenses')
+      .update(payload).eq('id', expense.id).select().single();
+    return { data, error };
+  }
+  const { data, error } = await supabase.from('expenses')
+    .insert(payload).select().single();
+  return { data, error };
+}
+
+export async function deleteExpense(id) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
+  return { error };
+}
+
+// Recurring expenses
+export async function fetchRecurringExpenses(branchId) {
+  let q = supabase.from('recurring_expenses').select('*').order('created_at');
+  if (branchId) q = q.eq('branch_id', branchId);
+  const { data } = await q;
+  return data || [];
+}
+
+export async function saveRecurringExpense(rec) {
+  const payload = {
+    branch_id: rec.branchId,
+    category_id: rec.categoryId || null,
+    category_name: rec.categoryName,
+    amount: parseFloat(rec.amount),
+    description: rec.description,
+    frequency: rec.frequency || 'monthly',
+    day_of_month: rec.dayOfMonth || 1,
+    start_date: rec.startDate,
+    end_date: rec.endDate || null,
+    active: rec.active !== false,
+    notes: rec.notes || null,
+  };
+  if (rec.id) {
+    const { data, error } = await supabase.from('recurring_expenses')
+      .update(payload).eq('id', rec.id).select().single();
+    return { data, error };
+  }
+  const { data, error } = await supabase.from('recurring_expenses')
+    .insert(payload).select().single();
+  return { data, error };
+}
+
+export async function deleteRecurringExpense(id) {
+  const { error } = await supabase.from('recurring_expenses')
+    .update({ active: false }).eq('id', id);
+  return { error };
+}
