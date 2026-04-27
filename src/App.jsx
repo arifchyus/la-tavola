@@ -2876,7 +2876,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     {refundOrder&&<RefundVoidFlow order={refundOrder} branch={branches.find(b=>b.id===refundOrder.branchId)} user={user} push={push} onClose={()=>setRefundOrder(null)} onDone={(result)=>{
       // Update order status to cancelled if void or full refund
       if(result.statusUpdate&&result.statusUpdate==="cancelled"){
+        // Update local state
         setOrders(os=>os.map(o=>o.id===refundOrder.id?{...o,status:"cancelled",voidReason:result.reason,voidApprovedBy:result.manager,voidType:result.voidType,voidAmount:result.amount}:o));
+        // Save to database so it persists on refresh
+        dbUpdateOrderStatus(refundOrder.id,"cancelled").catch(e=>console.log("Failed to save cancelled status:",e));
       }
     }}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
@@ -3014,6 +3017,11 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             </div>
             <p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{(o.items||[]).map(i=>i.name+"x"+i.qty).join(", ")}</p>
             {o.notes&&<p style={{fontSize:10,color:"#92400e",background:"#fef3c7",padding:"4px 7px",borderRadius:5,marginBottom:6,fontStyle:"italic"}}>Note: {o.notes}</p>}
+            {o.status==="cancelled"&&<div style={{padding:"7px 10px",background:"#fee2e2",border:"2px solid #dc2626",borderRadius:6,marginBottom:6}}>
+              <p style={{fontSize:11,color:"#991b1b",fontWeight:700}}>{String.fromCharCode(0x274C)} {o.voidType==="refund"?"REFUNDED":(o.voidType==="partial-refund"?"PARTIALLY REFUNDED":"VOIDED")}{o.voidAmount?" - "+fmt(o.voidAmount):""}</p>
+              {o.voidReason&&<p style={{fontSize:10,color:"#7f1d1d",marginTop:2}}>Reason: {o.voidReason}</p>}
+              {o.voidApprovedBy&&<p style={{fontSize:10,color:"#7f1d1d",marginTop:1}}>Approved by: {o.voidApprovedBy}</p>}
+            </div>}
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
               {allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
             </div>
