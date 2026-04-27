@@ -7044,7 +7044,7 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     {/* Header */}
     <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",borderRadius:14,padding:"15px 18px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
       <div>
-        <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2,marginBottom:3}}>POS DASHBOARD</p>
+        <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2,marginBottom:3}}>POS DASHBOARD - NEW VERSION</p>
         <h2 style={{fontSize:20,fontWeight:700,marginBottom:2}}>Welcome back, {user?.name||"Staff"}</h2>
         <p style={{fontSize:12,color:"rgba(255,255,255,.7)"}}>{branch?.name} - {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})} - {nowT()}</p>
       </div>
