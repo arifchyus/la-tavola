@@ -1191,6 +1191,173 @@ function printRefundA4(o,b){
 }
 
 // Smart refund receipt - auto-picks thermal vs A4
+// THERMAL VOUCHER RECEIPT
+function printVoucherThermal(o,b){
+  var w=window.open("","_blank","width=380,height=700");if(!w)return;
+  var voucherAmt=parseFloat(o.voidAmount||0);
+  var code=o.voucherCode||"";
+  var issued=new Date();
+  var expires=new Date();
+  expires.setDate(expires.getDate()+90);
+  var expiresStr=expires.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  var issuedStr=issued.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Voucher ${code}</title><style>
+    body{font-family:'Courier New',monospace;padding:14px;font-size:13px;max-width:320px;margin:0 auto;color:#000}
+    h2{color:#7c3aed;margin:0 0 4px;text-align:center;font-size:18px}
+    p{margin:3px 0}
+    .header{text-align:center;border-bottom:3px double #7c3aed;padding-bottom:8px;margin-bottom:8px}
+    .header p{font-size:11px;color:#666;margin:1px 0}
+    .voucher-banner{background:#7c3aed;color:#fff;padding:14px;text-align:center;margin:8px 0;border-radius:6px}
+    .voucher-banner h3{font-size:20px;margin:0;letter-spacing:3px}
+    .voucher-amount{font-size:36px;font-weight:700;color:#7c3aed;text-align:center;margin:14px 0;font-family:'Courier New',monospace}
+    .code-box{border:3px dashed #7c3aed;padding:14px;text-align:center;margin:14px 0;border-radius:8px;background:#faf5ff}
+    .code-text{font-size:42px;font-weight:700;letter-spacing:8px;color:#7c3aed;font-family:'Courier New',monospace;margin:6px 0}
+    .info-box{background:#fef3c7;border-left:4px solid #d97706;padding:8px;margin:8px 0;font-size:11px;color:#92400e}
+    .footer{text-align:center;color:#666;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
+  </style></head><body>
+    <div class="header">
+      <h2>LA TAVOLA</h2>
+      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+    </div>
+    
+    <div class="voucher-banner">
+      <h3>GIFT VOUCHER</h3>
+      <p style="font-size:11px;margin-top:4px">Goodwill Gesture from La Tavola</p>
+    </div>
+    
+    <div class="voucher-amount">${fmt(voucherAmt)}</div>
+    
+    <div class="code-box">
+      <p style="font-size:10px;color:#7c3aed;letter-spacing:2px;font-weight:700;margin:0">YOUR VOUCHER CODE</p>
+      <div class="code-text">${code}</div>
+      <p style="font-size:10px;color:#666;margin:0">Tell staff or enter at checkout</p>
+    </div>
+    
+    <table style="width:100%;font-size:12px;margin-top:10px">
+      <tr><td>Issued:</td><td style="text-align:right"><b>${issuedStr}</b></td></tr>
+      <tr><td>Expires:</td><td style="text-align:right;color:#dc2626"><b>${expiresStr}</b></td></tr>
+      <tr><td>Valid for:</td><td style="text-align:right">90 days</td></tr>
+      ${o.id?`<tr><td>Reference:</td><td style="text-align:right">${o.id}</td></tr>`:""}
+    </table>
+    
+    <div class="info-box">
+      <p style="font-weight:700;margin-bottom:3px">HOW TO USE:</p>
+      <p>- Tell staff your code at next visit</p>
+      <p>- Or enter code at online checkout</p>
+      <p>- Code can only be used ONCE</p>
+      <p>- Cannot be exchanged for cash</p>
+    </div>
+    
+    ${o.voidReason?`<div style="border:1px dashed #999;padding:7px;margin:8px 0;font-size:10px;color:#666;text-align:center"><b>Issued for:</b> ${o.voidReason}</div>`:""}
+    
+    <div class="footer">
+      <p style="font-weight:700;color:#7c3aed">${String.fromCharCode(0x2713)} VOUCHER ISSUED</p>
+      <p style="margin-top:6px">Thank you for your patience!</p>
+      <p>www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
+  var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
+  w.document.close();
+}
+
+// A4 VOUCHER RECEIPT (for delivery customers, more formal)
+function printVoucherA4(o,b){
+  var w=window.open("","_blank","width=800,height=1100");if(!w)return;
+  var voucherAmt=parseFloat(o.voidAmount||0);
+  var code=o.voucherCode||"";
+  var issued=new Date();
+  var expires=new Date();
+  expires.setDate(expires.getDate()+90);
+  var expiresStr=expires.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  var issuedStr=issued.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Voucher ${code}</title><style>
+    body{font-family:Arial,sans-serif;padding:36px;color:#1a1208;max-width:720px;margin:0 auto;font-size:14px}
+    h1{color:#7c3aed;margin:0;font-size:32px}
+    .header{display:flex;justify-content:space-between;border-bottom:4px solid #7c3aed;padding-bottom:18px;margin-bottom:18px}
+    .header-left p{margin:1px 0;font-size:12px;color:#666}
+    .header-right{text-align:right}
+    .header-right h2{color:#7c3aed;font-size:24px;margin:0;letter-spacing:2px}
+    .voucher-card{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;padding:30px;border-radius:14px;margin:22px 0;text-align:center;box-shadow:0 8px 30px rgba(124,58,237,.3)}
+    .voucher-card h2{font-size:32px;margin:0;letter-spacing:4px}
+    .voucher-card .amount{font-size:64px;font-weight:700;font-family:'Courier New',monospace;margin:14px 0;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+    .voucher-card .code{background:#fff;color:#7c3aed;padding:14px 22px;display:inline-block;border-radius:10px;font-size:36px;font-weight:700;font-family:'Courier New',monospace;letter-spacing:8px;margin-top:14px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0;padding:18px;background:#faf5ff;border-radius:11px;border:2px solid #7c3aed}
+    .info-grid h3{font-size:11px;color:#7c3aed;letter-spacing:2px;font-weight:700;margin:0 0 5px}
+    .info-grid p{margin:1px 0;font-size:14px}
+    .how-to-use{padding:18px;background:#fef3c7;border-left:5px solid #d97706;margin:14px 0;border-radius:7px}
+    .how-to-use h3{font-size:13px;color:#92400e;margin:0 0 9px;letter-spacing:1px}
+    .how-to-use ul{margin:0;padding-left:20px;font-size:13px;color:#1a1208}
+    .how-to-use li{margin:4px 0}
+    .footer{margin-top:36px;padding-top:14px;border-top:1px solid #ccc;text-align:center;color:#666;font-size:11px}
+  </style></head><body>
+    <div class="header">
+      <div class="header-left">
+        <h1>LA TAVOLA</h1>
+        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      </div>
+      <div class="header-right">
+        <h2>GIFT VOUCHER</h2>
+        <p style="margin-top:5px">${issuedStr}</p>
+        ${o.id?`<p style="font-size:11px;color:#666">Ref: ${o.id}</p>`:""}
+      </div>
+    </div>
+    
+    <div class="voucher-card">
+      <h2>GIFT VOUCHER</h2>
+      <div class="amount">${fmt(voucherAmt)}</div>
+      <p style="font-size:13px;opacity:.9;margin-bottom:5px">YOUR VOUCHER CODE</p>
+      <div class="code">${code}</div>
+    </div>
+    
+    <div class="info-grid">
+      <div>
+        <h3>VOUCHER VALUE</h3>
+        <p style="font-size:18px;font-weight:700;color:#7c3aed">${fmt(voucherAmt)}</p>
+      </div>
+      <div>
+        <h3>EXPIRES</h3>
+        <p style="font-size:14px;font-weight:700;color:#dc2626">${expiresStr}</p>
+        <p style="font-size:11px;color:#666;margin-top:3px">90 days from issue date</p>
+      </div>
+    </div>
+    
+    <div class="how-to-use">
+      <h3>HOW TO USE YOUR VOUCHER</h3>
+      <ul>
+        <li>Visit any La Tavola branch and tell staff your voucher code</li>
+        <li>Or enter the code <b>${code}</b> at online checkout</li>
+        <li>Voucher must be used in a single transaction</li>
+        <li>Cannot be exchanged for cash</li>
+        <li>Cannot be combined with other promotions</li>
+        <li>Code can only be used ONCE - keep this receipt safe</li>
+      </ul>
+    </div>
+    
+    ${o.voidReason?`<div style="padding:14px;background:#fafaf5;border-radius:9px;margin:14px 0;font-size:13px"><b>Issued for:</b> ${o.voidReason}</div>`:""}
+    
+    <div class="footer">
+      <p style="font-weight:700;color:#7c3aed;font-size:14px">Thank you for your patience and understanding!</p>
+      <p style="margin-top:6px">We look forward to welcoming you back to La Tavola.</p>
+      <p style="margin-top:9px">www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
+  var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
+  w.document.close();
+}
+
+// Smart voucher receipt - auto-picks thermal vs A4
+function printVoucherReceipt(o,b){
+  if(o.type==="delivery"){
+    printVoucherA4(o,b);
+  }else{
+    printVoucherThermal(o,b);
+  }
+}
+
 function printRefundReceipt(o,b){
   if(o.type==="delivery"){
     printRefundA4(o,b);
@@ -3134,21 +3301,12 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         setOrders(os=>os.map(o=>o.id===refundOrder.id?updatedOrder:o));
         // Save to database so it persists on refresh
         dbUpdateOrderStatus(refundOrder.id,"cancelled").catch(e=>console.log("Failed to save cancelled status:",e));
-        // AUTO-PRINT refund receipt
-        setTimeout(()=>{
-          var bb=branches.find(b=>b.id===refundOrder.branchId);
-          printRefundReceipt(updatedOrder,bb);
-        },500);
-      }else if(result.voidType==="partial-refund"){
-        // Partial refund - keep order active but log refund amount
-        var partial={...refundOrder,voidReason:result.reason,voidApprovedBy:result.manager,voidType:"partial-refund",voidAmount:result.amount};
+      }else if(result.voidType==="partial-refund"||result.voidType==="voucher"){
+        // Partial refund or voucher - keep order active but log it
+        var partial={...refundOrder,voidReason:result.reason,voidApprovedBy:result.manager,voidType:result.voidType,voidAmount:result.amount};
         setOrders(os=>os.map(o=>o.id===refundOrder.id?partial:o));
-        // AUTO-PRINT partial refund receipt
-        setTimeout(()=>{
-          var bb=branches.find(b=>b.id===refundOrder.branchId);
-          printRefundReceipt(partial,bb);
-        },500);
       }
+      // Note: Auto-print removed - print prompt now appears in the flow itself
     }}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
@@ -3285,10 +3443,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             </div>
             <p style={{fontSize:11,color:"#8a8078",marginBottom:6}}>{(o.items||[]).map(i=>i.name+"x"+i.qty).join(", ")}</p>
             {o.notes&&<p style={{fontSize:10,color:"#92400e",background:"#fef3c7",padding:"4px 7px",borderRadius:5,marginBottom:6,fontStyle:"italic"}}>Note: {o.notes}</p>}
-            {o.status==="cancelled"&&<div style={{padding:"7px 10px",background:"#fee2e2",border:"2px solid #dc2626",borderRadius:6,marginBottom:6}}>
-              <p style={{fontSize:11,color:"#991b1b",fontWeight:700}}>{String.fromCharCode(0x274C)} {o.voidType==="refund"?"REFUNDED":(o.voidType==="partial-refund"?"PARTIALLY REFUNDED":"VOIDED")}{o.voidAmount?" - "+fmt(o.voidAmount):""}</p>
-              {o.voidReason&&<p style={{fontSize:10,color:"#7f1d1d",marginTop:2}}>Reason: {o.voidReason}</p>}
-              {o.voidApprovedBy&&<p style={{fontSize:10,color:"#7f1d1d",marginTop:1}}>Approved by: {o.voidApprovedBy}</p>}
+            {(o.status==="cancelled"||o.voidType==="partial-refund"||o.voidType==="voucher")&&<div style={{padding:"7px 10px",background:o.voidType==="voucher"?"#f5f3ff":"#fee2e2",border:"2px solid "+(o.voidType==="voucher"?"#7c3aed":"#dc2626"),borderRadius:6,marginBottom:6}}>
+              <p style={{fontSize:11,color:o.voidType==="voucher"?"#5b21b6":"#991b1b",fontWeight:700}}>{o.voidType==="voucher"?String.fromCharCode(0xD83C,0xDF81)+" VOUCHER ISSUED":(String.fromCharCode(0x274C)+" "+(o.voidType==="refund"?"REFUNDED":(o.voidType==="partial-refund"?"PARTIALLY REFUNDED":"VOIDED")))}{o.voidAmount?" - "+fmt(o.voidAmount):""}</p>
+              {o.voidReason&&<p style={{fontSize:10,color:o.voidType==="voucher"?"#7c3aed":"#7f1d1d",marginTop:2}}>Reason: {o.voidReason}</p>}
+              {o.voidApprovedBy&&<p style={{fontSize:10,color:o.voidType==="voucher"?"#7c3aed":"#7f1d1d",marginTop:1}}>Approved by: {o.voidApprovedBy}</p>}
             </div>}
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
               {o.status!=="cancelled"&&allSt.filter(s=>s!==o.status&&s!=="cancelled").map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
@@ -3296,7 +3454,8 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
               <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Receipt</button>
               <button onClick={()=>printKitchenTicket(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83C,0xDF73)} Kitchen Ticket</button>
-              {(o.status==="cancelled"||o.voidType==="partial-refund")&&<button onClick={()=>printRefundReceipt(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCB0)} Refund Receipt</button>}
+              {o.voidType==="voucher"&&<button onClick={()=>printVoucherReceipt(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#7c3aed",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83C,0xDF81)} Voucher Receipt</button>}
+              {(o.status==="cancelled"||o.voidType==="partial-refund")&&o.voidType!=="voucher"&&<button onClick={()=>printRefundReceipt(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCB0)} Refund Receipt</button>}
               {o.status!=="cancelled"&&<button onClick={()=>setRefundOrder(o)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD12)} Void/Refund</button>}
             </div>
           </div>)}</div>
@@ -6465,21 +6624,72 @@ function ManagerPinPrompt({title,reason,onCancel,onApproved,branch}){
 // ============================================================
 function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
   var [step,setStep]=useState("type"); // type, pin, reason, confirm, done
-  var [voidType,setVoidType]=useState(null); // "void" or "refund" or "partial-refund"
+  var [voidType,setVoidType]=useState(null); // "void", "refund", "partial-refund", "voucher"
   var [refundAmount,setRefundAmount]=useState("");
   var [reason,setReason]=useState("");
   var [manager,setManager]=useState(null);
   var [submitting,setSubmitting]=useState(false);
+  var [voucherCode,setVoucherCode]=useState(""); // generated code
   
   var commonReasons={
     "void":["Customer changed mind","Wrong order taken","Item out of stock","Duplicate order","Staff error"],
     "refund":["Wrong order delivered","Food quality issue","Customer dissatisfied","Item missing","Cold food","Long wait time"],
     "partial-refund":["One item missing","Quality issue with item","Wrong item received","Discount not applied"],
+    "voucher":["Goodwill gesture","Quality issue","Long wait time","Service complaint","Apology for mistake","Loyalty reward"],
+  };
+  
+  // Generate 6-character voucher code (alphanumeric, exclude confusing chars 0/O/1/I)
+  var generateVoucherCode=()=>{
+    var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var code="";
+    for(var i=0;i<6;i++)code+=chars.charAt(Math.floor(Math.random()*chars.length));
+    return code;
   };
   
   var processVoid=()=>{
     setSubmitting(true);
-    var amount=voidType==="partial-refund"?parseFloat(refundAmount):parseFloat(order.total);
+    var amount=(voidType==="partial-refund"||voidType==="voucher")?parseFloat(refundAmount):parseFloat(order.total);
+    
+    // For voucher: generate code and save as discount code
+    if(voidType==="voucher"){
+      var code=generateVoucherCode();
+      setVoucherCode(code);
+      // 90 day expiry
+      var expiresDate=new Date();
+      expiresDate.setDate(expiresDate.getDate()+90);
+      // Save voucher as discount_code (type: fixed amount)
+      dbSaveCode({
+        code:code,
+        type:"fixed",
+        value:amount,
+        description:"Voucher - Order "+order.id+" - "+(reason||""),
+        minOrder:0,
+        maxUses:1,
+        uses:0,
+        expiresAt:expiresDate.toISOString(),
+        active:true,
+        firstOrderOnly:false,
+        branchIds:[],
+      }).then(r=>{
+        if(r.error){alert("Failed to save voucher: "+JSON.stringify(r.error));setSubmitting(false);return;}
+        // Also log void record
+        dbRecordVoid({
+          order_id:order.id,
+          branch_id:branch?.id||order.branchId,
+          void_type:"voucher",
+          amount:amount,
+          reason:(reason||"")+" | Voucher Code: "+code,
+          approved_by:manager?.manager_name||"Manager",
+          staff_member:user?.name||"Staff",
+        }).then(()=>{
+          setSubmitting(false);
+          push&&push({title:"VOUCHER ISSUED",body:"Code: "+code+" - "+fmt(amount),color:"#7c3aed"});
+          setStep("done");
+        }).catch(e=>{setSubmitting(false);alert("Void log error: "+e.message);});
+      }).catch(e=>{setSubmitting(false);alert("Voucher save error: "+e.message);});
+      return;
+    }
+    
     dbRecordVoid({
       order_id:order.id,
       branch_id:branch?.id||order.branchId,
@@ -6492,7 +6702,6 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
       setSubmitting(false);
       if(r.error){alert("Failed to record: "+JSON.stringify(r.error));return;}
       // For full void/refund, mark order as cancelled
-      // For partial, keep order but log refund
       var statusUpdate=voidType==="void"?"cancelled":(voidType==="refund"?"cancelled":order.status);
       if(onDone)onDone({voidType,amount,reason,manager:manager?.manager_name,statusUpdate});
       push&&push({title:voidType.toUpperCase()+" recorded",body:fmt(amount)+" - approved by "+(manager?.manager_name||"Manager"),color:"#dc2626"});
@@ -6533,10 +6742,15 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
             <p style={{fontSize:11,color:"#8a8078"}}>Refund all {fmt(order.total)} and cancel the order</p>
           </button>}
           
-          {order.paid&&<button onClick={()=>{setVoidType("partial-refund");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #d97706",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+          {order.paid&&<button onClick={()=>{setVoidType("partial-refund");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #d97706",borderRadius:9,cursor:"pointer",textAlign:"left",marginBottom:7}}>
             <p style={{fontSize:14,fontWeight:700,color:"#d97706",marginBottom:2}}>{String.fromCharCode(0xD83D,0xDCB5)} PARTIAL REFUND</p>
             <p style={{fontSize:11,color:"#8a8078"}}>Refund only some amount (eg if one dish was bad)</p>
           </button>}
+          
+          <button onClick={()=>{setVoidType("voucher");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #7c3aed",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+            <p style={{fontSize:14,fontWeight:700,color:"#7c3aed",marginBottom:2}}>{String.fromCharCode(0xD83C,0xDF81)} ISSUE VOUCHER</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Give customer a voucher code instead of cash refund (90 days valid)</p>
+          </button>
         </div>
       </div>
     </div>;
@@ -6568,9 +6782,16 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
         </div>
         
         <div style={{padding:18}}>
-          {voidType==="partial-refund"&&<>
-            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>REFUND AMOUNT (max {fmt(order.total)})</p>
-            <input type="number" step="0.01" max={order.total} value={refundAmount} onChange={e=>setRefundAmount(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"14px",border:"3px solid #d4952a",borderRadius:9,fontSize:24,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"right",marginBottom:11,boxSizing:"border-box"}}/>
+          {(voidType==="partial-refund"||voidType==="voucher")&&<>
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>{voidType==="voucher"?"VOUCHER VALUE":"REFUND AMOUNT"} (max {fmt(order.total)})</p>
+            <input type="number" step="0.01" max={order.total} value={refundAmount} onChange={e=>setRefundAmount(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"14px",border:"3px solid "+(voidType==="voucher"?"#7c3aed":"#d4952a"),borderRadius:9,fontSize:24,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"right",marginBottom:7,boxSizing:"border-box"}}/>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:11}}>
+              {[5,10,20,parseFloat(order.total).toFixed(2)].filter((v,i,a)=>a.indexOf(v)===i).map(v=><button key={v} onClick={()=>setRefundAmount(String(v))} style={{padding:"8px",background:"#fff",border:"2px solid #ede8de",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer"}}>{fmt(v)}</button>)}
+            </div>
+            {voidType==="voucher"&&<div style={{padding:"9px 11px",background:"#f5f3ff",borderRadius:7,marginBottom:11,fontSize:11,color:"#7c3aed",borderLeft:"3px solid #7c3aed"}}>
+              <p style={{fontWeight:700,marginBottom:2}}>{String.fromCharCode(0xD83C,0xDF81)} Voucher will be valid for 90 days</p>
+              <p>Expires: {(()=>{var d=new Date();d.setDate(d.getDate()+90);return d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});})()}</p>
+            </div>}
           </>}
           
           <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>QUICK REASONS</p>
@@ -6583,7 +6804,7 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
           
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>setStep("type")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
-            <button onClick={()=>setStep("confirm")} disabled={!reason||(voidType==="partial-refund"&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))} style={{flex:2,padding:"14px",background:!reason||(voidType==="partial-refund"&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))?"#9ca3af":"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:!reason?"not-allowed":"pointer"}}>Continue {String.fromCharCode(0x2192)}</button>
+            <button onClick={()=>setStep("confirm")} disabled={!reason||((voidType==="partial-refund"||voidType==="voucher")&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))} style={{flex:2,padding:"14px",background:!reason||((voidType==="partial-refund"||voidType==="voucher")&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))?"#9ca3af":(voidType==="voucher"?"linear-gradient(135deg,#7c3aed,#a855f7)":"linear-gradient(135deg,#dc2626,#991b1b)"),color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:!reason?"not-allowed":"pointer"}}>Continue {String.fromCharCode(0x2192)}</button>
           </div>
         </div>
       </div>
@@ -6592,7 +6813,7 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
   
   // STEP 4: Confirm
   if(step==="confirm"){
-    var amount=voidType==="partial-refund"?parseFloat(refundAmount||0):parseFloat(order.total);
+    var amount=(voidType==="partial-refund"||voidType==="voucher")?parseFloat(refundAmount||0):parseFloat(order.total);
     return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
       <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
         <div style={{background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",padding:"16px 20px",textAlign:"center"}}>
@@ -6623,16 +6844,58 @@ function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
     </div>;
   }
   
-  // STEP 5: Done
+  // STEP 5: Done - ask "Print receipt? Yes/No"
+  var doneAmount=(voidType==="partial-refund"||voidType==="voucher")?parseFloat(refundAmount||0):parseFloat(order.total);
+  var orderForReceipt={
+    ...order,
+    voidType:voidType,
+    voidAmount:doneAmount,
+    voidReason:reason,
+    voidApprovedBy:manager?.manager_name||"Manager",
+    voucherCode:voucherCode,
+  };
+  
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:440,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
-      <div style={{background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",padding:"22px 20px",textAlign:"center"}}>
-        <p style={{fontSize:48,marginBottom:5}}>{String.fromCharCode(0x2713)}</p>
-        <h2 style={{fontSize:20,fontWeight:700}}>{voidType.toUpperCase().replace("-"," ")} Recorded</h2>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:voidType==="voucher"?"linear-gradient(135deg,#7c3aed,#a855f7)":"linear-gradient(135deg,#059669,#047857)",color:"#fff",padding:"22px 20px",textAlign:"center"}}>
+        <p style={{fontSize:48,marginBottom:5}}>{voidType==="voucher"?String.fromCharCode(0xD83C,0xDF81):String.fromCharCode(0x2713)}</p>
+        <h2 style={{fontSize:22,fontWeight:700}}>{voidType==="voucher"?"VOUCHER ISSUED":voidType.toUpperCase().replace("-"," ")+" Recorded"}</h2>
       </div>
-      <div style={{padding:18,textAlign:"center"}}>
-        <p style={{fontSize:14,marginBottom:14}}>Logged with manager approval. {voidType==="partial-refund"?"Order remains active.":"Order has been cancelled."}</p>
-        <button onClick={onClose} style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>Done</button>
+      
+      <div style={{padding:18}}>
+        {/* Voucher code prominent display */}
+        {voidType==="voucher"&&voucherCode&&<div style={{padding:18,background:"#fff",borderRadius:11,border:"4px dashed #7c3aed",marginBottom:14,textAlign:"center"}}>
+          <p style={{fontSize:11,color:"#7c3aed",fontWeight:700,letterSpacing:2,marginBottom:6}}>VOUCHER CODE</p>
+          <p style={{fontSize:48,fontWeight:700,color:"#7c3aed",fontFamily:"'Courier New',monospace",letterSpacing:8,lineHeight:1,marginBottom:6}}>{voucherCode}</p>
+          <p style={{fontSize:13,color:"#1a1208",fontWeight:700}}>Value: {fmt(doneAmount)}</p>
+          <p style={{fontSize:11,color:"#8a8078",marginTop:5}}>Valid 90 days from today</p>
+        </div>}
+
+        {/* Summary */}
+        <div style={{padding:11,background:"#f7f3ee",borderRadius:9,marginBottom:14,fontSize:12}}>
+          <p style={{marginBottom:3}}><b>Type:</b> {voidType.toUpperCase().replace("-"," ")}</p>
+          <p style={{marginBottom:3}}><b>Amount:</b> {fmt(doneAmount)}</p>
+          <p style={{marginBottom:3}}><b>Approved by:</b> {manager?.manager_name||"Manager"}</p>
+          <p><b>Reason:</b> {reason}</p>
+        </div>
+
+        <p style={{fontSize:14,fontWeight:700,marginBottom:11,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Do you want to print a receipt?</p>
+        
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <button onClick={onClose} style={{padding:"16px",background:"#fff",border:"2px solid #ede8de",color:"#1a1208",borderRadius:11,fontWeight:700,fontSize:14,cursor:"pointer"}}>{String.fromCharCode(0x274C)} No - Skip</button>
+          <button onClick={()=>{
+            // Print appropriate receipt based on type
+            if(voidType==="voucher"){
+              printVoucherReceipt(orderForReceipt,branch);
+            }else{
+              printRefundReceipt(orderForReceipt,branch);
+            }
+            // Close after a short delay
+            setTimeout(()=>onClose(),300);
+          }} style={{padding:"16px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:11,fontWeight:700,fontSize:14,cursor:"pointer"}}>{String.fromCharCode(0x2713)} Yes - Print</button>
+        </div>
+        
+        <p style={{fontSize:10,color:"#8a8078",fontStyle:"italic",textAlign:"center",marginTop:11}}>You can reprint anytime from Admin {String.fromCharCode(0x2192)} Orders</p>
       </div>
     </div>
   </div>;
