@@ -2521,6 +2521,22 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   });
   var [menuSearch,setMenuSearch]=useState("");
   var [orderSearch,setOrderSearch]=useState("");
+  var [refundOrder,setRefundOrder]=useState(null);
+  var [shiftsList,setShiftsList]=useState([]);
+  var [shiftsLoading,setShiftsLoading]=useState(false);
+
+  // Load shifts when shifts tab is active
+  useEffect(()=>{
+    if(tab==="shifts"){
+      setShiftsLoading(true);
+      dbFetchShifts(branch?.id||null).then(data=>{
+        setShiftsList(data||[]);
+        setShiftsLoading(false);
+      }).catch(e=>{console.log("Shifts load failed:",e);setShiftsLoading(false);});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab,branch?.id]);
+  var [refundOrder,setRefundOrder]=useState(null);
   var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
   var [holidays,setHolidays]=useState({}); // { branchId: [{ id, holiday_date, ... }] }
   var [hoursConfig,setHoursConfig]=useState({}); // { branchId: { use_per_service_hours, ... } }
@@ -2795,7 +2811,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   
   // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
   var searchedOrders=(()=>{
@@ -2858,6 +2874,12 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     return result;
   })();
   return <div className="page">
+    {refundOrder&&<RefundVoidFlow order={refundOrder} branch={branches.find(b=>b.id===refundOrder.branchId)} user={user} push={push} onClose={()=>setRefundOrder(null)} onDone={(result)=>{
+      // Update order status to cancelled if void or full refund
+      if(result.statusUpdate&&result.statusUpdate==="cancelled"){
+        setOrders(os=>os.map(o=>o.id===refundOrder.id?{...o,status:"cancelled",voidReason:result.reason,voidApprovedBy:result.manager,voidType:result.voidType,voidAmount:result.amount}:o));
+      }
+    }}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
     <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":(k==="settings"?"#7c3aed":"#ede8de"),background:tab===k?"#1a1208":(k==="settings"?"#f5f3ff":"#fff"),color:tab===k?"#fff":(k==="settings"?"#7c3aed":"#1a1208"),cursor:"pointer",flexShrink:0}}>{k==="settings"?String.fromCharCode(0x2699,0xFE0F)+" ":""}{l}</button>)}</div>
@@ -2996,9 +3018,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
               {allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
             </div>
-            <div style={{display:"flex",gap:6,marginTop:4}}>
+            <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
               <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Receipt</button>
               <button onClick={()=>printKitchenTicket(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83C,0xDF73)} Kitchen Ticket</button>
+              {o.status!=="cancelled"&&<button onClick={()=>setRefundOrder(o)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD12)} Void/Refund</button>}
             </div>
           </div>)}</div>
         </div>;
@@ -3639,6 +3662,63 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
 
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}
+    {tab==="shifts"&&<div>
+      <div className="card" style={{marginBottom:11,padding:14,background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff"}}>
+        <h3 style={{fontSize:17,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF05)} Staff Shifts</h3>
+        <p style={{fontSize:12,opacity:.85}}>Track opening floats, cash sales, end-of-shift counts, and variance.</p>
+      </div>
+      
+      {shiftsLoading?<div className="card" style={{padding:30,textAlign:"center",color:"#8a8078"}}>Loading shifts...</div>:
+        shiftsList.length===0?<div className="card" style={{padding:30,textAlign:"center",color:"#8a8078"}}>
+          <p style={{fontSize:36,marginBottom:9}}>{String.fromCharCode(0xD83C,0xDF05)}</p>
+          <p style={{fontSize:14,fontWeight:700,marginBottom:4}}>No shifts recorded</p>
+          <p style={{fontSize:12}}>When staff opens a shift, it will appear here.</p>
+          <p style={{fontSize:11,marginTop:9}}>Enable "Shift Management" in Settings to require shifts.</p>
+        </div>:
+        <div>
+          {/* Active shifts */}
+          {shiftsList.filter(s=>s.status==="open").length>0&&<div style={{marginBottom:14}}>
+            <p style={{fontSize:12,color:"#059669",fontWeight:700,letterSpacing:1,marginBottom:7}}>{String.fromCharCode(0xD83D,0xDD34)} CURRENTLY OPEN ({shiftsList.filter(s=>s.status==="open").length})</p>
+            {shiftsList.filter(s=>s.status==="open").map(s=><div key={s.id} className="card" style={{padding:12,marginBottom:6,borderLeft:"6px solid #059669"}}>
+              <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                <div>
+                  <p style={{fontSize:14,fontWeight:700}}>{s.staff_name}</p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>Opened: {new Date(s.opened_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>Float: <b>{fmt(s.opening_float)}</b></p>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <p style={{fontSize:11,color:"#8a8078"}}>Cash sales: <b>{fmt(s.cash_sales)}</b></p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>Card sales: <b>{fmt(s.card_sales)}</b></p>
+                  <p style={{fontSize:13,fontWeight:700,color:"#059669"}}>Total: {fmt(parseFloat(s.cash_sales||0)+parseFloat(s.card_sales||0))}</p>
+                </div>
+              </div>
+            </div>)}
+          </div>}
+          
+          {/* Closed shifts */}
+          {shiftsList.filter(s=>s.status!=="open").length>0&&<div>
+            <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:7}}>{String.fromCharCode(0xD83D,0xDCC8)} HISTORY ({shiftsList.filter(s=>s.status!=="open").length})</p>
+            {shiftsList.filter(s=>s.status!=="open").map(s=>{
+              var variance=parseFloat(s.variance||0);
+              var vColor=Math.abs(variance)<0.5?"#059669":(Math.abs(variance)<5?"#d97706":"#dc2626");
+              return <div key={s.id} className="card" style={{padding:11,marginBottom:5,borderLeft:"4px solid "+vColor}}>
+                <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:700}}>{s.staff_name}</p>
+                    <p style={{fontSize:11,color:"#8a8078"}}>{new Date(s.opened_at).toLocaleDateString("en-GB",{day:"numeric",month:"short"})} {new Date(s.opened_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} - {s.closed_at?new Date(s.closed_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}):"open"}</p>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <p style={{fontSize:11,color:"#8a8078"}}>Expected: {fmt(s.expected_cash||0)} | Actual: {fmt(s.actual_cash||0)}</p>
+                    <p style={{fontSize:13,fontWeight:700,color:vColor}}>{variance>=0?"+":""}{fmt(variance)} {Math.abs(variance)<0.01?"(perfect)":(variance>0?"(over)":"(short)")}</p>
+                  </div>
+                </div>
+                {s.notes&&<p style={{fontSize:10,color:"#92400e",background:"#fef3c7",padding:"4px 7px",borderRadius:5,marginTop:5,fontStyle:"italic"}}>Note: {s.notes}</p>}
+              </div>;
+            })}
+          </div>}
+        </div>}
+    </div>}
+    
     {tab==="hours"&&<div>
       {hoursLoading&&<div className="card" style={{padding:30,textAlign:"center",color:"#8a8078"}}>Loading hours...</div>}
       {!hoursLoading&&branches.map(b=>{
@@ -3805,6 +3885,15 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <p style={{fontSize:10,opacity:.85,fontWeight:400,lineHeight:1.4}}>{opt.desc}</p>
           </button>)}
         </div>
+      </div>
+
+      <div className="card" style={{padding:16,marginBottom:12}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>Shift Management</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Track staff shifts with opening cash float, sales totals, and end-of-shift cash counts. When enabled, staff must open a shift before taking orders and close it at end of day.</p>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={(()=>{try{return localStorage.getItem("shifts_enabled")==="1";}catch(e){return false;}})()} onChange={e=>{try{localStorage.setItem("shifts_enabled",e.target.checked?"1":"0");push({title:e.target.checked?"Shift management enabled":"Shift management disabled",body:e.target.checked?"Staff will need to open a shift before serving":"Staff can serve without shift tracking",color:"#059669"});window.location.reload();}catch(err){}}} style={{width:18,height:18,cursor:"pointer"}}/>
+          <span style={{fontWeight:700,fontSize:13}}>Enable shift management</span>
+        </label>
       </div>
 
       <div className="card" style={{padding:16,marginBottom:12}}>
@@ -5383,6 +5472,14 @@ function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowIt
     var totalCash=payments.filter(p=>p.method==="cash").reduce((s,p)=>s+p.amount,0);
     var totalCard=payments.filter(p=>p.method==="card").reduce((s,p)=>s+p.amount,0);
     
+    // Update shift sales if shift is open
+    var shiftsOn=(()=>{try{return localStorage.getItem("shifts_enabled")==="1";}catch(e){return false;}})();
+    if(shiftsOn&&user&&branch){
+      dbFetchOpenShift(branch.id,user.name).then(s=>{
+        if(s)dbUpdateShiftSales(s.id,totalCash,totalCard,tipAmount).catch(e=>console.log("Shift update fail:",e));
+      }).catch(e=>{});
+    }
+    
     onComplete({
       method:payments.length===1?payments[0].method:"split",
       total:totalWithTip,
@@ -6025,6 +6122,450 @@ function ItemSplitComplete({customerCount,customerPayments,cart,customerItems,br
   </div>;
 }
 
+// ============================================================
+// MANAGER PIN PROMPT - reusable for void/refund authorization
+// ============================================================
+function ManagerPinPrompt({title,subtitle,branchId,onCancel,onApproved}){
+  var [pin,setPin]=useState("");
+  var [error,setError]=useState("");
+  var [verifying,setVerifying]=useState(false);
+
+  var press=k=>{
+    setError("");
+    if(k==="DEL")setPin(p=>p.slice(0,-1));
+    else if(k==="CLR")setPin("");
+    else if(k==="OK")verify();
+    else if(pin.length<8)setPin(p=>p+k);
+  };
+
+  var verify=()=>{
+    if(pin.length<4){setError("PIN must be at least 4 digits");return;}
+    setVerifying(true);
+    dbVerifyPin(pin,branchId).then(mgr=>{
+      setVerifying(false);
+      if(mgr){onApproved(mgr.manager_name);}
+      else{setError("Invalid PIN");setPin("");}
+    }).catch(e=>{setVerifying(false);setError("Verification failed - try again");setPin("");});
+  };
+
+  var pad=[["1","2","3"],["4","5","6"],["7","8","9"],["CLR","0","DEL"]];
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",borderRadius:14,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"16px 20px",textAlign:"center"}}>
+        <p style={{fontSize:32,marginBottom:6}}>{String.fromCharCode(0xD83D,0xDD12)}</p>
+        <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2,marginBottom:4}}>MANAGER AUTHORIZATION</p>
+        <h2 style={{fontSize:17,fontWeight:700,marginBottom:3}}>{title||"Enter Manager PIN"}</h2>
+        {subtitle&&<p style={{fontSize:12,opacity:.85}}>{subtitle}</p>}
+      </div>
+      <div style={{padding:20}}>
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:14}}>
+          {[0,1,2,3,4,5,6,7].map(i=><div key={i} style={{width:36,height:48,background:i<pin.length?"#1a1208":"#fff",border:"2px solid #d4952a",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#fff"}}>{i<pin.length?(String.fromCharCode(0x2022)):""}</div>)}
+        </div>
+        {error&&<p style={{textAlign:"center",color:"#dc2626",fontSize:13,fontWeight:700,marginBottom:9}}>{error}</p>}
+        {verifying&&<p style={{textAlign:"center",color:"#8a8078",fontSize:13,marginBottom:9}}>Verifying...</p>}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
+          {pad.flat().map((k,i)=>{
+            var sp=k==="DEL"?"del":k==="CLR"?"clr":null;
+            return <button key={i} onClick={()=>press(k)} disabled={verifying} style={{height:60,fontSize:20,fontWeight:700,background:sp==="del"?"linear-gradient(180deg,#fbbf24,#d97706)":sp==="clr"?"linear-gradient(180deg,#dc2626,#991b1b)":"linear-gradient(180deg,#fff,#f5f0e8)",color:sp?"#fff":"#1a1208",border:"1px solid "+(sp?"transparent":"#d4b896"),borderRadius:9,cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,.15)"}}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:6,marginTop:11}}>
+          <button onClick={onCancel} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+          <button onClick={verify} disabled={pin.length<4||verifying} style={{flex:2,padding:"14px",background:pin.length<4||verifying?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:pin.length<4||verifying?"not-allowed":"pointer"}}>{verifying?"...":(String.fromCharCode(0x2713)+" Authorize")}</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// MANAGER PIN PROMPT - reusable PIN entry for protected actions
+// ============================================================
+function ManagerPinPrompt({title,reason,onCancel,onApproved,branch}){
+  var [pin,setPin]=useState("");
+  var [error,setError]=useState("");
+  var [verifying,setVerifying]=useState(false);
+  
+  var press=(k)=>{
+    setError("");
+    if(k==="DEL"){setPin(p=>p.slice(0,-1));}
+    else if(k==="CLR"){setPin("");}
+    else if(pin.length<6){setPin(p=>p+k);}
+  };
+  
+  var verify=()=>{
+    if(pin.length<4){setError("PIN too short");return;}
+    setVerifying(true);
+    dbVerifyPin(pin,branch?.id).then(r=>{
+      setVerifying(false);
+      if(r){
+        onApproved(r);
+      }else{
+        setError("Invalid PIN");
+        setPin("");
+      }
+    }).catch(e=>{
+      setVerifying(false);
+      setError("Verification failed");
+    });
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:440,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.5)",border:"3px solid #d4952a"}}>
+      <div style={{background:"linear-gradient(135deg,#7c2d12,#9a3412)",color:"#fff",padding:"16px 20px",textAlign:"center"}}>
+        <p style={{fontSize:36,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDD12)}</p>
+        <h2 style={{fontSize:18,fontWeight:700}}>{title||"Manager Authorization Required"}</h2>
+        {reason&&<p style={{fontSize:12,opacity:.85,marginTop:5}}>{reason}</p>}
+      </div>
+      
+      <div style={{padding:18}}>
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:7,textAlign:"center"}}>ENTER MANAGER PIN</p>
+        
+        <div style={{padding:"14px",background:"#fff",borderRadius:11,border:error?"3px solid #dc2626":"3px solid #d4952a",marginBottom:11,fontSize:36,fontWeight:700,textAlign:"center",fontFamily:"'Courier New',monospace",letterSpacing:8,minHeight:32}}>
+          {pin?Array(pin.length).fill(String.fromCharCode(0x25CF)).join(""):<span style={{color:"#d4b896"}}>----</span>}
+        </div>
+        
+        {error&&<p style={{fontSize:12,color:"#dc2626",fontWeight:700,textAlign:"center",marginBottom:9}}>{String.fromCharCode(0x26A0,0xFE0F)} {error}</p>}
+        
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5,marginBottom:8}}>
+          {["1","2","3","4","5","6","7","8","9","CLR","0","DEL"].map(k=><button key={k} onClick={()=>press(k)} style={{padding:"16px 0",fontSize:22,fontWeight:700,background:k==="DEL"||k==="CLR"?"linear-gradient(180deg,#fbbf24,#d97706)":"linear-gradient(180deg,#fff,#f5f0e8)",color:k==="DEL"||k==="CLR"?"#fff":"#1a1208",border:"1px solid "+(k==="DEL"||k==="CLR"?"transparent":"#d4b896"),borderRadius:9,cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,.15)"}}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>)}
+        </div>
+        
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={onCancel} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+          <button onClick={verify} disabled={verifying||pin.length<4} style={{flex:2,padding:"14px",background:verifying||pin.length<4?"#9ca3af":"linear-gradient(135deg,#7c2d12,#9a3412)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:verifying||pin.length<4?"not-allowed":"pointer"}}>{verifying?"Verifying...":(String.fromCharCode(0xD83D,0xDD13)+" Authorize")}</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// REFUND/VOID FLOW - protected by manager PIN
+// ============================================================
+function RefundVoidFlow({order,onClose,onDone,branch,user,push}){
+  var [step,setStep]=useState("type"); // type, pin, reason, confirm, done
+  var [voidType,setVoidType]=useState(null); // "void" or "refund" or "partial-refund"
+  var [refundAmount,setRefundAmount]=useState("");
+  var [reason,setReason]=useState("");
+  var [manager,setManager]=useState(null);
+  var [submitting,setSubmitting]=useState(false);
+  
+  var commonReasons={
+    "void":["Customer changed mind","Wrong order taken","Item out of stock","Duplicate order","Staff error"],
+    "refund":["Wrong order delivered","Food quality issue","Customer dissatisfied","Item missing","Cold food","Long wait time"],
+    "partial-refund":["One item missing","Quality issue with item","Wrong item received","Discount not applied"],
+  };
+  
+  var processVoid=()=>{
+    setSubmitting(true);
+    var amount=voidType==="partial-refund"?parseFloat(refundAmount):parseFloat(order.total);
+    dbRecordVoid({
+      order_id:order.id,
+      branch_id:branch?.id||order.branchId,
+      void_type:voidType,
+      amount:amount,
+      reason:reason,
+      approved_by:manager?.manager_name||"Manager",
+      staff_member:user?.name||"Staff",
+    }).then(r=>{
+      setSubmitting(false);
+      if(r.error){alert("Failed to record: "+JSON.stringify(r.error));return;}
+      // For full void/refund, mark order as cancelled
+      // For partial, keep order but log refund
+      var statusUpdate=voidType==="void"?"cancelled":(voidType==="refund"?"cancelled":order.status);
+      if(onDone)onDone({voidType,amount,reason,manager:manager?.manager_name,statusUpdate});
+      push&&push({title:voidType.toUpperCase()+" recorded",body:fmt(amount)+" - approved by "+(manager?.manager_name||"Manager"),color:"#dc2626"});
+      setStep("done");
+    }).catch(e=>{
+      setSubmitting(false);
+      alert("Error: "+e.message);
+    });
+  };
+  
+  // STEP 1: Choose action type
+  if(step==="type"){
+    return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{background:"linear-gradient(135deg,#7c2d12,#9a3412)",color:"#fff",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>ORDER {order.id}</p>
+            <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0x26A0,0xFE0F)} Refund or Void Order</h2>
+          </div>
+          <button onClick={onClose} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+        </div>
+        
+        <div style={{padding:18}}>
+          <div style={{padding:11,background:"#fef3c7",borderRadius:9,marginBottom:14,fontSize:12,color:"#92400e",borderLeft:"4px solid #d97706"}}>
+            <p><b>Order:</b> {order.customer} - {fmt(order.total)} - {order.payMethod||"Unpaid"}</p>
+            <p style={{marginTop:3}}>{order.items?.length||0} items - Status: <b>{order.status}</b></p>
+          </div>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:7}}>WHAT DO YOU WANT TO DO?</p>
+          
+          <button onClick={()=>{setVoidType("void");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #dc2626",borderRadius:9,marginBottom:7,cursor:"pointer",textAlign:"left"}}>
+            <p style={{fontSize:14,fontWeight:700,color:"#dc2626",marginBottom:2}}>{String.fromCharCode(0x274C)} VOID Order</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Cancel order before payment OR cancel an unpaid order</p>
+          </button>
+          
+          {order.paid&&<button onClick={()=>{setVoidType("refund");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #ea580c",borderRadius:9,marginBottom:7,cursor:"pointer",textAlign:"left"}}>
+            <p style={{fontSize:14,fontWeight:700,color:"#ea580c",marginBottom:2}}>{String.fromCharCode(0xD83D,0xDCB0)} FULL REFUND</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Refund all {fmt(order.total)} and cancel the order</p>
+          </button>}
+          
+          {order.paid&&<button onClick={()=>{setVoidType("partial-refund");setStep("pin");}} style={{width:"100%",padding:"14px 16px",background:"#fff",border:"2px solid #d97706",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+            <p style={{fontSize:14,fontWeight:700,color:"#d97706",marginBottom:2}}>{String.fromCharCode(0xD83D,0xDCB5)} PARTIAL REFUND</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Refund only some amount (eg if one dish was bad)</p>
+          </button>}
+        </div>
+      </div>
+    </div>;
+  }
+  
+  // STEP 2: Manager PIN
+  if(step==="pin"){
+    return <ManagerPinPrompt
+      title={voidType==="void"?"Authorize Void":(voidType==="refund"?"Authorize Refund":"Authorize Partial Refund")}
+      reason={"For order "+order.id+" - "+fmt(order.total)}
+      branch={branch}
+      onCancel={()=>setStep("type")}
+      onApproved={(mgr)=>{setManager(mgr);setStep("reason");}}
+    />;
+  }
+  
+  // STEP 3: Enter reason + amount (if partial)
+  if(step==="reason"){
+    var reasons=commonReasons[voidType]||[];
+    return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{background:"linear-gradient(135deg,#7c2d12,#9a3412)",color:"#fff",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>{voidType.toUpperCase().replace("-"," ")}</p>
+            <h2 style={{fontSize:18,fontWeight:700}}>Reason Required</h2>
+            <p style={{fontSize:11,opacity:.85,marginTop:2}}>{String.fromCharCode(0x2713)} Approved by {manager?.manager_name}</p>
+          </div>
+          <button onClick={onClose} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+        </div>
+        
+        <div style={{padding:18}}>
+          {voidType==="partial-refund"&&<>
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>REFUND AMOUNT (max {fmt(order.total)})</p>
+            <input type="number" step="0.01" max={order.total} value={refundAmount} onChange={e=>setRefundAmount(e.target.value)} placeholder="0.00" style={{width:"100%",padding:"14px",border:"3px solid #d4952a",borderRadius:9,fontSize:24,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"right",marginBottom:11,boxSizing:"border-box"}}/>
+          </>}
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>QUICK REASONS</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5,marginBottom:9}}>
+            {reasons.map(r=><button key={r} onClick={()=>setReason(r)} style={{padding:"10px",background:reason===r?"#7c2d12":"#fff",color:reason===r?"#fff":"#1a1208",border:"2px solid "+(reason===r?"#7c2d12":"#ede8de"),borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"left"}}>{r}</button>)}
+          </div>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>OR TYPE CUSTOM REASON</p>
+          <textarea value={reason} onChange={e=>setReason(e.target.value)} placeholder="Enter reason..." rows={3} style={{width:"100%",padding:"10px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,fontFamily:"inherit",resize:"vertical",marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setStep("type")} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
+            <button onClick={()=>setStep("confirm")} disabled={!reason||(voidType==="partial-refund"&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))} style={{flex:2,padding:"14px",background:!reason||(voidType==="partial-refund"&&(!refundAmount||parseFloat(refundAmount)<=0||parseFloat(refundAmount)>parseFloat(order.total)))?"#9ca3af":"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:!reason?"not-allowed":"pointer"}}>Continue {String.fromCharCode(0x2192)}</button>
+          </div>
+        </div>
+      </div>
+    </div>;
+  }
+  
+  // STEP 4: Confirm
+  if(step==="confirm"){
+    var amount=voidType==="partial-refund"?parseFloat(refundAmount||0):parseFloat(order.total);
+    return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        <div style={{background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",padding:"16px 20px",textAlign:"center"}}>
+          <p style={{fontSize:36,marginBottom:5}}>{String.fromCharCode(0x26A0,0xFE0F)}</p>
+          <h2 style={{fontSize:20,fontWeight:700}}>Confirm {voidType.toUpperCase().replace("-"," ")}</h2>
+        </div>
+        
+        <div style={{padding:18}}>
+          <div style={{padding:14,background:"#fff",borderRadius:11,marginBottom:14,border:"2px solid #ede8de"}}>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>Order:</p>
+            <p style={{fontSize:14,fontWeight:700,marginBottom:7}}>{order.id} - {order.customer}</p>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>Amount:</p>
+            <p style={{fontSize:28,fontWeight:700,color:"#dc2626",marginBottom:9,fontFamily:"'Courier New',monospace"}}>{fmt(amount)}</p>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>Reason:</p>
+            <p style={{fontSize:13,marginBottom:7,fontStyle:"italic"}}>{reason}</p>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>Approved by:</p>
+            <p style={{fontSize:13,fontWeight:700,color:"#7c2d12"}}>{String.fromCharCode(0xD83D,0xDD13)} {manager?.manager_name}</p>
+          </div>
+          
+          <p style={{fontSize:11,color:"#dc2626",fontWeight:700,marginBottom:11,textAlign:"center"}}>This action cannot be undone</p>
+          
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setStep("reason")} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
+            <button onClick={processVoid} disabled={submitting} style={{flex:2,padding:"15px",background:submitting?"#9ca3af":"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:submitting?"not-allowed":"pointer"}}>{submitting?"Processing...":(String.fromCharCode(0x2713)+" Confirm "+voidType.toUpperCase().replace("-"," "))}</button>
+          </div>
+        </div>
+      </div>
+    </div>;
+  }
+  
+  // STEP 5: Done
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:440,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",padding:"22px 20px",textAlign:"center"}}>
+        <p style={{fontSize:48,marginBottom:5}}>{String.fromCharCode(0x2713)}</p>
+        <h2 style={{fontSize:20,fontWeight:700}}>{voidType.toUpperCase().replace("-"," ")} Recorded</h2>
+      </div>
+      <div style={{padding:18,textAlign:"center"}}>
+        <p style={{fontSize:14,marginBottom:14}}>Logged with manager approval. {voidType==="partial-refund"?"Order remains active.":"Order has been cancelled."}</p>
+        <button onClick={onClose} style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>Done</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// SHIFT OPEN SCREEN - enter opening cash float
+// ============================================================
+function ShiftOpenScreen({branch,user,onCancel,onOpened}){
+  var [openingFloat,setOpeningFloat]=useState("100.00");
+  var [submitting,setSubmitting]=useState(false);
+  
+  var press=(k)=>{
+    if(k==="DEL")setOpeningFloat(p=>String(p).slice(0,-1));
+    else if(k==="CLR")setOpeningFloat("");
+    else if(k==="."){if(!String(openingFloat).includes("."))setOpeningFloat(p=>String(p)+".");}
+    else setOpeningFloat(p=>String(p)+k);
+  };
+  
+  var startShift=()=>{
+    var f=parseFloat(openingFloat||0);
+    if(f<0){alert("Float cannot be negative");return;}
+    setSubmitting(true);
+    dbOpenShift(branch?.id,user?.name||"Staff",f).then(r=>{
+      setSubmitting(false);
+      if(r.error){alert("Failed: "+JSON.stringify(r.error));return;}
+      onOpened(r.data);
+    });
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9300,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:480,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",padding:"18px 22px",textAlign:"center"}}>
+        <p style={{fontSize:36,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF05)}</p>
+        <h2 style={{fontSize:22,fontWeight:700}}>Open New Shift</h2>
+        <p style={{fontSize:12,opacity:.85,marginTop:5}}>{user?.name} - {new Date().toLocaleString("en-GB",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+      </div>
+      
+      <div style={{padding:20}}>
+        <p style={{fontSize:12,color:"#8a8078",marginBottom:11,textAlign:"center"}}>Count the cash currently in the drawer (the opening float). This is what you'll have at the start of your shift.</p>
+        
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5,textAlign:"center"}}>OPENING CASH FLOAT</p>
+        <div style={{padding:"16px",background:"#fff",borderRadius:11,border:"3px solid #059669",fontSize:36,fontWeight:700,textAlign:"center",fontFamily:"'Courier New',monospace",marginBottom:11}}>{String.fromCharCode(0xA3)}{openingFloat||"0.00"}</div>
+        
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>QUICK AMOUNTS</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:9}}>
+          {["50","100","150","200"].map(v=><button key={v} onClick={()=>setOpeningFloat(v+".00")} style={{padding:"10px 4px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0xA3)}{v}</button>)}
+        </div>
+        
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>NUMBER PAD</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5,marginBottom:11}}>
+          {["1","2","3","4","5","6","7","8","9",".","0","DEL"].map(k=><button key={k} onClick={()=>press(k)} style={{padding:"14px",fontSize:18,fontWeight:700,background:k==="DEL"?"linear-gradient(180deg,#fbbf24,#d97706)":"linear-gradient(180deg,#fff,#f5f0e8)",color:k==="DEL"?"#fff":"#1a1208",border:"1px solid "+(k==="DEL"?"transparent":"#d4b896"),borderRadius:7,cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,.15)"}}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>)}
+        </div>
+        
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+          <button onClick={startShift} disabled={submitting} style={{flex:2,padding:"15px",background:submitting?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:submitting?"not-allowed":"pointer"}}>{submitting?"Opening...":(String.fromCharCode(0x2713)+" Start My Shift")}</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// SHIFT CLOSE SCREEN - count cash + show variance
+// ============================================================
+function ShiftCloseScreen({shift,onCancel,onClosed,branch,push}){
+  var [actualCash,setActualCash]=useState("");
+  var [notes,setNotes]=useState("");
+  var [submitting,setSubmitting]=useState(false);
+  
+  var openingFloat=parseFloat(shift?.opening_float||0);
+  var cashSales=parseFloat(shift?.cash_sales||0);
+  var cardSales=parseFloat(shift?.card_sales||0);
+  var tips=parseFloat(shift?.tips_collected||0);
+  var expectedCash=openingFloat+cashSales;
+  var actualNum=parseFloat(actualCash||0);
+  var variance=actualNum-expectedCash;
+  
+  var press=(k)=>{
+    if(k==="DEL")setActualCash(p=>String(p).slice(0,-1));
+    else if(k==="CLR")setActualCash("");
+    else if(k==="."){if(!String(actualCash).includes("."))setActualCash(p=>String(p)+".");}
+    else setActualCash(p=>String(p)+k);
+  };
+  
+  var closeShift=()=>{
+    if(!actualCash){alert("Please enter actual cash count");return;}
+    setSubmitting(true);
+    dbCloseShift(shift.id,actualNum,notes).then(r=>{
+      setSubmitting(false);
+      if(r.error){alert("Failed: "+JSON.stringify(r.error));return;}
+      push&&push({title:"Shift closed",body:"Variance: "+fmt(r.variance),color:Math.abs(r.variance)<0.5?"#059669":"#dc2626"});
+      onClosed(r.data);
+    });
+  };
+  
+  var varianceColor=Math.abs(variance)<0.5?"#059669":(Math.abs(variance)<5?"#d97706":"#dc2626");
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9300,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",padding:"18px 22px",textAlign:"center"}}>
+        <p style={{fontSize:36,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF1A)}</p>
+        <h2 style={{fontSize:22,fontWeight:700}}>Close Shift</h2>
+        <p style={{fontSize:12,opacity:.85,marginTop:5}}>{shift.staff_name} - opened {new Date(shift.opened_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</p>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        {/* Expected breakdown */}
+        <div style={{padding:13,background:"#fff",borderRadius:11,border:"2px solid #ede8de",marginBottom:14}}>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:7}}>EXPECTED IN DRAWER</p>
+          <table style={{width:"100%",fontSize:13}}>
+            <tbody>
+              <tr><td style={{padding:"4px 0"}}>Opening float</td><td style={{textAlign:"right",fontWeight:700,fontFamily:"'Courier New',monospace"}}>{fmt(openingFloat)}</td></tr>
+              <tr><td style={{padding:"4px 0"}}>+ Cash sales</td><td style={{textAlign:"right",fontWeight:700,fontFamily:"'Courier New',monospace"}}>{fmt(cashSales)}</td></tr>
+              <tr style={{borderTop:"2px solid #1a1208"}}><td style={{padding:"7px 0",fontWeight:700,fontSize:14}}>Expected cash</td><td style={{textAlign:"right",fontWeight:700,fontSize:18,color:"#059669",fontFamily:"'Courier New',monospace",padding:"7px 0"}}>{fmt(expectedCash)}</td></tr>
+            </tbody>
+          </table>
+          <div style={{marginTop:8,paddingTop:8,borderTop:"1px dashed #ede8de",fontSize:11,color:"#8a8078"}}>
+            <p>Card sales: {fmt(cardSales)}</p>
+            <p>Tips collected: {fmt(tips)}</p>
+          </div>
+        </div>
+
+        {/* Actual cash count */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5,textAlign:"center"}}>COUNT CASH IN DRAWER NOW</p>
+        <div style={{padding:"16px",background:"#fff",borderRadius:11,border:"3px solid #d4952a",fontSize:34,fontWeight:700,textAlign:"center",fontFamily:"'Courier New',monospace",marginBottom:11}}>{String.fromCharCode(0xA3)}{actualCash||"0.00"}</div>
+        
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>NUMBER PAD</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5,marginBottom:11}}>
+          {["1","2","3","4","5","6","7","8","9",".","0","DEL"].map(k=><button key={k} onClick={()=>press(k)} style={{padding:"12px",fontSize:18,fontWeight:700,background:k==="DEL"?"linear-gradient(180deg,#fbbf24,#d97706)":"linear-gradient(180deg,#fff,#f5f0e8)",color:k==="DEL"?"#fff":"#1a1208",border:"1px solid "+(k==="DEL"?"transparent":"#d4b896"),borderRadius:7,cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,.15)"}}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>)}
+        </div>
+        
+        {/* Variance display */}
+        {actualCash&&<div style={{padding:"14px",background:varianceColor==="#059669"?"#d1fae5":(varianceColor==="#d97706"?"#fef3c7":"#fee2e2"),borderRadius:11,marginBottom:11,textAlign:"center",border:"2px solid "+varianceColor}}>
+          <p style={{fontSize:10,color:varianceColor,fontWeight:700,letterSpacing:2,marginBottom:5}}>{Math.abs(variance)<0.01?"PERFECT!":(variance>0?"OVER (extra cash)":"SHORT (missing cash)")}</p>
+          <p style={{fontSize:32,fontWeight:700,color:varianceColor,fontFamily:"'Courier New',monospace",lineHeight:1}}>{variance>=0?"+":""}{fmt(variance)}</p>
+        </div>}
+        
+        {/* Notes */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4}}>NOTES (OPTIONAL)</p>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g., 5 pounds short - missed receipt for tea" rows={2} style={{width:"100%",padding:"10px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,fontFamily:"inherit",resize:"vertical",marginBottom:5,boxSizing:"border-box"}}/>
+      </div>
+      
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+        <button onClick={closeShift} disabled={submitting||!actualCash} style={{flex:2,padding:"15px",background:submitting||!actualCash?"#9ca3af":"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:submitting||!actualCash?"not-allowed":"pointer"}}>{submitting?"Closing...":(String.fromCharCode(0x2713)+" Close Shift")}</button>
+      </div>
+    </div>
+  </div>;
+}
+
 // PHONE ORDER CUSTOMER POPUP - opens from POS to capture customer for delivery/collection
 // SLIDE-UP KEYBOARD - reusable touch keyboard that appears from bottom
 function SlideUpKeyboard({mode,value,onChange,onSubmit,onClose,sizePreset}){
@@ -6472,7 +7013,20 @@ function PosV(props){
 
 // POS DASHBOARD - POSCUBE-style home screen with action tiles
 function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,menu,customers,setView,onOpenPos,setUser,push}){
-  var [modalView,setModalView]=useState(null); // null, "incoming", "kitchen", "tables", "driver", "bookings", "report"
+  var [modalView,setModalView]=useState(null);
+  var [currentShift,setCurrentShift]=useState(null);
+  var [showShiftOpen,setShowShiftOpen]=useState(false);
+  var [showShiftClose,setShowShiftClose]=useState(false);
+  var shiftsEnabled=(()=>{try{return localStorage.getItem("shifts_enabled")==="1";}catch(e){return false;}})();
+  
+  // Load active shift on mount
+  useEffect(()=>{
+    if(!shiftsEnabled||!user||!branch)return;
+    dbFetchOpenShift(branch.id,user.name).then(s=>{
+      if(s)setCurrentShift(s);
+    }).catch(e=>console.log("Shift load:",e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[user?.name,branch?.id]); // null, "incoming", "kitchen", "tables", "driver", "bookings", "report"
   // Safety: ensure all props have defaults to prevent crashes
   orders=orders||[];
   tables=tables||[];
@@ -6528,6 +7082,15 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
 
     // ROW 3: MANAGEMENT (3 tiles)
     {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setModalView("report")},
+    ...(shiftsEnabled?[{
+      icon:String.fromCharCode(0xD83C,0xDF05),
+      label:currentShift?"Close Shift":"Open Shift",
+      color:currentShift?"#dc2626":"#059669",
+      bgGradient:currentShift?"linear-gradient(135deg,#dc2626,#991b1b)":"linear-gradient(135deg,#059669,#047857)",
+      badge:currentShift?"OPEN":null,
+      sublabel:currentShift?("Float "+fmt(currentShift.opening_float)):"Start day",
+      onClick:()=>currentShift?setShowShiftClose(true):setShowShiftOpen(true),
+    }]:[]),
     {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,sublabel:"Menu & settings",onClick:()=>setView("admin")},
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
     {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
@@ -6576,6 +7139,10 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     <div style={{marginTop:18,padding:"10px 12px",background:"#fff",borderRadius:9,border:"1px solid #ede8de",textAlign:"center"}}>
       <p style={{fontSize:11,color:"#8a8078"}}>To disable this dashboard, go to Admin {String.fromCharCode(0x2192)} Settings {String.fromCharCode(0x2192)} POS Dashboard Home Screen</p>
     </div>
+
+    {/* SHIFT MANAGEMENT */}
+    {showShiftOpen&&<ShiftOpenScreen branch={branch} user={user} onCancel={()=>setShowShiftOpen(false)} onOpened={(s)=>{setCurrentShift(s);setShowShiftOpen(false);push&&push({title:"Shift opened",body:"Float: "+fmt(s.opening_float),color:"#059669"});}}/>}
+    {showShiftClose&&currentShift&&<ShiftCloseScreen shift={currentShift} branch={branch} push={push} onCancel={()=>setShowShiftClose(false)} onClosed={(s)=>{setCurrentShift(null);setShowShiftClose(false);}}/>}
 
     {/* MODAL VIEWS - Click tile opens these as overlays */}
     {modalView&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 14px"}}>
@@ -6629,6 +7196,8 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [showClassicPicker,setShowClassicPicker]=useState(false);
   var [splitN,setSplitN]=useState(2);
   var [posDeliv,setPosDeliv]=useState(null);
+  var [showPayment,setShowPayment]=useState(false);
+  var [lastOrderClassic,setLastOrderClassic]=useState(null);
 
   // Color palette for categories - rotates through traditional EPOS colors
   var catColors=["#f59e0b","#fbbf24","#fcd34d","#fb923c","#fca5a5","#a78bfa","#60a5fa","#34d399"];
@@ -6672,7 +7241,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var clear=()=>{setCart([]);setDiscPct(0);};
 
   // Send order to kitchen / save
-  var sendOrder=(paid,payMethod)=>{
+  var sendOrder=(paid,payMethod,payData)=>{
     if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
     // VALIDATION: Dine-in requires table number
     if(type==="dine-in"&&!tbl){
@@ -6705,13 +7274,20 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     var o={
       id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,
       items:[...cart],subtotal:rawSub,discount:discAmt,
-      serviceCharge:serviceCharge,total:total,
+      serviceCharge:serviceCharge,
+      tip:payData?payData.tip:0,
+      total:payData?payData.total:total,
       status:"preparing",time:nowT(),type:orderType,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
       tableId,source:phoneCust?"phone":"staff",guests:parseInt(guests)||1,
       address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,
+      paymentSplit:payData&&(payData.method==="split"||payData.method==="item-split")?{cash:payData.cashPart||payData.totalCash,card:payData.cardPart||payData.totalCard}:null,
+      cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,
+      changeReturn:payData&&payData.changeReturn?payData.changeReturn:null,
+      itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null,
     };
     onOrder(o);
+    setLastOrderClassic(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied",guests:parseInt(guests)||1}:t));
@@ -6720,7 +7296,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     push({title:paid?"Paid - sent to kitchen":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
     clear();
     setPhoneCust(null);
-    if(onBackToDash)setTimeout(()=>onBackToDash(),300);
+    if(onBackToDash&&!paid)setTimeout(()=>onBackToDash(),300);
   };
 
   // Filter and dedupe items in current category
@@ -6736,6 +7312,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 
   return <div style={{height:"calc(100vh - 100px)",display:"flex",flexDirection:"column",background:"#1a1208",color:"#fff",margin:-16,padding:8,overflow:"hidden"}}>
     <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}`}</style>
+    {showPayment&&<PaymentFlow total={total} cart={cart} allowItemSplit={type==="dine-in"||type==="takeaway"} branch={branch} user={user} orderId={null} onCancel={()=>setShowPayment(false)} onComplete={(payData)=>{setShowPayment(false);sendOrder(true,payData.method,payData);}}/>}
     {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType(data.orderType==="collection"?"takeaway":"takeaway");setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name+" - "+data.orderType,color:"#059669"});}}/>}
     
     {/* Phone customer banner */}
@@ -6840,8 +7417,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       <button onClick={()=>setShowSplitModal(true)} disabled={cart.length===0||type!=="dine-in"} style={{padding:"10px 14px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:cart.length===0||type!=="dine-in"?"not-allowed":"pointer",opacity:cart.length===0||type!=="dine-in"?.5:1,minWidth:80}}>Split Bill</button>
       <div style={{flex:1}}/>
       <button onClick={()=>sendOrder(false,null)} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:120}}>Send to Kitchen</button>
-      <button onClick={()=>sendOrder(true,"cash")} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#059669",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:90}}>Pay Cash</button>
-      <button onClick={()=>sendOrder(true,"card")} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:90}}>Pay Card</button>
+      <button onClick={()=>setShowPayment(true)} disabled={cart.length===0||(type==="dine-in"&&!tbl)} style={{padding:"10px 18px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:cart.length===0||(type==="dine-in"&&!tbl)?"not-allowed":"pointer",opacity:cart.length===0||(type==="dine-in"&&!tbl)?.5:1,minWidth:120}}>{String.fromCharCode(0xD83D,0xDCB0)} Pay Now</button>
     </div>
 
     {/* Discount modal */}
@@ -6907,6 +7483,8 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
   var [phoneCust,setPhoneCust]=useState(null);
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
+  var [showPayment,setShowPayment]=useState(false);
+  var [lastOrderCompact,setLastOrderCompact]=useState(null);
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
@@ -6951,7 +7529,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var rem=(idx)=>setCart(c=>c.filter((_,i)=>i!==idx));
   var clear=()=>{setCart([]);setShowCart(false);};
 
-  var sendOrder=(paid,payMethod)=>{
+  var sendOrder=(paid,payMethod,payData)=>{
     if(cart.length===0){push({title:"Empty cart",body:"Add items first",color:"#dc2626"});return;}
     // VALIDATION: Dine-in requires table number
     if(type==="dine-in"&&!tbl){
@@ -6974,13 +7552,20 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     var o={
       id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,
       items:[...cart],subtotal:rawSub,discount:0,
-      serviceCharge:serviceCharge,total:total,
+      serviceCharge:serviceCharge,
+      tip:payData?payData.tip:0,
+      total:payData?payData.total:total,
       status:paid?"preparing":"pending",time:nowT(),type:orderType,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
       tableId,source:phoneCust?"phone":"staff",
       address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,
+      paymentSplit:payData&&(payData.method==="split"||payData.method==="item-split")?{cash:payData.cashPart||payData.totalCash,card:payData.cardPart||payData.totalCard}:null,
+      cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,
+      changeReturn:payData&&payData.changeReturn?payData.changeReturn:null,
+      itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null,
     };
     onOrder(o);
+    setLastOrderCompact(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied"}:t));
@@ -6989,7 +7574,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     push({title:paid?"Paid - sent":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
     clear();
     setPhoneCust(null);
-    if(onBackToDash)setTimeout(()=>onBackToDash(),300);
+    if(onBackToDash&&!paid)setTimeout(()=>onBackToDash(),300);
   };
 
   // Filter items - search OR category
@@ -7013,6 +7598,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   })();
 
   return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 100px)",margin:-16,position:"relative",overflow:"hidden"}}>
+    {showPayment&&<PaymentFlow total={total} cart={cart} allowItemSplit={type==="dine-in"||type==="takeaway"} branch={branch} user={user} orderId={null} onCancel={()=>setShowPayment(false)} onComplete={(payData)=>{setShowPayment(false);sendOrder(true,payData.method,payData);}}/>}
     {showPhonePopup&&<PhoneCustomerPopup customers={customers} setCustomers={setCustomers} push={push} branch={branch} initialPhone="" onClose={()=>setShowPhonePopup(false)} onCustomerReady={(data)=>{setPhoneCust(data.customer);setType("takeaway");setShowPhonePopup(false);push({title:"Phone customer ready",body:data.customer.name,color:"#059669"});}}/>}
     
     {/* Phone customer banner */}
@@ -7112,8 +7698,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
         <div style={{padding:"10px 14px",display:"flex",gap:6}}>
           <button onClick={clear} style={{padding:"12px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
           <button onClick={()=>sendOrder(false,null)} style={{flex:1,padding:"12px",background:"#2563eb",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Send Order</button>
-          <button onClick={()=>sendOrder(true,"cash")} style={{flex:1,padding:"12px",background:"#059669",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Pay Cash</button>
-          <button onClick={()=>sendOrder(true,"card")} style={{flex:1,padding:"12px",background:"#bf4626",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>Pay Card</button>
+          <button onClick={()=>setShowPayment(true)} style={{flex:2,padding:"12px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCB0)} Pay Now</button>
         </div>
       </div>
     </div>}
