@@ -7228,7 +7228,6 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null,
     };
     onOrder(o);
-    setLastOrderClassic(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied",guests:parseInt(guests)||1}:t));
@@ -7505,7 +7504,6 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null,
     };
     onOrder(o);
-    setLastOrderCompact(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
       setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied"}:t));
