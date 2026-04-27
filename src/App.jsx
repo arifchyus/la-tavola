@@ -575,6 +575,32 @@ function buildPaymentSection(o,thermal){
       ? `<p style="text-align:center;font-weight:700;margin:8px 0;color:#dc2626">UNPAID${o.deliveryCode?" - Cash on Delivery":""}</p>`
       : `<div style="padding:12px;background:#fee2e2;border-radius:8px;text-align:center;font-weight:700;color:#991b1b;margin:14px 0">UNPAID${o.deliveryCode?" - Cash on Delivery":""}</div>`;
   }
+  // ITEM SPLIT - multi-customer payment
+  if(o.itemSplit&&o.itemSplit.payments){
+    var custColors=["#dc2626","#0891b2","#059669","#d4952a","#7c3aed","#ea580c","#be185d","#0d9488"];
+    if(thermal){
+      var rows=o.itemSplit.payments.map(p=>{
+        var label="Customer #"+p.customerNum+": "+(p.method==="cash"?"Cash":"Card")+" "+fmt(p.amount);
+        if(p.method==="cash"&&p.cashGiven)label+=" (given "+fmt(p.cashGiven)+", change "+fmt(p.change||0)+")";
+        return `<tr><td colspan="2" style="font-size:11px">${label}</td></tr>`;
+      }).join("");
+      return `<table style="width:100%;border-top:2px dashed #ccc;margin-top:10px;padding-top:6px">
+        <tr><td colspan="2" style="font-weight:700;text-align:center;padding:4px 0">PAYMENT: ITEM SPLIT (${o.itemSplit.customerCount} customers)</td></tr>
+        ${rows}
+        <tr style="border-top:1px dashed #ccc"><td><b>Total Paid</b></td><td style="text-align:right;font-weight:700">${fmt(o.total)}</td></tr>
+      </table>`;
+    }
+    var rowsA4=o.itemSplit.payments.map((p,i)=>{
+      var color=custColors[(p.customerNum-1)%custColors.length];
+      var label=p.method==="cash"?"Cash":"Card";
+      var detail=p.method==="cash"&&p.cashGiven?" (given "+fmt(p.cashGiven)+", change "+fmt(p.change||0)+")":(p.method==="card"?" Approved":"");
+      return `<tr><td style="border-left:4px solid ${color};padding:6px 10px"><b>Customer #${p.customerNum}</b></td><td style="padding:6px">${label}${detail}</td><td style="text-align:right;font-weight:700;padding:6px">${fmt(p.amount)}</td></tr>`;
+    }).join("");
+    return `<div style="border-top:2px solid #1a1208;margin-top:14px;padding-top:11px">
+      <p style="font-weight:700;margin-bottom:7px">PAYMENT: SPLIT BY ITEMS (${o.itemSplit.customerCount} customers)</p>
+      <table style="width:100%;border-collapse:collapse">${rowsA4}<tr style="border-top:2px solid #1a1208"><td colspan="2"><b>Total Paid</b></td><td style="text-align:right;font-weight:700">${fmt(o.total)}</td></tr></table>
+    </div>`;
+  }
   var method=(o.payMethod||"").toLowerCase();
   // Split payment
   if(o.paymentSplit){
@@ -867,6 +893,59 @@ function printKitchenTicket(o,b){
 }
 
 // Smart receipt - auto-picks thermal vs A4 based on order type
+// Print individual customer receipts for item-split orders
+function printItemSplitReceipts(o,b){
+  if(!o.itemSplit||!o.itemSplit.payments){
+    printR(o,b);
+    return;
+  }
+  // Build flat item units
+  var itemUnits=[];
+  (o.items||[]).forEach((item,idx)=>{
+    for(var q=0;q<item.qty;q++){
+      itemUnits.push({uid:idx+"_"+q,name:item.name,price:item.price,note:item.note});
+    }
+  });
+  
+  var sharedItems=(o.itemSplit.customerItems&&o.itemSplit.customerItems.shared)?o.itemSplit.customerItems.shared.map(uid=>itemUnits.find(u=>u.uid===uid)).filter(Boolean):[];
+  var sharedTotal=sharedItems.reduce((s,u)=>s+u.price,0);
+  var sharedPerCust=o.itemSplit.customerCount>0?sharedTotal/o.itemSplit.customerCount:0;
+  
+  // Print one receipt per customer
+  o.itemSplit.payments.forEach((p,i)=>{
+    var custItemIds=(o.itemSplit.customerItems&&o.itemSplit.customerItems[p.customerNum])?o.itemSplit.customerItems[p.customerNum]:[];
+    var custItems=custItemIds.map(uid=>itemUnits.find(u=>u.uid===uid)).filter(Boolean);
+    
+    // Aggregate same items
+    var itemMap={};
+    custItems.forEach(u=>{
+      if(itemMap[u.name])itemMap[u.name].qty++;
+      else itemMap[u.name]={name:u.name,price:u.price,qty:1,note:u.note};
+    });
+    var aggItems=Object.values(itemMap);
+    
+    // Build a per-customer order object
+    var custOrder={
+      ...o,
+      id:o.id+"-C"+p.customerNum,
+      items:aggItems,
+      subtotal:custItems.reduce((s,u)=>s+u.price,0),
+      total:p.amount,
+      payMethod:p.method,
+      cashGiven:p.cashGiven,
+      changeReturn:p.change,
+      paymentSplit:null,
+      itemSplit:null, // don't recurse
+      customer:"Customer #"+p.customerNum,
+      // Add shared portion as a line
+      sharedItems:sharedItems,
+      sharedPerCust:sharedPerCust,
+      paid:true,
+    };
+    setTimeout(()=>printThermalReceipt(custOrder,b),i*200); // stagger to avoid popup blockers
+  });
+}
+
 function printR(o,b){
   // Delivery orders get A4 invoice (more professional, customer keeps it)
   // All other types get thermal receipt
@@ -5252,11 +5331,17 @@ function NumberPad({value,onChange,onSubmit}){
 // PAYMENT FLOW - LEDGER STYLE
 // Multiple payments allowed (5 customers, mixed cash/card)
 // ============================================================
-function PaymentFlow({total,onComplete,onCancel,branch,user,orderId}){
-  var [payments,setPayments]=useState([]); // [{id, method, amount, cashGiven, change}]
+function PaymentFlow({total,cart,onComplete,onCancel,branch,user,orderId,allowItemSplit}){
+  var [payments,setPayments]=useState([]); // [{id, method, amount, cashGiven, change, items}]
   var [tipAmount,setTipAmount]=useState(0);
   var [showAddPayment,setShowAddPayment]=useState(null); // null, "cash", "card"
   var [showDrawer,setShowDrawer]=useState(null);
+  var [itemSplitMode,setItemSplitMode]=useState(false); // when true, show item assignment
+  var [customerCount,setCustomerCount]=useState(0); // 0 = not chosen yet
+  var [customerItems,setCustomerItems]=useState({}); // { customerNumber: [itemIds], shared: [itemIds] }
+  var [activeCustomer,setActiveCustomer]=useState(1); // currently selected customer for assignment
+  var [payingCustomer,setPayingCustomer]=useState(0); // when paying each customer one by one
+  var [customerPayments,setCustomerPayments]=useState({}); // { customerNumber: payment }
   
   // Calculations
   var totalWithTip=total+tipAmount;
@@ -5323,6 +5408,114 @@ function PaymentFlow({total,onComplete,onCancel,branch,user,orderId}){
       remaining={remaining}
       onCancel={()=>setShowAddPayment(null)}
       onSave={(p)=>addPayment(p)}
+    />;
+  }
+
+  // ITEM SPLIT MODE
+  if(itemSplitMode){
+    // Step 1: Choose customer count
+    if(customerCount===0){
+      return <ItemSplitCustomerCount
+        onCancel={()=>{setItemSplitMode(false);}}
+        onContinue={(n)=>{
+          setCustomerCount(n);
+          // Initialize empty assignments
+          var init={shared:[]};
+          for(var i=1;i<=n;i++)init[i]=[];
+          setCustomerItems(init);
+        }}
+      />;
+    }
+    // Step 2: Assign items to customers
+    if(payingCustomer===0){
+      return <ItemSplitAssign
+        cart={cart}
+        customerCount={customerCount}
+        customerItems={customerItems}
+        setCustomerItems={setCustomerItems}
+        activeCustomer={activeCustomer}
+        setActiveCustomer={setActiveCustomer}
+        onCancel={()=>{setItemSplitMode(false);setCustomerCount(0);}}
+        onContinue={()=>setPayingCustomer(1)}
+      />;
+    }
+    // Step 3: Pay each customer one by one
+    if(payingCustomer<=customerCount){
+      return <ItemSplitPayCustomer
+        customerNum={payingCustomer}
+        totalCustomers={customerCount}
+        cart={cart}
+        customerItems={customerItems}
+        branch={branch}
+        user={user}
+        orderId={orderId}
+        onPaid={(custPayment)=>{
+          var allCustPayments={...customerPayments,[payingCustomer]:custPayment};
+          setCustomerPayments(allCustPayments);
+          // Show drawer for cash
+          if(custPayment.method==="cash"&&custPayment.change>=0){
+            setShowDrawer({cashGiven:custPayment.cashGiven,changeReturn:custPayment.change,total:custPayment.amount});
+          }
+          // Move to next customer
+          setPayingCustomer(payingCustomer+1);
+        }}
+        onCancel={()=>{
+          if(window.confirm("Cancel item split? Already collected payments will be lost."))
+          {setItemSplitMode(false);setCustomerCount(0);setPayingCustomer(0);setCustomerPayments({});}
+        }}
+      />;
+    }
+    // Step 4: All customers paid - summary and complete
+    return <ItemSplitComplete
+      customerCount={customerCount}
+      customerPayments={customerPayments}
+      cart={cart}
+      customerItems={customerItems}
+      branch={branch}
+      onCancel={()=>{
+        if(window.confirm("Cancel? All payments will be lost."))
+        {setItemSplitMode(false);setCustomerCount(0);setPayingCustomer(0);setCustomerPayments({});}
+      }}
+      onComplete={()=>{
+        // Build payments array from customerPayments
+        var allPayments=[];
+        Object.keys(customerPayments).forEach(custNum=>{
+          var p=customerPayments[custNum];
+          allPayments.push({
+            id:Date.now()+Math.random(),
+            method:p.method,amount:p.amount,
+            cashGiven:p.cashGiven,change:p.change,
+            customerNum:parseInt(custNum),
+            items:customerItems[custNum]||[],
+          });
+        });
+        var totalCash=allPayments.filter(p=>p.method==="cash").reduce((s,p)=>s+p.amount,0);
+        var totalCard=allPayments.filter(p=>p.method==="card").reduce((s,p)=>s+p.amount,0);
+        // Save each payment to DB
+        allPayments.forEach(p=>{
+          if(orderId){
+            dbRecordPayment({
+              order_id:orderId,branch_id:branch?.id,
+              payment_method:p.method,amount:p.amount,
+              cash_given:p.cashGiven||null,change_returned:p.change||null,
+              taken_by:user?.name,
+            }).catch(e=>console.log("Payment save fail:",e));
+          }
+        });
+        onComplete({
+          method:"item-split",
+          total:total,tip:0,
+          payments:allPayments,
+          customerCount:customerCount,
+          customerItems:customerItems,
+          customerPayments:customerPayments,
+          totalCash,totalCard,
+          cashGiven:allPayments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.cashGiven||p.amount),0),
+          changeReturn:allPayments.filter(p=>p.method==="cash").reduce((s,p)=>s+(p.change||0),0),
+          cashPart:totalCash,
+          cardPart:totalCard,
+        });
+      }}
     />;
   }
 
@@ -5399,6 +5592,9 @@ function PaymentFlow({total,onComplete,onCancel,branch,user,orderId}){
             <button onClick={()=>setShowAddPayment("cash")} style={{padding:"9px",background:"#fff",border:"1px solid #059669",color:"#059669",borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>All Cash {fmt(remaining)}</button>
             <button onClick={()=>addPayment({method:"card",amount:remaining})} style={{padding:"9px",background:"#fff",border:"1px solid #2563eb",color:"#2563eb",borderRadius:7,fontWeight:700,fontSize:11,cursor:"pointer"}}>All Card {fmt(remaining)}</button>
           </div>
+
+          {/* Split by Items - only show when no payments yet AND cart is provided AND multiple items */}
+          {allowItemSplit&&payments.length===0&&cart&&cart.length>0&&<button onClick={()=>setItemSplitMode(true)} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",marginTop:6,boxShadow:"0 3px 10px rgba(124,58,237,.3)"}}>{String.fromCharCode(0xD83D,0xDC65)} Split by Items (Multiple Customers)</button>}
         </>}
 
         {/* Complete button */}
@@ -5513,6 +5709,317 @@ function AddPaymentScreen({mode,remaining,onCancel,onSave}){
       <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
         <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>Cancel</button>
         <button onClick={handleSave} disabled={!canSave()} style={{flex:2,padding:"15px",background:!canSave()?"#9ca3af":(mode==="cash"?"linear-gradient(135deg,#059669,#10b981)":"linear-gradient(135deg,#2563eb,#3b82f6)"),color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:!canSave()?"not-allowed":"pointer"}}>{mode==="cash"?(String.fromCharCode(0x2713)+" Add Cash & Open Drawer"):(String.fromCharCode(0x2713)+" Card Approved")}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ITEM SPLIT - Step 1: Choose customer count
+// ============================================================
+function ItemSplitCustomerCount({onCancel,onContinue}){
+  var [count,setCount]=useState(2);
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9100,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>SPLIT BY ITEMS</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDC65)} How Many Customers?</h2>
+        </div>
+        <button onClick={onCancel} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+      </div>
+      <div style={{padding:24,textAlign:"center"}}>
+        <p style={{fontSize:13,color:"#8a8078",marginBottom:18}}>How many people will pay separately?</p>
+        
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:18}}>
+          <button onClick={()=>setCount(Math.max(2,count-1))} style={{width:60,height:60,borderRadius:"50%",background:"#fff",border:"3px solid #7c3aed",color:"#7c3aed",fontSize:28,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 8px rgba(0,0,0,.1)"}}>-</button>
+          <p style={{fontSize:80,fontWeight:700,color:"#7c3aed",fontFamily:"'Courier New',monospace",lineHeight:1,minWidth:120}}>{count}</p>
+          <button onClick={()=>setCount(Math.min(20,count+1))} style={{width:60,height:60,borderRadius:"50%",background:"#fff",border:"3px solid #7c3aed",color:"#7c3aed",fontSize:28,fontWeight:700,cursor:"pointer",boxShadow:"0 3px 8px rgba(0,0,0,.1)"}}>+</button>
+        </div>
+        
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:6}}>QUICK SELECT</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:5,marginBottom:20}}>
+          {[2,3,4,5,6,7,8].map(n=><button key={n} onClick={()=>setCount(n)} style={{padding:"12px 4px",background:count===n?"#7c3aed":"#fff",color:count===n?"#fff":"#1a1208",border:"2px solid #7c3aed",borderRadius:7,fontWeight:700,fontSize:14,cursor:"pointer"}}>{n}</button>)}
+        </div>
+
+        <button onClick={()=>onContinue(count)} style={{width:"100%",padding:"16px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:11,fontWeight:700,fontSize:15,cursor:"pointer",letterSpacing:1,boxShadow:"0 4px 14px rgba(124,58,237,.4)"}}>Continue with {count} customers {String.fromCharCode(0x2192)}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ITEM SPLIT - Step 2: Assign items to customers
+// ============================================================
+function ItemSplitAssign({cart,customerCount,customerItems,setCustomerItems,activeCustomer,setActiveCustomer,onCancel,onContinue}){
+  // Each item in cart can be a single unit OR have qty>1. We split per UNIT for flexibility.
+  // Build a flat list of "item units": each item with qty 3 becomes 3 separate units
+  var itemUnits=(()=>{
+    var units=[];
+    cart.forEach((item,idx)=>{
+      for(var q=0;q<item.qty;q++){
+        units.push({uid:idx+"_"+q,itemIdx:idx,name:item.name,price:item.price,note:item.note});
+      }
+    });
+    return units;
+  })();
+  
+  // Find which customer/shared an item unit is assigned to
+  var findAssignment=(uid)=>{
+    var keys=Object.keys(customerItems);
+    for(var k of keys){
+      if((customerItems[k]||[]).includes(uid))return k;
+    }
+    return null;
+  };
+  
+  // Calculate each customer's total
+  var calcTotal=(custKey)=>{
+    var ids=customerItems[custKey]||[];
+    if(custKey==="shared"){
+      // Shared items split evenly across all customers
+      var sharedTotal=ids.reduce((s,uid)=>{
+        var u=itemUnits.find(x=>x.uid===uid);
+        return s+(u?u.price:0);
+      },0);
+      return sharedTotal;
+    }
+    return ids.reduce((s,uid)=>{
+      var u=itemUnits.find(x=>x.uid===uid);
+      return s+(u?u.price:0);
+    },0);
+  };
+  
+  var sharedAmount=calcTotal("shared");
+  var sharedPerCust=customerCount>0?sharedAmount/customerCount:0;
+  
+  // Each customer's true total = their items + share of shared
+  var custDisplayTotal=(n)=>calcTotal(n)+sharedPerCust;
+  
+  // Toggle assignment
+  var assign=(uid,target)=>{
+    setCustomerItems(prev=>{
+      var newCI={...prev};
+      // Remove from any existing assignment
+      Object.keys(newCI).forEach(k=>{
+        newCI[k]=(newCI[k]||[]).filter(x=>x!==uid);
+      });
+      // Add to target
+      if(!newCI[target])newCI[target]=[];
+      newCI[target]=[...newCI[target],uid];
+      return newCI;
+    });
+  };
+  
+  var allAssigned=itemUnits.every(u=>findAssignment(u.uid));
+  var assignedCount=itemUnits.filter(u=>findAssignment(u.uid)).length;
+  
+  // Customer card colors
+  var custColors=["#dc2626","#0891b2","#059669","#d4952a","#7c3aed","#ea580c","#be185d","#0d9488","#4338ca","#ca8a04"];
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:9100,display:"flex",alignItems:"center",justifyContent:"center",padding:10}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:900,width:"100%",maxHeight:"96vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",padding:"12px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:10,opacity:.85,fontWeight:700,letterSpacing:2}}>SPLIT BY ITEMS</p>
+          <h2 style={{fontSize:16,fontWeight:700}}>Tap customer below, then tap items they had</h2>
+        </div>
+        <button onClick={onCancel} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:12}}>
+        
+        {/* Customer cards row */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>SELECT CUSTOMER (active = you'll assign items to this person)</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:5,marginBottom:11}}>
+          {Array.from({length:customerCount},(_,i)=>i+1).map(n=>{
+            var color=custColors[(n-1)%custColors.length];
+            var isActive=activeCustomer===n;
+            var itemCount=(customerItems[n]||[]).length;
+            return <button key={n} onClick={()=>setActiveCustomer(n)} style={{padding:"10px 7px",background:isActive?color:"#fff",color:isActive?"#fff":color,border:"3px solid "+color,borderRadius:9,cursor:"pointer",fontWeight:700,textAlign:"center"}}>
+              <p style={{fontSize:18,marginBottom:2}}>#{n}</p>
+              <p style={{fontSize:13,fontWeight:700}}>{fmt(custDisplayTotal(n))}</p>
+              <p style={{fontSize:10,opacity:.8}}>{itemCount} item{itemCount!==1?"s":""}</p>
+            </button>;
+          })}
+          <button onClick={()=>setActiveCustomer("shared")} style={{padding:"10px 7px",background:activeCustomer==="shared"?"#1a1208":"#fff",color:activeCustomer==="shared"?"#fff":"#1a1208",border:"3px solid #1a1208",borderRadius:9,cursor:"pointer",fontWeight:700,textAlign:"center"}}>
+            <p style={{fontSize:14,marginBottom:2}}>{String.fromCharCode(0xD83C,0xDF77)}</p>
+            <p style={{fontSize:11,fontWeight:700}}>SHARED</p>
+            <p style={{fontSize:9,opacity:.8}}>{(customerItems.shared||[]).length} items</p>
+          </button>
+        </div>
+
+        {/* Items list */}
+        <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>ITEMS - tap to assign to {activeCustomer==="shared"?"SHARED":"Customer #"+activeCustomer}</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr",gap:4,marginBottom:11}}>
+          {itemUnits.map(u=>{
+            var assignedTo=findAssignment(u.uid);
+            var isAssignedToActive=assignedTo===String(activeCustomer);
+            var isAssignedToOther=assignedTo&&!isAssignedToActive;
+            var assignedColor=assignedTo==="shared"?"#1a1208":(custColors[(parseInt(assignedTo)-1)%custColors.length]||"#9ca3af");
+            return <button key={u.uid} onClick={()=>assign(u.uid,String(activeCustomer))} style={{padding:"10px 12px",background:isAssignedToActive?assignedColor:(isAssignedToOther?"#f7f3ee":"#fff"),color:isAssignedToActive?"#fff":"#1a1208",border:"2px solid "+(isAssignedToActive?assignedColor:(isAssignedToOther?assignedColor:"#ede8de")),borderRadius:8,cursor:"pointer",fontWeight:600,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:700}}>{u.name}</p>
+                {u.note&&<p style={{fontSize:10,opacity:.8,fontStyle:"italic"}}>Note: {u.note}</p>}
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{fontSize:14,fontWeight:700}}>{fmt(u.price)}</p>
+                {assignedTo&&<p style={{fontSize:10,opacity:.85,fontWeight:700}}>{assignedTo==="shared"?"SHARED":"#"+assignedTo}</p>}
+              </div>
+            </button>;
+          })}
+        </div>
+
+        {/* Progress indicator */}
+        <div style={{padding:"10px 12px",background:allAssigned?"#d1fae5":"#fef3c7",borderRadius:9,marginBottom:11,textAlign:"center",border:"2px solid "+(allAssigned?"#059669":"#d97706")}}>
+          <p style={{fontSize:13,fontWeight:700,color:allAssigned?"#065f46":"#92400e"}}>{allAssigned?String.fromCharCode(0x2713)+" All items assigned ("+itemUnits.length+"/"+itemUnits.length+")":"Assigned: "+assignedCount+" of "+itemUnits.length+" items"}</p>
+        </div>
+      </div>
+
+      {/* Footer buttons */}
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+        <button onClick={onContinue} disabled={!allAssigned} style={{flex:2,padding:"15px",background:allAssigned?"linear-gradient(135deg,#7c3aed,#a855f7)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:allAssigned?"pointer":"not-allowed"}}>{allAssigned?"Pay Each Customer "+String.fromCharCode(0x2192):"Assign all items first"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ITEM SPLIT - Step 3: Pay each customer one by one
+// ============================================================
+function ItemSplitPayCustomer({customerNum,totalCustomers,cart,customerItems,branch,user,orderId,onPaid,onCancel}){
+  var [step,setStep]=useState("preview"); // preview, addPayment
+  var [paymentMode,setPaymentMode]=useState(null); // "cash" or "card"
+  
+  var custColors=["#dc2626","#0891b2","#059669","#d4952a","#7c3aed","#ea580c","#be185d","#0d9488","#4338ca","#ca8a04"];
+  var color=custColors[(customerNum-1)%custColors.length];
+  
+  // Build flat item units
+  var itemUnits=(()=>{
+    var units=[];
+    cart.forEach((item,idx)=>{
+      for(var q=0;q<item.qty;q++){
+        units.push({uid:idx+"_"+q,itemIdx:idx,name:item.name,price:item.price,note:item.note});
+      }
+    });
+    return units;
+  })();
+  
+  // This customer's items
+  var myItemIds=customerItems[customerNum]||[];
+  var myItems=myItemIds.map(uid=>itemUnits.find(u=>u.uid===uid)).filter(Boolean);
+  var myItemsTotal=myItems.reduce((s,u)=>s+u.price,0);
+  
+  // Shared portion
+  var sharedItems=(customerItems.shared||[]).map(uid=>itemUnits.find(u=>u.uid===uid)).filter(Boolean);
+  var sharedTotal=sharedItems.reduce((s,u)=>s+u.price,0);
+  var mySharedPortion=totalCustomers>0?sharedTotal/totalCustomers:0;
+  
+  var amount=myItemsTotal+mySharedPortion;
+  
+  if(step==="addPayment"&&paymentMode){
+    return <AddPaymentScreen
+      mode={paymentMode}
+      remaining={amount}
+      onCancel={()=>{setStep("preview");setPaymentMode(null);}}
+      onSave={(p)=>{onPaid(p);}}
+    />;
+  }
+
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:9100,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",maxHeight:"94vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,"+color+",rgba(0,0,0,.3))",color:"#fff",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>CUSTOMER {customerNum} OF {totalCustomers}</p>
+          <h2 style={{fontSize:20,fontWeight:700}}>Pay Customer #{customerNum}</h2>
+        </div>
+        <button onClick={onCancel} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700}}>x</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:14}}>
+        
+        {/* Items list */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>THEIR ITEMS</p>
+        <div style={{background:"#fff",borderRadius:9,padding:11,marginBottom:11,border:"1px solid #ede8de"}}>
+          {myItems.map((u,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<myItems.length-1?"1px solid #ede8de":"none"}}>
+            <span style={{fontSize:13}}>{u.name}{u.note?" ("+u.note+")":""}</span>
+            <span style={{fontWeight:700,fontSize:13}}>{fmt(u.price)}</span>
+          </div>)}
+          {myItems.length===0&&<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No personal items</p>}
+        </div>
+
+        {/* Shared portion */}
+        {mySharedPortion>0&&<div style={{background:"#fef3c7",borderRadius:9,padding:11,marginBottom:11,border:"1px solid #d97706"}}>
+          <p style={{fontSize:11,color:"#92400e",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF77)} SHARED ITEMS PORTION</p>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:13}}>Share of {sharedItems.length} shared items ({totalCustomers} ways)</span>
+            <span style={{fontWeight:700,fontSize:13}}>{fmt(mySharedPortion)}</span>
+          </div>
+        </div>}
+
+        {/* Total */}
+        <div style={{padding:"18px",background:color,color:"#fff",borderRadius:11,marginBottom:14,textAlign:"center"}}>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>CUSTOMER #{customerNum} TOTAL</p>
+          <p style={{fontSize:42,fontWeight:700,fontFamily:"'Courier New',monospace",lineHeight:1}}>{fmt(amount)}</p>
+        </div>
+
+        {/* Payment buttons */}
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>HOW IS CUSTOMER #{customerNum} PAYING?</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <button onClick={()=>{setPaymentMode("cash");setStep("addPayment");}} style={{padding:"22px 14px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(5,150,105,.3)",fontWeight:700}}>
+            <p style={{fontSize:38,marginBottom:4,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB5)}</p>
+            <p style={{fontSize:14,letterSpacing:1}}>CASH</p>
+          </button>
+          <button onClick={()=>{setPaymentMode("card");setStep("addPayment");}} style={{padding:"22px 14px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",color:"#fff",border:"none",borderRadius:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(37,99,235,.3)",fontWeight:700}}>
+            <p style={{fontSize:38,marginBottom:4,lineHeight:1}}>{String.fromCharCode(0xD83D,0xDCB3)}</p>
+            <p style={{fontSize:14,letterSpacing:1}}>CARD</p>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ITEM SPLIT - Step 4: Complete - all customers paid
+// ============================================================
+function ItemSplitComplete({customerCount,customerPayments,cart,customerItems,branch,onCancel,onComplete}){
+  var custColors=["#dc2626","#0891b2","#059669","#d4952a","#7c3aed","#ea580c","#be185d","#0d9488","#4338ca","#ca8a04"];
+  var totalPaid=Object.values(customerPayments).reduce((s,p)=>s+(p.amount||0),0);
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:9100,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:520,width:"100%",maxHeight:"94vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      
+      <div style={{background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",padding:"14px 18px",textAlign:"center"}}>
+        <p style={{fontSize:48,marginBottom:6}}>{String.fromCharCode(0x2713)}</p>
+        <h2 style={{fontSize:22,fontWeight:700}}>All Customers Paid!</h2>
+        <p style={{fontSize:13,opacity:.9}}>Total collected: {fmt(totalPaid)}</p>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:14}}>
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:2,marginBottom:6}}>PAYMENT SUMMARY</p>
+        {Array.from({length:customerCount},(_,i)=>i+1).map(n=>{
+          var p=customerPayments[n];
+          if(!p)return null;
+          var color=custColors[(n-1)%custColors.length];
+          return <div key={n} style={{padding:"11px 14px",background:"#fff",border:"2px solid "+color,borderLeft:"6px solid "+color,borderRadius:9,marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,color:color}}>Customer #{n}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{p.method==="cash"?(String.fromCharCode(0xD83D,0xDCB5)+" Cash"+(p.cashGiven?" (given "+fmt(p.cashGiven)+", change "+fmt(p.change||0)+")":"")):(String.fromCharCode(0xD83D,0xDCB3)+" Card "+String.fromCharCode(0x2713)+" Approved")}</p>
+            </div>
+            <p style={{fontSize:18,fontWeight:700,fontFamily:"'Courier New',monospace"}}>{fmt(p.amount)}</p>
+          </div>;
+        })}
+      </div>
+
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onCancel} style={{flex:1,padding:"15px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+        <button onClick={onComplete} style={{flex:2,padding:"15px",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>{String.fromCharCode(0x2713)} Place Order</button>
       </div>
     </div>
   </div>;
@@ -6718,7 +7225,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       orderType=type;
       deliveryCode=null;
     }
-    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&payData.method==="split"?{cash:payData.cashPart,card:payData.cardPart}:null,cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,changeReturn:payData&&payData.changeReturn?payData.changeReturn:null};
+    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&(payData.method==="split"||payData.method==="item-split")?{cash:payData.cashPart||payData.totalCash,card:payData.cardPart||payData.totalCard}:null,cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,changeReturn:payData&&payData.changeReturn?payData.changeReturn:null,itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null};
     onOrder(o);setLastOrder(o);
     var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
     push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
@@ -6757,9 +7264,13 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
     <p style={{color:"#d4952a",fontSize:36,fontWeight:700,marginBottom:4}}>{fmt(lastOrder.total)}</p>
     <p style={{color:"#888",fontSize:13,marginBottom:6}}>Paid by {lastOrder.payMethod} - {lastOrder.id}</p>
     {lastOrder.splitN>1&&<p style={{color:"#888",fontSize:12,marginBottom:6}}>Split {lastOrder.splitN} ways - {fmt(lastOrder.total/lastOrder.splitN)} each</p>}
+    {lastOrder.itemSplit&&<p style={{color:"#7c3aed",fontSize:13,marginBottom:6,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDC65)} Item-split: {lastOrder.itemSplit.customerCount} customers paid separately</p>}
     {lastOrder.tip>0&&<p style={{color:"#888",fontSize:12,marginBottom:30}}>Includes {fmt(lastOrder.tip)} tip</p>}
     <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
-      <button className="btn btn-o" onClick={()=>printR(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14}}>Print Receipt</button>
+      {lastOrder.itemSplit?<>
+        <button className="btn btn-o" onClick={()=>printR(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Combined Receipt</button>
+        <button className="btn btn-o" onClick={()=>printItemSplitReceipts(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14,background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none"}}>{String.fromCharCode(0xD83D,0xDC65)} {lastOrder.itemSplit.customerCount} Individual Receipts</button>
+      </>:<button className="btn btn-o" onClick={()=>printR(lastOrder,branch)} style={{padding:"14px 24px",fontSize:14}}>Print Receipt</button>}
       <button className="btn btn-o" onClick={()=>{alert("Email receipt sent (simulated)");}} style={{padding:"14px 24px",fontSize:14}}>Email Receipt</button>
       <button className="btn btn-r" onClick={()=>{setLastOrder(null);setPayStep(null);if(onBackToDash)onBackToDash();}} style={{padding:"14px 24px",fontSize:14}}>{onBackToDash?"Back to Dashboard":"New Order"}</button>
     </div>
@@ -6814,7 +7325,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
 
   return <div className="pos-wrap">
     {/* PAYMENT FLOW - new cash/card/split popup */}
-    {showPayment&&<PaymentFlow total={total} branch={branch} user={user} orderId={null} onCancel={()=>setShowPayment(false)} onComplete={(payData)=>{
+    {showPayment&&<PaymentFlow total={total} cart={cart} allowItemSplit={type==="dine-in"||type==="takeaway"} branch={branch} user={user} orderId={null} onCancel={()=>setShowPayment(false)} onComplete={(payData)=>{
       setShowPayment(false);
       // Place the order with payment data
       send(true,payData.method,payData);
