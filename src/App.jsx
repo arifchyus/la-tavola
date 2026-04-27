@@ -544,21 +544,337 @@ input,select,textarea{font-family:inherit;font-size:14px}
 }
 `;
 
-function printR(o,b){
-  var w=window.open("","_blank","width=380,height=640");if(!w)return;
-  var rows=o.items.map(i=>`<tr><td>${i.name} x${i.qty}</td><td>${fmt(i.price*i.qty)}</td></tr>`).join("");
-  var sub=o.subtotal||o.total, disc=o.discount||0, tip=o.tip||0;
-  var breakdown="";
-  if(sub&&(disc||tip)){
-    breakdown=`<tr><td>Subtotal</td><td>${fmt(sub)}</td></tr>`;
-    if(disc>0) breakdown+=`<tr><td>Discount${o.discReason?" ("+o.discReason+")":""}</td><td>-${fmt(disc)}</td></tr>`;
-    if(tip>0) breakdown+=`<tr><td>Tip</td><td>+${fmt(tip)}</td></tr>`;
+// Get receipt settings from localStorage
+function getReceiptSettings(){
+  try{
+    return {
+      showVAT:localStorage.getItem("show_vat")!=="0",
+      vatRate:parseFloat(localStorage.getItem("vat_rate"))||20,
+      vatNumber:localStorage.getItem("vat_number")||"GB 123 4567 89",
+    };
+  }catch(e){return {showVAT:true,vatRate:20,vatNumber:""};}
+}
+
+// Format date+time nicely
+function formatReceiptDate(o){
+  try{
+    var ts=o.created_at||o.time||"";
+    if(/^\d{1,2}:\d{2}/.test(String(o.time||""))&&!o.created_at){
+      return new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})+" "+o.time;
+    }
+    var d=new Date(ts);
+    if(isNaN(d.getTime()))return o.time||"";
+    return d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})+" "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+  }catch(e){return o.time||"";}
+}
+
+// Build payment section HTML
+function buildPaymentSection(o,thermal){
+  if(!o.paid){
+    return thermal
+      ? `<p style="text-align:center;font-weight:700;margin:8px 0;color:#dc2626">UNPAID${o.deliveryCode?" - Cash on Delivery":""}</p>`
+      : `<div style="padding:12px;background:#fee2e2;border-radius:8px;text-align:center;font-weight:700;color:#991b1b;margin:14px 0">UNPAID${o.deliveryCode?" - Cash on Delivery":""}</div>`;
   }
+  var method=(o.payMethod||"").toLowerCase();
+  // Split payment
+  if(o.paymentSplit){
+    var s=o.paymentSplit;
+    if(thermal){
+      return `<table style="width:100%;border-top:2px dashed #ccc;margin-top:10px;padding-top:6px">
+        <tr><td colspan="2" style="font-weight:700;text-align:center;padding:4px 0">PAYMENT: SPLIT</td></tr>
+        <tr><td>* Cash</td><td style="text-align:right">${fmt(s.cash)}</td></tr>
+        <tr><td>* Card</td><td style="text-align:right">${fmt(s.card)} (Approved)</td></tr>
+        <tr style="border-top:1px dashed #ccc"><td><b>Total Paid</b></td><td style="text-align:right;font-weight:700">${fmt(parseFloat(s.cash)+parseFloat(s.card))}</td></tr>
+      </table>`;
+    }
+    return `<div style="border-top:2px solid #1a1208;margin-top:14px;padding-top:11px">
+      <p style="font-weight:700;margin-bottom:7px">PAYMENT: SPLIT</p>
+      <table style="width:100%">
+        <tr><td>Cash</td><td style="text-align:right">${fmt(s.cash)}</td></tr>
+        <tr><td>Card (Approved)</td><td style="text-align:right">${fmt(s.card)}</td></tr>
+        <tr style="border-top:1px solid #ccc"><td><b>Total Paid</b></td><td style="text-align:right;font-weight:700">${fmt(parseFloat(s.cash)+parseFloat(s.card))}</td></tr>
+      </table>
+    </div>`;
+  }
+  // Cash with given/change
+  if(method.includes("cash")&&o.cashGiven){
+    if(thermal){
+      return `<table style="width:100%;border-top:2px dashed #ccc;margin-top:10px;padding-top:6px">
+        <tr><td colspan="2" style="font-weight:700;text-align:center;padding:4px 0">PAYMENT: CASH</td></tr>
+        <tr><td>Amount Given</td><td style="text-align:right">${fmt(o.cashGiven)}</td></tr>
+        <tr><td>Total</td><td style="text-align:right">${fmt(o.total)}</td></tr>
+        <tr><td><b>Change</b></td><td style="text-align:right;font-weight:700">${fmt(o.changeReturn||0)}</td></tr>
+      </table>`;
+    }
+    return `<div style="border-top:2px solid #1a1208;margin-top:14px;padding-top:11px">
+      <p style="font-weight:700;margin-bottom:7px">PAYMENT: CASH</p>
+      <table style="width:100%">
+        <tr><td>Amount Given</td><td style="text-align:right">${fmt(o.cashGiven)}</td></tr>
+        <tr><td>Total</td><td style="text-align:right">${fmt(o.total)}</td></tr>
+        <tr><td><b>Change Returned</b></td><td style="text-align:right;font-weight:700;color:#059669">${fmt(o.changeReturn||0)}</td></tr>
+      </table>
+    </div>`;
+  }
+  // Simple paid
+  return thermal
+    ? `<p style="text-align:center;font-weight:700;margin:8px 0;color:#059669">PAID - ${o.payMethod||"OK"}</p>`
+    : `<div style="padding:12px;background:#d1fae5;border-radius:8px;text-align:center;font-weight:700;color:#065f46;margin:14px 0">PAID - ${o.payMethod||"OK"}</div>`;
+}
+
+// Build VAT section
+function buildVATSection(o,thermal){
+  var s=getReceiptSettings();
+  if(!s.showVAT)return "";
+  var vatTotal=parseFloat(o.total||0);
+  // VAT-inclusive: VAT amount = total * (rate / (100 + rate))
+  var vatAmt=vatTotal*(s.vatRate/(100+s.vatRate));
+  var netAmt=vatTotal-vatAmt;
+  if(thermal){
+    return `<div style="border-top:1px dashed #ccc;margin-top:8px;padding-top:6px;font-size:11px;color:#666">
+      <table style="width:100%">
+        <tr><td>Net (excl VAT)</td><td style="text-align:right">${fmt(netAmt)}</td></tr>
+        <tr><td>VAT @ ${s.vatRate}%</td><td style="text-align:right">${fmt(vatAmt)}</td></tr>
+      </table>
+      <p style="margin-top:4px;font-size:10px">VAT No: ${s.vatNumber}</p>
+    </div>`;
+  }
+  return `<div style="margin-top:14px;padding:11px;background:#fafaf5;border-radius:7px;font-size:12px;color:#666">
+    <table style="width:100%">
+      <tr><td>Net Amount (excl VAT)</td><td style="text-align:right">${fmt(netAmt)}</td></tr>
+      <tr><td>VAT @ ${s.vatRate}%</td><td style="text-align:right">${fmt(vatAmt)}</td></tr>
+    </table>
+    <p style="margin-top:4px">VAT Registration: ${s.vatNumber}</p>
+  </div>`;
+}
+
+// THERMAL RECEIPT - for in-store (dine-in, takeaway, collection)
+function printThermalReceipt(o,b){
+  var w=window.open("","_blank","width=380,height=700");if(!w)return;
+  var rows=(o.items||[]).map(i=>{
+    var line=`<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">${fmt(i.price*i.qty)}</td></tr>`;
+    if(i.note)line+=`<tr><td colspan="2" style="font-size:10px;color:#666;font-style:italic;padding-left:8px">> ${i.note}</td></tr>`;
+    return line;
+  }).join("");
+  var sub=parseFloat(o.subtotal||o.total||0);
+  var disc=parseFloat(o.discount||0);
+  var serviceCharge=parseFloat(o.serviceCharge||0);
+  var tip=parseFloat(o.tip||0);
+  var deliveryFee=parseFloat(o.deliveryFee||0);
+  var breakdown=`<tr><td>Subtotal</td><td style="text-align:right">${fmt(sub)}</td></tr>`;
+  if(disc>0)breakdown+=`<tr><td>Discount${o.discReason?" ("+o.discReason+")":""}</td><td style="text-align:right">-${fmt(disc)}</td></tr>`;
+  if(serviceCharge>0)breakdown+=`<tr><td>Service Charge</td><td style="text-align:right">+${fmt(serviceCharge)}</td></tr>`;
+  if(deliveryFee>0)breakdown+=`<tr><td>Delivery</td><td style="text-align:right">+${fmt(deliveryFee)}</td></tr>`;
+  if(tip>0)breakdown+=`<tr><td>Tip</td><td style="text-align:right">+${fmt(tip)}</td></tr>`;
+  
+  var paymentSection=buildPaymentSection(o,true);
+  var vatSection=buildVATSection(o,true);
   var split=o.splitN>1?`<p style="text-align:center;color:#7c3aed;font-weight:700;margin:8px 0">Split ${o.splitN} ways = ${fmt(o.total/o.splitN)} each</p>`:"";
+  var deliveryCodeSection=o.deliveryCode?`<div style="border:2px dashed #7c3aed;padding:10px;text-align:center;margin:12px 0;border-radius:6px"><p style="font-size:10px;color:#7c3aed;font-weight:700;letter-spacing:2px;margin:0">DELIVERY CODE</p><p style="font-size:32px;font-weight:700;letter-spacing:8px;font-family:'Courier New',monospace;color:#7c3aed;margin:5px 0">${o.deliveryCode}</p><p style="font-size:9px;color:#666;margin:0">Required for cash payment on delivery</p></div>`:"";
+  var orderNotes=o.notes?`<div style="border:1px dashed #d97706;padding:8px;margin:8px 0;font-size:11px;color:#92400e;background:#fef3c7"><b>NOTE:</b> ${o.notes}</div>`:"";
+  var customerInfo=o.address?`<p style="font-size:11px;color:#666">Address: ${typeof o.address==="object"?(o.address.line1||"")+", "+(o.address.postcode||""):o.address}</p>`:"";
+  
   var js="window.onload=function(){window.print()}";
-  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:monospace;padding:20px;font-size:13px;max-width:320px;margin:0 auto}h2{color:#bf4626;margin:0 0 4px}p{margin:3px 0}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:3px 0;border-bottom:1px dashed #ccc}.t{font-weight:700;font-size:16px;color:#bf4626;border-top:2px solid #bf4626;padding-top:6px!important}.f{text-align:center;color:#999;margin-top:16px;font-size:11px}</style></head><body><h2>La Tavola${b?" - "+b.name:""}</h2><p>${b?b.addr:""}</p><p>${b?b.phone:""}</p><hr><p><b>${o.id}</b></p><p>${o.time} | ${o.type}</p><p>${o.customer}</p>${o.takenBy?`<p>Served by ${o.takenBy}</p>`:""}${o.slot?`<p>Collect: <b>${o.slot}</b></p>`:""}<hr><table>${rows}${breakdown?'<tr><td colspan="2">&nbsp;</td></tr>'+breakdown:""}<tr class="t"><td>TOTAL</td><td>${fmt(o.total)}</td></tr></table>${split}<p style="text-align:center">${o.paid?"PAID"+(o.payMethod?" - "+o.payMethod:""):"UNPAID"}</p><div class="f">VAT No. GB 123 4567 89<br>Thank you for dining with us!<br>www.latavola.co.uk</div></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${o.id}</title><style>
+    body{font-family:'Courier New',monospace;padding:14px;font-size:13px;max-width:320px;margin:0 auto;color:#000}
+    h2{color:#bf4626;margin:0 0 4px;text-align:center;font-size:18px}
+    p{margin:3px 0}
+    table{width:100%;border-collapse:collapse;margin:8px 0}
+    td{padding:3px 0}
+    .header{text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px}
+    .header p{font-size:11px;color:#666;margin:1px 0}
+    .order-info{border-bottom:1px dashed #999;padding-bottom:8px;margin-bottom:8px;font-size:12px}
+    .items td{border-bottom:1px dotted #ddd;padding:4px 0}
+    .total{font-weight:700;font-size:16px;color:#bf4626;border-top:2px solid #bf4626;padding-top:6px!important}
+    .footer{text-align:center;color:#999;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
+  </style></head><body>
+    <div class="header">
+      <h2>LA TAVOLA</h2>
+      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+    </div>
+    <div class="order-info">
+      <p><b>Order:</b> ${o.id}</p>
+      <p><b>Date:</b> ${formatReceiptDate(o)}</p>
+      <p><b>Type:</b> ${(o.type||"").toUpperCase()}${o.tableId?" - TABLE "+o.tableId:""}</p>
+      ${o.customer?`<p><b>Customer:</b> ${o.customer}</p>`:""}
+      ${o.phone?`<p><b>Phone:</b> ${o.phone}</p>`:""}
+      ${customerInfo}
+      ${o.takenBy?`<p><b>Served by:</b> ${o.takenBy}</p>`:""}
+      ${o.slot?`<p><b>Collect at:</b> ${o.slot}</p>`:""}
+    </div>
+    <table class="items">${rows}</table>
+    ${orderNotes}
+    <table>${breakdown}<tr class="total"><td>TOTAL</td><td style="text-align:right">${fmt(o.total)}</td></tr></table>
+    ${split}
+    ${paymentSection}
+    ${vatSection}
+    ${deliveryCodeSection}
+    <div class="footer">
+      <p>Thank you for your order!</p>
+      <p>www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
   var s=w.document.createElement("script");s.textContent=js;w.document.body.appendChild(s);
   w.document.close();
+}
+
+// A4 INVOICE - for delivery (more space, professional)
+function printA4Invoice(o,b){
+  var w=window.open("","_blank","width=800,height=1100");if(!w)return;
+  var rows=(o.items||[]).map(i=>{
+    var lineTotal=i.price*i.qty;
+    var line=`<tr><td>${i.name}${i.note?'<br><span style="font-size:11px;color:#666;font-style:italic">Note: '+i.note+'</span>':""}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${fmt(i.price)}</td><td style="text-align:right">${fmt(lineTotal)}</td></tr>`;
+    return line;
+  }).join("");
+  var sub=parseFloat(o.subtotal||o.total||0);
+  var disc=parseFloat(o.discount||0);
+  var serviceCharge=parseFloat(o.serviceCharge||0);
+  var tip=parseFloat(o.tip||0);
+  var deliveryFee=parseFloat(o.deliveryFee||0);
+  
+  var paymentSection=buildPaymentSection(o,false);
+  var vatSection=buildVATSection(o,false);
+  var orderNotes=o.notes?`<div style="padding:11px 14px;background:#fef3c7;border-left:4px solid #d97706;margin:14px 0;font-size:13px;color:#92400e"><b>Customer Note:</b> ${o.notes}</div>`:"";
+  var addrText=o.address?(typeof o.address==="object"?[o.address.line1,o.address.postcode].filter(Boolean).join(", "):o.address):"";
+  var deliveryCodeSection=o.deliveryCode?`<div style="margin-top:18px;padding:18px;border:3px dashed #7c3aed;border-radius:11px;text-align:center;background:#f5f3ff"><p style="font-size:13px;color:#7c3aed;font-weight:700;letter-spacing:3px;margin:0">DELIVERY CODE</p><p style="font-size:54px;font-weight:700;letter-spacing:14px;font-family:'Courier New',monospace;color:#7c3aed;margin:8px 0">${o.deliveryCode}</p><p style="font-size:11px;color:#666;margin:0">Customer: please give this code to the driver if paying by cash</p></div>`:"";
+  
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Invoice ${o.id}</title><style>
+    body{font-family:Arial,sans-serif;padding:36px;color:#1a1208;max-width:720px;margin:0 auto;font-size:14px}
+    h1{color:#bf4626;margin:0;font-size:32px}
+    h2{font-size:18px;margin:16px 0 6px}
+    .header{display:flex;justify-content:space-between;border-bottom:3px solid #bf4626;padding-bottom:18px;margin-bottom:18px}
+    .header-left h1{margin-bottom:6px}
+    .header-left p{margin:1px 0;font-size:12px;color:#666}
+    .header-right{text-align:right}
+    .header-right h2{color:#bf4626;font-size:24px;margin:0}
+    .header-right p{margin:1px 0;font-size:12px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;padding:14px;background:#fafaf5;border-radius:9px}
+    .info-grid h3{font-size:11px;color:#666;letter-spacing:2px;font-weight:700;margin:0 0 5px}
+    .info-grid p{margin:1px 0;font-size:13px}
+    table.items{width:100%;border-collapse:collapse;margin:14px 0}
+    table.items th{background:#1a1208;color:#fff;padding:11px;text-align:left;font-size:12px;letter-spacing:1px}
+    table.items th:nth-child(2){text-align:center}
+    table.items th:nth-child(3),table.items th:nth-child(4){text-align:right}
+    table.items td{padding:10px 11px;border-bottom:1px solid #ede8de}
+    .totals{margin-top:14px;display:flex;justify-content:flex-end}
+    .totals table{min-width:300px;border-collapse:collapse}
+    .totals td{padding:6px 14px}
+    .totals .total-row{border-top:3px solid #1a1208;font-weight:700;font-size:18px;color:#bf4626}
+    .footer{margin-top:36px;padding-top:14px;border-top:1px solid #ccc;text-align:center;color:#999;font-size:11px}
+  </style></head><body>
+    <div class="header">
+      <div class="header-left">
+        <h1>LA TAVOLA</h1>
+        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      </div>
+      <div class="header-right">
+        <h2>INVOICE</h2>
+        <p><b>${o.id}</b></p>
+        <p>${formatReceiptDate(o)}</p>
+        <p style="margin-top:8px"><b>${(o.type||"").toUpperCase()}</b></p>
+      </div>
+    </div>
+    
+    <div class="info-grid">
+      <div>
+        <h3>BILL TO</h3>
+        <p><b>${o.customer||"Customer"}</b></p>
+        ${o.phone?`<p>${o.phone}</p>`:""}
+        ${addrText?`<p>${addrText}</p>`:""}
+      </div>
+      <div>
+        <h3>ORDER DETAILS</h3>
+        <p>Order #: <b>${o.id}</b></p>
+        ${o.takenBy?`<p>Taken by: ${o.takenBy}</p>`:""}
+        ${o.slot?`<p>Delivery time: ${o.slot}</p>`:""}
+      </div>
+    </div>
+    
+    <table class="items">
+      <thead><tr><th>ITEM</th><th>QTY</th><th>PRICE</th><th>SUBTOTAL</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    
+    ${orderNotes}
+    
+    <div class="totals">
+      <table>
+        <tr><td>Subtotal:</td><td style="text-align:right">${fmt(sub)}</td></tr>
+        ${disc>0?`<tr><td>Discount${o.discReason?" ("+o.discReason+")":""}:</td><td style="text-align:right;color:#059669">-${fmt(disc)}</td></tr>`:""}
+        ${serviceCharge>0?`<tr><td>Service Charge:</td><td style="text-align:right">+${fmt(serviceCharge)}</td></tr>`:""}
+        ${deliveryFee>0?`<tr><td>Delivery Fee:</td><td style="text-align:right">+${fmt(deliveryFee)}</td></tr>`:""}
+        ${tip>0?`<tr><td>Tip:</td><td style="text-align:right">+${fmt(tip)}</td></tr>`:""}
+        <tr class="total-row"><td>TOTAL:</td><td style="text-align:right">${fmt(o.total)}</td></tr>
+      </table>
+    </div>
+    
+    ${paymentSection}
+    ${vatSection}
+    ${deliveryCodeSection}
+    
+    <div class="footer">
+      <p>Thank you for choosing La Tavola!</p>
+      <p>www.latavola.co.uk</p>
+    </div>
+  </body></html>`);
+  var s=w.document.createElement("script");s.textContent=js;w.document.body.appendChild(s);
+  w.document.close();
+}
+
+// KITCHEN TICKET - no prices, just items + table/customer
+function printKitchenTicket(o,b){
+  var w=window.open("","_blank","width=380,height=600");if(!w)return;
+  var rows=(o.items||[]).map(i=>{
+    var line=`<tr><td style="font-size:18px;font-weight:700;padding:8px 0">${i.qty} x ${i.name}</td></tr>`;
+    if(i.note)line+=`<tr><td style="font-size:13px;color:#bf4626;font-weight:700;font-style:italic;padding-left:14px;padding-bottom:8px">> ${i.note}</td></tr>`;
+    return line;
+  }).join("");
+  var orderNotes=o.notes?`<div style="border:2px dashed #dc2626;padding:11px;margin:11px 0;font-size:14px;color:#991b1b;font-weight:700;text-align:center">SPECIAL: ${o.notes}</div>`:"";
+  var js="window.onload=function(){window.print()}";
+  w.document.write(`<!DOCTYPE html><html><head><title>Kitchen ${o.id}</title><style>
+    body{font-family:'Courier New',monospace;padding:14px;font-size:14px;max-width:320px;margin:0 auto;color:#000}
+    h2{margin:0 0 4px;text-align:center;font-size:22px;letter-spacing:2px}
+    p{margin:3px 0}
+    table{width:100%;border-collapse:collapse;margin:8px 0}
+    td{padding:3px 0}
+    .header{text-align:center;border-bottom:3px double #000;padding-bottom:11px;margin-bottom:11px}
+    .order-info{font-size:14px;margin-bottom:11px}
+    .items td{border-bottom:1px dotted #ddd}
+    .footer{text-align:center;color:#666;margin-top:14px;font-size:11px;border-top:1px dashed #ccc;padding-top:8px}
+  </style></head><body>
+    <div class="header">
+      <h2>*** KITCHEN ***</h2>
+      <p style="font-size:14px">${b?b.name:""}</p>
+    </div>
+    <div class="order-info">
+      <p><b>Order:</b> ${o.id}</p>
+      <p><b>Time:</b> ${formatReceiptDate(o)}</p>
+      <p><b>Type:</b> <span style="font-size:16px;font-weight:700">${(o.type||"").toUpperCase()}</span></p>
+      ${o.tableId?`<p><b>Table:</b> <span style="font-size:18px;font-weight:700">${o.tableId}</span>${o.guests?" ("+o.guests+" guests)":""}</p>`:""}
+      ${o.customer&&!o.tableId?`<p><b>For:</b> ${o.customer}</p>`:""}
+      ${o.takenBy?`<p><b>Server:</b> ${o.takenBy}</p>`:""}
+    </div>
+    <hr>
+    <p style="font-size:11px;color:#666;letter-spacing:2px;text-align:center">ITEMS TO PREPARE</p>
+    <table class="items">${rows}</table>
+    ${orderNotes}
+    <div class="footer">
+      <p>--- END OF TICKET ---</p>
+    </div>
+  </body></html>`);
+  var s=w.document.createElement("script");s.textContent=js;w.document.body.appendChild(s);
+  w.document.close();
+}
+
+// Smart receipt - auto-picks thermal vs A4 based on order type
+function printR(o,b){
+  // Delivery orders get A4 invoice (more professional, customer keeps it)
+  // All other types get thermal receipt
+  if(o.type==="delivery"){
+    printA4Invoice(o,b);
+  }else{
+    printThermalReceipt(o,b);
+  }
 }
 
 function Toasts({list,dismiss}){
@@ -2115,6 +2431,15 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [kbSize,setKbSize]=useState(()=>{
     try{return localStorage.getItem("kb_size")||"medium";}catch(e){return "medium";}
   });
+  var [showVAT,setShowVAT]=useState(()=>{
+    try{return localStorage.getItem("show_vat")!=="0";}catch(e){return true;}
+  });
+  var [vatRate,setVatRate]=useState(()=>{
+    try{return parseFloat(localStorage.getItem("vat_rate"))||20;}catch(e){return 20;}
+  });
+  var [vatNumber,setVatNumber]=useState(()=>{
+    try{return localStorage.getItem("vat_number")||"GB 123 4567 89";}catch(e){return "GB 123 4567 89";}
+  });
   var [menuSearch,setMenuSearch]=useState("");
   var [orderSearch,setOrderSearch]=useState("");
   var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
@@ -2592,7 +2917,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
               {allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
             </div>
-            <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer",marginTop:4}}>Print Receipt</button>
+            <div style={{display:"flex",gap:6,marginTop:4}}>
+              <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Receipt</button>
+              <button onClick={()=>printKitchenTicket(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83C,0xDF73)} Kitchen Ticket</button>
+            </div>
           </div>)}</div>
         </div>;
       })}
@@ -3398,6 +3726,27 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <p style={{fontSize:10,opacity:.85,fontWeight:400,lineHeight:1.4}}>{opt.desc}</p>
           </button>)}
         </div>
+      </div>
+
+      <div className="card" style={{padding:16,marginBottom:12}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>Receipt & VAT Settings</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Configure how VAT is shown on receipts. UK businesses are usually required to show VAT breakdown by HMRC.</p>
+        
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:11,cursor:"pointer"}}>
+          <input type="checkbox" checked={showVAT} onChange={e=>{setShowVAT(e.target.checked);try{localStorage.setItem("show_vat",e.target.checked?"1":"0");}catch(err){}}} style={{width:18,height:18,cursor:"pointer"}}/>
+          <span style={{fontWeight:700,fontSize:13}}>Show VAT breakdown on receipts</span>
+        </label>
+
+        {showVAT&&<div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8,marginTop:9}}>
+          <div>
+            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>VAT RATE %</label>
+            <input type="number" value={vatRate} onChange={e=>{var v=parseFloat(e.target.value)||0;setVatRate(v);try{localStorage.setItem("vat_rate",String(v));}catch(err){}}} step="0.5" className="field" style={{padding:"8px 11px"}}/>
+          </div>
+          <div>
+            <label style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:4,display:"block"}}>VAT REGISTRATION NUMBER</label>
+            <input value={vatNumber} onChange={e=>{setVatNumber(e.target.value);try{localStorage.setItem("vat_number",e.target.value);}catch(err){}}} placeholder="GB 123 4567 89" className="field" style={{padding:"8px 11px"}}/>
+          </div>
+        </div>}
       </div>
 
       <div className="card" style={{padding:16,marginBottom:12}}>
@@ -6271,7 +6620,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       orderType=type;
       deliveryCode=null;
     }
-    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&payData.method==="split"?{cash:payData.cashPart,card:payData.cardPart}:null};
+    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&payData.method==="split"?{cash:payData.cashPart,card:payData.cardPart}:null,cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,changeReturn:payData&&payData.changeReturn?payData.changeReturn:null};
     onOrder(o);setLastOrder(o);
     var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
     push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
