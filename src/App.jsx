@@ -6123,63 +6123,6 @@ function ItemSplitComplete({customerCount,customerPayments,cart,customerItems,br
 }
 
 // ============================================================
-// MANAGER PIN PROMPT - reusable for void/refund authorization
-// ============================================================
-function ManagerPinPrompt({title,subtitle,branchId,onCancel,onApproved}){
-  var [pin,setPin]=useState("");
-  var [error,setError]=useState("");
-  var [verifying,setVerifying]=useState(false);
-
-  var press=k=>{
-    setError("");
-    if(k==="DEL")setPin(p=>p.slice(0,-1));
-    else if(k==="CLR")setPin("");
-    else if(k==="OK")verify();
-    else if(pin.length<8)setPin(p=>p+k);
-  };
-
-  var verify=()=>{
-    if(pin.length<4){setError("PIN must be at least 4 digits");return;}
-    setVerifying(true);
-    dbVerifyPin(pin,branchId).then(mgr=>{
-      setVerifying(false);
-      if(mgr){onApproved(mgr.manager_name);}
-      else{setError("Invalid PIN");setPin("");}
-    }).catch(e=>{setVerifying(false);setError("Verification failed - try again");setPin("");});
-  };
-
-  var pad=[["1","2","3"],["4","5","6"],["7","8","9"],["CLR","0","DEL"]];
-  
-  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-    <div style={{background:"#fafaf5",borderRadius:14,maxWidth:420,width:"100%",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
-      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"16px 20px",textAlign:"center"}}>
-        <p style={{fontSize:32,marginBottom:6}}>{String.fromCharCode(0xD83D,0xDD12)}</p>
-        <p style={{fontSize:11,color:"#d4952a",fontWeight:700,letterSpacing:2,marginBottom:4}}>MANAGER AUTHORIZATION</p>
-        <h2 style={{fontSize:17,fontWeight:700,marginBottom:3}}>{title||"Enter Manager PIN"}</h2>
-        {subtitle&&<p style={{fontSize:12,opacity:.85}}>{subtitle}</p>}
-      </div>
-      <div style={{padding:20}}>
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:14}}>
-          {[0,1,2,3,4,5,6,7].map(i=><div key={i} style={{width:36,height:48,background:i<pin.length?"#1a1208":"#fff",border:"2px solid #d4952a",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#fff"}}>{i<pin.length?(String.fromCharCode(0x2022)):""}</div>)}
-        </div>
-        {error&&<p style={{textAlign:"center",color:"#dc2626",fontSize:13,fontWeight:700,marginBottom:9}}>{error}</p>}
-        {verifying&&<p style={{textAlign:"center",color:"#8a8078",fontSize:13,marginBottom:9}}>Verifying...</p>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7}}>
-          {pad.flat().map((k,i)=>{
-            var sp=k==="DEL"?"del":k==="CLR"?"clr":null;
-            return <button key={i} onClick={()=>press(k)} disabled={verifying} style={{height:60,fontSize:20,fontWeight:700,background:sp==="del"?"linear-gradient(180deg,#fbbf24,#d97706)":sp==="clr"?"linear-gradient(180deg,#dc2626,#991b1b)":"linear-gradient(180deg,#fff,#f5f0e8)",color:sp?"#fff":"#1a1208",border:"1px solid "+(sp?"transparent":"#d4b896"),borderRadius:9,cursor:"pointer",boxShadow:"0 2px 0 rgba(0,0,0,.15)"}}>{k==="DEL"?String.fromCharCode(0x232B):k}</button>;
-          })}
-        </div>
-        <div style={{display:"flex",gap:6,marginTop:11}}>
-          <button onClick={onCancel} style={{flex:1,padding:"14px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
-          <button onClick={verify} disabled={pin.length<4||verifying} style={{flex:2,padding:"14px",background:pin.length<4||verifying?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:pin.length<4||verifying?"not-allowed":"pointer"}}>{verifying?"...":(String.fromCharCode(0x2713)+" Authorize")}</button>
-        </div>
-      </div>
-    </div>
-  </div>;
-}
-
-// ============================================================
 // MANAGER PIN PROMPT - reusable PIN entry for protected actions
 // ============================================================
 function ManagerPinPrompt({title,reason,onCancel,onApproved,branch}){
