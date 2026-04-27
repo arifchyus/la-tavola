@@ -3023,7 +3023,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
               {o.voidApprovedBy&&<p style={{fontSize:10,color:"#7f1d1d",marginTop:1}}>Approved by: {o.voidApprovedBy}</p>}
             </div>}
             <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-              {allSt.filter(s=>s!==o.status).map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
+              {o.status!=="cancelled"&&allSt.filter(s=>s!==o.status&&s!=="cancelled").map(s=><button key={s} onClick={()=>upSt(o.id,s)} style={{padding:"2px 6px",borderRadius:5,fontSize:10,fontWeight:600,border:"1px solid "+SC[s],color:SC[s],background:SB[s],cursor:"pointer"}}>{SL[s]}</button>)}
             </div>
             <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
               <button onClick={()=>printR(o,branches.find(b=>b.id===o.branchId))} style={{fontSize:10,color:"#8a8078",border:"none",background:"none",cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Receipt</button>
