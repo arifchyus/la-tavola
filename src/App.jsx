@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,saveRecurringExpense as dbSaveRecurring}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -3183,6 +3183,396 @@ function CategoryManager({categories,branch,onClose,onUpdate,push}){
   </div>;
 }
 
+// ============================================================
+// RECURRING EXPENSES MANAGER - view/edit/delete recurring templates
+// ============================================================
+function RecurringExpensesManager({list,categories,branch,onClose,onUpdate,push}){
+  var [items,setItems]=useState(list);
+  var [editing,setEditing]=useState(null);
+  var [showAdd,setShowAdd]=useState(false);
+  
+  var emptyForm={
+    description:"",amount:"",categoryId:categories[0]?.id||"",
+    frequency:"monthly",dayOfMonth:1,
+    startDate:new Date().toISOString().split("T")[0],endDate:"",
+  };
+  var [form,setForm]=useState(emptyForm);
+  
+  var startEdit=(r)=>{
+    setEditing(r);
+    setForm({
+      description:r.description,
+      amount:String(r.amount),
+      categoryId:r.category_id||"",
+      frequency:r.frequency,
+      dayOfMonth:r.day_of_month||1,
+      startDate:r.start_date,
+      endDate:r.end_date||"",
+    });
+    setShowAdd(true);
+  };
+  
+  var startAdd=()=>{
+    setEditing(null);
+    setForm({...emptyForm,categoryId:categories[0]?.id||""});
+    setShowAdd(true);
+  };
+  
+  var saveRec=()=>{
+    if(!form.description.trim()){alert("Enter description");return;}
+    if(!form.amount||parseFloat(form.amount)<=0){alert("Enter valid amount");return;}
+    var cat=categories.find(c=>c.id===form.categoryId);
+    var payload={
+      id:editing?editing.id:undefined,
+      branchId:branch?.id||null,
+      categoryId:form.categoryId,
+      categoryName:cat?.name||"Other",
+      amount:parseFloat(form.amount),
+      description:form.description.trim(),
+      frequency:form.frequency,
+      dayOfMonth:parseInt(form.dayOfMonth)||1,
+      startDate:form.startDate,
+      endDate:form.endDate||null,
+      active:true,
+    };
+    dbSaveRecurring(payload).then(r=>{
+      if(r.error){alert("Failed: "+JSON.stringify(r.error));return;}
+      var newList;
+      if(editing){
+        newList=items.map(x=>x.id===editing.id?r.data:x);
+      }else{
+        newList=[...items,r.data];
+      }
+      setItems(newList);
+      onUpdate(newList);
+      setShowAdd(false);
+      setEditing(null);
+      push&&push({title:editing?"Recurring updated":"Recurring added",body:form.description,color:"#7c3aed"});
+    });
+  };
+  
+  var pauseRec=(r)=>{
+    if(!window.confirm((r.active?"Pause":"Resume")+" recurring expense \""+r.description+"\"?"))return;
+    dbSaveRecurring({id:r.id,branchId:r.branch_id,categoryId:r.category_id,categoryName:r.category_name,amount:r.amount,description:r.description,frequency:r.frequency,dayOfMonth:r.day_of_month,startDate:r.start_date,endDate:r.end_date,active:!r.active}).then(()=>{
+      var newList=items.map(x=>x.id===r.id?{...x,active:!r.active}:x);
+      setItems(newList);
+      onUpdate(newList);
+    });
+  };
+  
+  var deleteRec=(r)=>{
+    if(!window.confirm("Delete \""+r.description+"\"? Future auto-creations will stop. (Existing expenses are NOT deleted.)"))return;
+    dbDeleteRecurring(r.id).then(()=>{
+      var newList=items.filter(x=>x.id!==r.id);
+      setItems(newList);
+      onUpdate(newList);
+      push&&push({title:"Recurring deleted",body:r.description,color:"#dc2626"});
+    });
+  };
+  
+  // Compute next due date for display
+  var computeNextDue=(r)=>{
+    if(!r.active)return"PAUSED";
+    var lastGen=r.last_generated_date?new Date(r.last_generated_date):new Date(r.start_date);
+    var next=new Date(lastGen);
+    if(r.frequency==="weekly")next.setDate(lastGen.getDate()+7);
+    else if(r.frequency==="monthly")next.setMonth(lastGen.getMonth()+1);
+    else if(r.frequency==="quarterly")next.setMonth(lastGen.getMonth()+3);
+    else if(r.frequency==="yearly")next.setFullYear(lastGen.getFullYear()+1);
+    if(!r.last_generated_date)next=new Date(r.start_date);
+    return next.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:640,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>FINANCE</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD04)} Recurring Expenses</h2>
+        </div>
+        <button onClick={onClose} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        {!showAdd?<>
+          <div style={{padding:11,background:"#f5f3ff",borderRadius:9,marginBottom:11,fontSize:11,color:"#7c3aed",borderLeft:"4px solid #7c3aed"}}>
+            <p style={{fontWeight:700,marginBottom:3}}>{String.fromCharCode(0x2139,0xFE0F)} How recurring works:</p>
+            <p>These templates auto-create expenses on schedule. Visit Finance tab to trigger generation.</p>
+          </div>
+          
+          <button onClick={startAdd} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:11}}>{String.fromCharCode(0x2B)} Add Recurring Expense</button>
+          
+          {items.length===0?<p style={{textAlign:"center",color:"#8a8078",fontStyle:"italic",fontSize:12,padding:20}}>No recurring expenses yet. Add rent, internet, insurance etc to auto-generate them.</p>:
+            <div>
+              {items.map(r=>{
+                var cat=categories.find(c=>c.id===r.category_id);
+                return <div key={r.id} style={{padding:11,border:"2px solid #ede8de",borderRadius:9,marginBottom:6,borderLeft:"5px solid "+(r.active?(cat?.color||"#7c3aed"):"#9ca3af"),opacity:r.active?1:.6}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:24}}>{cat?.icon||String.fromCharCode(0xD83D,0xDD04)}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontSize:13,fontWeight:700}}>{r.description}</p>
+                      <p style={{fontSize:11,color:"#8a8078"}}>{r.category_name} - {fmt(r.amount)} - {r.frequency}{r.frequency==="monthly"?" (day "+r.day_of_month+")":""}</p>
+                      <p style={{fontSize:10,color:"#7c3aed",fontWeight:700}}>Next due: {computeNextDue(r)}</p>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:5,marginTop:7,flexWrap:"wrap"}}>
+                    <button onClick={()=>pauseRec(r)} style={{padding:"5px 9px",background:r.active?"#fef3c7":"#d1fae5",color:r.active?"#92400e":"#047857",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>{r.active?String.fromCharCode(0x23F8,0xFE0F)+" Pause":String.fromCharCode(0x25B6,0xFE0F)+" Resume"}</button>
+                    <button onClick={()=>startEdit(r)} style={{padding:"5px 9px",background:"#fef3c7",color:"#92400e",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x270F,0xFE0F)} Edit</button>
+                    <button onClick={()=>deleteRec(r)} style={{padding:"5px 9px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDD1,0xFE0F)} Delete</button>
+                  </div>
+                </div>;
+              })}
+            </div>
+          }
+        </>:<>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:11}}>{editing?"Edit Recurring":"New Recurring"}</h3>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DESCRIPTION</p>
+          <input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="e.g., Monthly rent" autoFocus style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>AMOUNT</p>
+          <input type="number" step="0.01" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder="0.00" style={{width:"100%",padding:"13px",border:"3px solid #7c3aed",borderRadius:7,fontSize:20,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"right",marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>CATEGORY</p>
+          <select value={form.categoryId} onChange={e=>setForm({...form,categoryId:e.target.value})} className="field" style={{padding:"11px",fontSize:13,marginBottom:11}}>
+            {categories.filter(c=>c.active!==false).map(c=><option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          </select>
+          
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:11}}>
+            <div>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>FREQUENCY</p>
+              <select value={form.frequency} onChange={e=>setForm({...form,frequency:e.target.value})} className="field" style={{padding:"11px",fontSize:13}}>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            {form.frequency==="monthly"&&<div>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DAY OF MONTH</p>
+              <input type="number" min="1" max="28" value={form.dayOfMonth} onChange={e=>setForm({...form,dayOfMonth:e.target.value})} className="field" style={{padding:"11px",fontSize:13}}/>
+            </div>}
+          </div>
+          
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:11}}>
+            <div>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>START DATE</p>
+              <input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})} className="field" style={{padding:"11px",fontSize:13}}/>
+            </div>
+            <div>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>END DATE (OPTIONAL)</p>
+              <input type="date" value={form.endDate} onChange={e=>setForm({...form,endDate:e.target.value})} className="field" style={{padding:"11px",fontSize:13}}/>
+            </div>
+          </div>
+          
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>{setShowAdd(false);setEditing(null);}} style={{flex:1,padding:"13px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+            <button onClick={saveRec} style={{flex:2,padding:"13px",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2713)} Save</button>
+          </div>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// PROFIT & LOSS STATEMENT - HMRC compliant format
+// ============================================================
+function PLStatement({orders,expenses,fromDate,toDate,branch,onClose}){
+  // Calculate income breakdown
+  var periodOrders=(orders||[]).filter(o=>{
+    try{
+      var d=new Date(o.placedAt||o.createdAt||0).toISOString().split("T")[0];
+      return d>=fromDate&&d<=toDate&&o.status!=="cancelled";
+    }catch(e){return false;}
+  });
+  
+  // Income by type
+  var incomeByType={};
+  periodOrders.forEach(o=>{
+    var t=o.type||"other";
+    if(!incomeByType[t])incomeByType[t]=0;
+    incomeByType[t]+=parseFloat(o.total||0);
+  });
+  
+  var grossIncome=periodOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  
+  // Calculate VAT (if enabled)
+  var s=getReceiptSettings();
+  var vatExtracted=0;
+  var netIncome=grossIncome;
+  if(s.showVAT){
+    vatExtracted=grossIncome*(s.vatRate/(100+s.vatRate));
+    netIncome=grossIncome-vatExtracted;
+  }
+  
+  // Expenses by category
+  var expensesByCategory={};
+  (expenses||[]).forEach(e=>{
+    var cat=e.category_name||"Other";
+    if(!expensesByCategory[cat])expensesByCategory[cat]=0;
+    expensesByCategory[cat]+=parseFloat(e.amount||0);
+  });
+  var totalExpenses=Object.values(expensesByCategory).reduce((s,v)=>s+v,0);
+  var sortedExp=Object.entries(expensesByCategory).sort((a,b)=>b[1]-a[1]);
+  
+  var grossProfit=netIncome-totalExpenses;
+  var profitMargin=netIncome>0?(grossProfit/netIncome)*100:0;
+  
+  var fromStr=new Date(fromDate).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  var toStr=new Date(toDate).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  var generatedStr=new Date().toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  
+  var printPL=()=>{
+    var w=window.open("","_blank","width=900,height=1200");if(!w)return;
+    var incomeRows=Object.entries(incomeByType).map(([t,v])=>{
+      var label=t.charAt(0).toUpperCase()+t.slice(1).replace("-"," ");
+      return `<tr><td style="padding:5px 14px;padding-left:30px">${label}</td><td style="padding:5px 14px;text-align:right">${fmt(v)}</td></tr>`;
+    }).join("");
+    var expRows=sortedExp.map(([cat,amt])=>`<tr><td style="padding:5px 14px;padding-left:30px">${cat}</td><td style="padding:5px 14px;text-align:right">${fmt(amt)}</td></tr>`).join("");
+    var js="window.onload=function(){window.print()}";
+    w.document.write(`<!DOCTYPE html><html><head><title>P&L ${fromDate} to ${toDate}</title><style>
+      body{font-family:Arial,sans-serif;padding:36px;color:#1a1208;max-width:760px;margin:0 auto;font-size:14px}
+      h1{color:#1a1208;margin:0;font-size:28px;letter-spacing:2px}
+      h2{font-size:18px;margin:18px 0 6px;color:#1a1208;border-bottom:2px solid #1a1208;padding-bottom:4px;letter-spacing:1px}
+      .header{text-align:center;border-bottom:4px solid #1a1208;padding-bottom:18px;margin-bottom:22px}
+      .header p{margin:3px 0;color:#666;font-size:12px}
+      .period{background:#fef3c7;padding:10px 16px;border-radius:8px;margin:14px 0;text-align:center;font-size:14px;font-weight:700;color:#92400e}
+      table{width:100%;border-collapse:collapse;margin:9px 0}
+      td{padding:5px 14px}
+      .section{background:#f7f3ee;font-weight:700;font-size:14px}
+      .total-row{border-top:2px solid #1a1208;border-bottom:2px solid #1a1208;background:#1a1208;color:#fff;font-weight:700;font-size:15px}
+      .total-row td{padding:9px 14px}
+      .profit-row{border:3px solid #d4952a;background:#fffbeb;font-size:18px;font-weight:700;color:#d4952a}
+      .profit-row td{padding:11px 14px}
+      .loss-row{border:3px solid #dc2626;background:#fef2f2;font-size:18px;font-weight:700;color:#dc2626}
+      .footer{margin-top:36px;padding-top:14px;border-top:1px solid #ccc;text-align:center;color:#666;font-size:11px}
+    </style></head><body>
+      <div class="header">
+        <h1>PROFIT & LOSS STATEMENT</h1>
+        <p><b>${branch?.name||"La Tavola"}</b></p>
+        ${branch?`<p>${branch.addr||""}</p>`:""}
+        <p>Generated: ${generatedStr}</p>
+      </div>
+      
+      <div class="period"><b>Reporting Period:</b> ${fromStr} - ${toStr}</div>
+      
+      <h2>INCOME</h2>
+      <table>
+        <tr class="section"><td colspan="2">Sales by Order Type</td></tr>
+        ${incomeRows||'<tr><td colspan="2" style="padding:11px;text-align:center;color:#666;font-style:italic">No sales in this period</td></tr>'}
+        ${s.showVAT?`<tr style="background:#f5f5f5"><td style="padding:7px 14px;padding-left:30px"><b>Gross Sales</b></td><td style="padding:7px 14px;text-align:right"><b>${fmt(grossIncome)}</b></td></tr>
+        <tr><td style="padding:5px 14px;padding-left:30px;color:#666">Less: VAT @ ${s.vatRate}%</td><td style="padding:5px 14px;text-align:right;color:#666">(${fmt(vatExtracted)})</td></tr>`:""}
+        <tr class="total-row"><td>NET INCOME</td><td style="text-align:right">${fmt(netIncome)}</td></tr>
+      </table>
+      
+      <h2>EXPENSES</h2>
+      <table>
+        <tr class="section"><td colspan="2">Operating Expenses</td></tr>
+        ${expRows||'<tr><td colspan="2" style="padding:11px;text-align:center;color:#666;font-style:italic">No expenses recorded</td></tr>'}
+        <tr class="total-row"><td>TOTAL EXPENSES</td><td style="text-align:right">${fmt(totalExpenses)}</td></tr>
+      </table>
+      
+      <h2>RESULT</h2>
+      <table>
+        <tr><td style="padding:7px 14px">Net Income</td><td style="padding:7px 14px;text-align:right">${fmt(netIncome)}</td></tr>
+        <tr><td style="padding:7px 14px">Less: Total Expenses</td><td style="padding:7px 14px;text-align:right">(${fmt(totalExpenses)})</td></tr>
+        <tr class="${grossProfit>=0?"profit-row":"loss-row"}"><td>${grossProfit>=0?"NET PROFIT":"NET LOSS"}</td><td style="text-align:right">${grossProfit>=0?fmt(grossProfit):"("+fmt(Math.abs(grossProfit))+")"}</td></tr>
+        <tr><td style="padding:7px 14px;font-size:12px;color:#666">Profit Margin</td><td style="padding:7px 14px;text-align:right;font-size:12px;color:#666">${profitMargin.toFixed(1)}%</td></tr>
+      </table>
+      
+      <div class="footer">
+        <p><b>Notes:</b></p>
+        <p style="text-align:left;margin:6px 0">- Income figures based on completed orders only (excludes cancelled/refunded)</p>
+        ${s.showVAT?'<p style="text-align:left;margin:6px 0">- VAT extracted at standard UK rate of '+s.vatRate+'%</p>':""}
+        <p style="text-align:left;margin:6px 0">- This statement is for management purposes only</p>
+        <p style="margin-top:14px;font-style:italic">For HMRC submissions, please use authorised accounting software</p>
+      </div>
+    </body></html>`);
+    var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
+    w.document.close();
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9400,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",color:"#1a1208",borderRadius:14,maxWidth:700,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>FINANCE</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCCA)} Profit & Loss Statement</h2>
+        </div>
+        <button onClick={onClose} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:20}}>
+        {/* Period header */}
+        <div style={{padding:14,background:"#fef3c7",borderRadius:9,marginBottom:18,textAlign:"center"}}>
+          <p style={{fontSize:11,color:"#92400e",fontWeight:700,letterSpacing:2,marginBottom:3}}>REPORTING PERIOD</p>
+          <p style={{fontSize:14,fontWeight:700,color:"#92400e"}}>{fromStr} - {toStr}</p>
+        </div>
+        
+        {/* INCOME SECTION */}
+        <div style={{marginBottom:22}}>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"2px solid #1a1208",letterSpacing:1}}>{String.fromCharCode(0xD83D,0xDCB0)} INCOME</h3>
+          <table style={{width:"100%",fontSize:13}}>
+            <tbody>
+              <tr style={{background:"#f7f3ee"}}><td colSpan="2" style={{padding:"6px 11px",fontWeight:700,fontSize:12}}>Sales by Order Type</td></tr>
+              {Object.entries(incomeByType).length===0?<tr><td colSpan="2" style={{padding:11,textAlign:"center",color:"#8a8078",fontStyle:"italic"}}>No sales in this period</td></tr>:
+                Object.entries(incomeByType).map(([t,v])=><tr key={t}><td style={{padding:"5px 14px",paddingLeft:30}}>{t.charAt(0).toUpperCase()+t.slice(1).replace("-"," ")}</td><td style={{padding:"5px 14px",textAlign:"right",fontFamily:"'Courier New',monospace"}}>{fmt(v)}</td></tr>)
+              }
+              {s.showVAT&&<>
+                <tr style={{background:"#f5f5f5"}}><td style={{padding:"7px 14px",paddingLeft:30,fontWeight:700}}>Gross Sales</td><td style={{padding:"7px 14px",textAlign:"right",fontWeight:700,fontFamily:"'Courier New',monospace"}}>{fmt(grossIncome)}</td></tr>
+                <tr><td style={{padding:"5px 14px",paddingLeft:30,color:"#8a8078"}}>Less: VAT @ {s.vatRate}%</td><td style={{padding:"5px 14px",textAlign:"right",color:"#8a8078",fontFamily:"'Courier New',monospace"}}>({fmt(vatExtracted)})</td></tr>
+              </>}
+              <tr style={{borderTop:"2px solid #1a1208",borderBottom:"2px solid #1a1208",background:"#1a1208",color:"#fff"}}>
+                <td style={{padding:"9px 14px",fontWeight:700,letterSpacing:1}}>NET INCOME</td>
+                <td style={{padding:"9px 14px",textAlign:"right",fontWeight:700,fontFamily:"'Courier New',monospace",fontSize:15}}>{fmt(netIncome)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        {/* EXPENSES SECTION */}
+        <div style={{marginBottom:22}}>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"2px solid #1a1208",letterSpacing:1}}>{String.fromCharCode(0xD83D,0xDCB8)} EXPENSES</h3>
+          <table style={{width:"100%",fontSize:13}}>
+            <tbody>
+              <tr style={{background:"#f7f3ee"}}><td colSpan="2" style={{padding:"6px 11px",fontWeight:700,fontSize:12}}>Operating Expenses</td></tr>
+              {sortedExp.length===0?<tr><td colSpan="2" style={{padding:11,textAlign:"center",color:"#8a8078",fontStyle:"italic"}}>No expenses recorded</td></tr>:
+                sortedExp.map(([cat,amt])=><tr key={cat}><td style={{padding:"5px 14px",paddingLeft:30}}>{cat}</td><td style={{padding:"5px 14px",textAlign:"right",fontFamily:"'Courier New',monospace"}}>{fmt(amt)}</td></tr>)
+              }
+              <tr style={{borderTop:"2px solid #1a1208",borderBottom:"2px solid #1a1208",background:"#1a1208",color:"#fff"}}>
+                <td style={{padding:"9px 14px",fontWeight:700,letterSpacing:1}}>TOTAL EXPENSES</td>
+                <td style={{padding:"9px 14px",textAlign:"right",fontWeight:700,fontFamily:"'Courier New',monospace",fontSize:15}}>{fmt(totalExpenses)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        {/* RESULT */}
+        <div>
+          <h3 style={{fontSize:14,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"2px solid #1a1208",letterSpacing:1}}>{String.fromCharCode(0xD83D,0xDCC8)} RESULT</h3>
+          <table style={{width:"100%",fontSize:13}}>
+            <tbody>
+              <tr><td style={{padding:"7px 14px"}}>Net Income</td><td style={{padding:"7px 14px",textAlign:"right",fontFamily:"'Courier New',monospace"}}>{fmt(netIncome)}</td></tr>
+              <tr><td style={{padding:"7px 14px"}}>Less: Total Expenses</td><td style={{padding:"7px 14px",textAlign:"right",fontFamily:"'Courier New',monospace"}}>({fmt(totalExpenses)})</td></tr>
+              <tr style={{border:"3px solid "+(grossProfit>=0?"#d4952a":"#dc2626"),background:grossProfit>=0?"#fffbeb":"#fef2f2"}}>
+                <td style={{padding:"11px 14px",fontWeight:700,fontSize:16,letterSpacing:1,color:grossProfit>=0?"#d4952a":"#dc2626"}}>{grossProfit>=0?"NET PROFIT":"NET LOSS"}</td>
+                <td style={{padding:"11px 14px",textAlign:"right",fontWeight:700,fontSize:18,fontFamily:"'Courier New',monospace",color:grossProfit>=0?"#d4952a":"#dc2626"}}>{grossProfit>=0?fmt(grossProfit):"("+fmt(Math.abs(grossProfit))+")"}</td>
+              </tr>
+              <tr><td style={{padding:"5px 14px",fontSize:11,color:"#8a8078"}}>Profit Margin</td><td style={{padding:"5px 14px",textAlign:"right",fontSize:11,color:"#8a8078"}}>{profitMargin.toFixed(1)}%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div style={{padding:11,background:"#fff",borderTop:"1px solid #ede8de",display:"flex",gap:6}}>
+        <button onClick={onClose} style={{flex:1,padding:"13px",background:"#fff",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Close</button>
+        <button onClick={printPL} style={{flex:2,padding:"13px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Print P&L Statement</button>
+      </div>
+    </div>
+  </div>;
+}
+
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations,user}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
@@ -3214,7 +3604,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   // Finance state
   var [expenses,setExpenses]=useState([]);
   var [expenseCategories,setExpenseCategories]=useState([]);
+  var [recurringExpenses,setRecurringExpenses]=useState([]);
   var [financeLoading,setFinanceLoading]=useState(false);
+  var [showRecurringManager,setShowRecurringManager]=useState(false);
+  var [showPLStatement,setShowPLStatement]=useState(false);
   var [financeFromDate,setFinanceFromDate]=useState(()=>{var d=new Date();d.setDate(1);return d.toISOString().split("T")[0];});
   var [financeToDate,setFinanceToDate]=useState(()=>new Date().toISOString().split("T")[0]);
   var [showAddExpense,setShowAddExpense]=useState(false);
@@ -3240,14 +3633,86 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       Promise.all([
         dbFetchExpenseCats(branch?.id||null),
         dbFetchExpenses(branch?.id||null,financeFromDate,financeToDate),
-      ]).then(([cats,exp])=>{
+        dbFetchRecurring(branch?.id||null),
+      ]).then(([cats,exp,rec])=>{
         setExpenseCategories(cats||[]);
         setExpenses(exp||[]);
+        setRecurringExpenses(rec||[]);
         setFinanceLoading(false);
+        // AUTO-GENERATE recurring expenses that are due
+        autoGenerateRecurring(rec||[],branch,user);
       }).catch(e=>{console.log("Finance load failed:",e);setFinanceLoading(false);});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[tab,branch?.id,financeFromDate,financeToDate]);
+
+  // AUTO-GENERATE recurring expenses based on schedule
+  var autoGenerateRecurring=async(recList,br,u)=>{
+    var today=new Date();
+    var todayStr=today.toISOString().split("T")[0];
+    var generated=0;
+    
+    for(var rec of recList){
+      if(!rec.active)continue;
+      if(rec.end_date&&new Date(rec.end_date)<today)continue;
+      
+      // Calculate next due date based on frequency and last generated
+      var lastGen=rec.last_generated_date?new Date(rec.last_generated_date):new Date(rec.start_date);
+      var nextDue=new Date(lastGen);
+      
+      if(rec.frequency==="weekly")nextDue.setDate(lastGen.getDate()+7);
+      else if(rec.frequency==="monthly"){
+        nextDue.setMonth(lastGen.getMonth()+1);
+        // Use day_of_month if specified
+        if(rec.day_of_month)nextDue.setDate(Math.min(rec.day_of_month,28));
+      }
+      else if(rec.frequency==="quarterly")nextDue.setMonth(lastGen.getMonth()+3);
+      else if(rec.frequency==="yearly")nextDue.setFullYear(lastGen.getFullYear()+1);
+      
+      // If it's not the first run (no last_generated), use start_date
+      if(!rec.last_generated_date)nextDue=new Date(rec.start_date);
+      
+      // If next due is today or in the past, generate it
+      while(nextDue<=today){
+        var dueStr=nextDue.toISOString().split("T")[0];
+        try{
+          await dbSaveExpense({
+            branchId:rec.branch_id,
+            categoryId:rec.category_id,
+            categoryName:rec.category_name,
+            amount:rec.amount,
+            description:rec.description+" (auto-recurring)",
+            expenseDate:dueStr,
+            recordedBy:"System (Auto)",
+            recordedByRole:"manager",
+            isRecurring:true,
+            recurringId:rec.id,
+            notes:"Auto-generated from recurring template",
+          });
+          await dbUpdateRecurringDate(rec.id,dueStr);
+          generated++;
+          // Move to next due date
+          if(rec.frequency==="weekly")nextDue.setDate(nextDue.getDate()+7);
+          else if(rec.frequency==="monthly")nextDue.setMonth(nextDue.getMonth()+1);
+          else if(rec.frequency==="quarterly")nextDue.setMonth(nextDue.getMonth()+3);
+          else if(rec.frequency==="yearly")nextDue.setFullYear(nextDue.getFullYear()+1);
+          else break; // safety
+        }catch(e){
+          console.log("Auto-gen failed for",rec.description,e);
+          break;
+        }
+      }
+    }
+    
+    if(generated>0){
+      // Reload expenses list
+      var freshExpenses=await dbFetchExpenses(br?.id||null,financeFromDate,financeToDate);
+      setExpenses(freshExpenses||[]);
+      var freshRec=await dbFetchRecurring(br?.id||null);
+      setRecurringExpenses(freshRec||[]);
+      push&&push({title:"Auto-recurring",body:"Generated "+generated+" recurring expense(s)",color:"#7c3aed"});
+    }
+  };
 
   var [advHours,setAdvHours]=useState({}); // { branchId: { Mon: { all_1: {...} }, Tue: ... } }
   var [holidays,setHolidays]=useState({}); // { branchId: [{ id, holiday_date, ... }] }
@@ -3626,6 +4091,24 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       onClose={()=>setShowCategoryManager(false)}
       onUpdate={(cats)=>setExpenseCategories(cats)}
       push={push}
+    />}
+    
+    {showRecurringManager&&<RecurringExpensesManager
+      list={recurringExpenses}
+      categories={expenseCategories}
+      branch={branch}
+      onClose={()=>setShowRecurringManager(false)}
+      onUpdate={(rec)=>setRecurringExpenses(rec)}
+      push={push}
+    />}
+    
+    {showPLStatement&&<PLStatement
+      orders={fil}
+      expenses={expenses}
+      fromDate={financeFromDate}
+      toDate={financeToDate}
+      branch={branch}
+      onClose={()=>setShowPLStatement(false)}
     />}
     
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>La Tavola Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
@@ -4514,7 +4997,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         {/* Action Buttons */}
         <div style={{display:"flex",gap:7,marginBottom:11,flexWrap:"wrap"}}>
           <button onClick={()=>setShowAddExpense(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0x2B)} Add Expense</button>
-          <button onClick={()=>setShowCategoryManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCC1)} Manage Categories ({expenseCategories.filter(c=>c.active).length})</button>
+          <button onClick={()=>setShowCategoryManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCC1)} Categories ({expenseCategories.filter(c=>c.active).length})</button>
+          <button onClick={()=>setShowRecurringManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#7c3aed",border:"2px solid #7c3aed",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD04)} Recurring ({recurringExpenses.filter(r=>r.active).length})</button>
+          <button onClick={()=>setShowPLStatement(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCCA)} View P&L Statement</button>
         </div>
         
         {/* Income breakdown */}

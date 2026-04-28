@@ -1197,3 +1197,10 @@ export async function deleteRecurringExpense(id) {
     .update({ active: false }).eq('id', id);
   return { error };
 }
+
+// Update last_generated_date on a recurring template
+export async function updateRecurringLastGenerated(id, dateStr) {
+  const { data, error } = await supabase.from('recurring_expenses')
+    .update({ last_generated_date: dateStr }).eq('id', id).select().single();
+  return { data, error };
+}
