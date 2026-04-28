@@ -3649,7 +3649,6 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   // AUTO-GENERATE recurring expenses based on schedule
   var autoGenerateRecurring=async(recList,br,u)=>{
     var today=new Date();
-    var todayStr=today.toISOString().split("T")[0];
     var generated=0;
     
     for(var rec of recList){
