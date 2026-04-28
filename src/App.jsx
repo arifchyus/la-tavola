@@ -3273,13 +3273,31 @@ function RecurringExpensesManager({list,categories,branch,onClose,onUpdate,push}
   // Compute next due date for display
   var computeNextDue=(r)=>{
     if(!r.active)return"PAUSED";
-    var lastGen=r.last_generated_date?new Date(r.last_generated_date):new Date(r.start_date);
-    var next=new Date(lastGen);
-    if(r.frequency==="weekly")next.setDate(lastGen.getDate()+7);
-    else if(r.frequency==="monthly")next.setMonth(lastGen.getMonth()+1);
-    else if(r.frequency==="quarterly")next.setMonth(lastGen.getMonth()+3);
-    else if(r.frequency==="yearly")next.setFullYear(lastGen.getFullYear()+1);
-    if(!r.last_generated_date)next=new Date(r.start_date);
+    var today=new Date();
+    today.setHours(0,0,0,0);
+    var startDate=new Date(r.start_date);
+    startDate.setHours(0,0,0,0);
+    
+    var next;
+    if(r.last_generated_date){
+      // Already generated - calculate next based on last + frequency
+      next=new Date(r.last_generated_date);
+      if(r.frequency==="weekly")next.setDate(next.getDate()+7);
+      else if(r.frequency==="monthly")next.setMonth(next.getMonth()+1);
+      else if(r.frequency==="quarterly")next.setMonth(next.getMonth()+3);
+      else if(r.frequency==="yearly")next.setFullYear(next.getFullYear()+1);
+    }else{
+      // Never generated - first due is start date OR if start is in past, show next scheduled
+      next=new Date(startDate);
+      // Keep advancing while next is in the past (auto-gen would have created these)
+      while(next<today){
+        if(r.frequency==="weekly")next.setDate(next.getDate()+7);
+        else if(r.frequency==="monthly")next.setMonth(next.getMonth()+1);
+        else if(r.frequency==="quarterly")next.setMonth(next.getMonth()+3);
+        else if(r.frequency==="yearly")next.setFullYear(next.getFullYear()+1);
+        else break;
+      }
+    }
     return next.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
   };
   
@@ -3649,29 +3667,30 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   // AUTO-GENERATE recurring expenses based on schedule
   var autoGenerateRecurring=async(recList,br,u)=>{
     var today=new Date();
+    today.setHours(0,0,0,0);
     var generated=0;
     
     for(var rec of recList){
       if(!rec.active)continue;
       if(rec.end_date&&new Date(rec.end_date)<today)continue;
       
-      // Calculate next due date based on frequency and last generated
-      var lastGen=rec.last_generated_date?new Date(rec.last_generated_date):new Date(rec.start_date);
-      var nextDue=new Date(lastGen);
-      
-      if(rec.frequency==="weekly")nextDue.setDate(lastGen.getDate()+7);
-      else if(rec.frequency==="monthly"){
-        nextDue.setMonth(lastGen.getMonth()+1);
-        // Use day_of_month if specified
-        if(rec.day_of_month)nextDue.setDate(Math.min(rec.day_of_month,28));
+      // Determine first date to consider for generation
+      var nextDue;
+      if(rec.last_generated_date){
+        // Already generated - move to next occurrence
+        nextDue=new Date(rec.last_generated_date);
+        if(rec.frequency==="weekly")nextDue.setDate(nextDue.getDate()+7);
+        else if(rec.frequency==="monthly")nextDue.setMonth(nextDue.getMonth()+1);
+        else if(rec.frequency==="quarterly")nextDue.setMonth(nextDue.getMonth()+3);
+        else if(rec.frequency==="yearly")nextDue.setFullYear(nextDue.getFullYear()+1);
+        else continue;
+      }else{
+        // Never generated - start from start_date
+        nextDue=new Date(rec.start_date);
       }
-      else if(rec.frequency==="quarterly")nextDue.setMonth(lastGen.getMonth()+3);
-      else if(rec.frequency==="yearly")nextDue.setFullYear(lastGen.getFullYear()+1);
+      nextDue.setHours(0,0,0,0);
       
-      // If it's not the first run (no last_generated), use start_date
-      if(!rec.last_generated_date)nextDue=new Date(rec.start_date);
-      
-      // If next due is today or in the past, generate it
+      // Generate all due occurrences (today and earlier)
       while(nextDue<=today){
         var dueStr=nextDue.toISOString().split("T")[0];
         try{
@@ -3695,7 +3714,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           else if(rec.frequency==="monthly")nextDue.setMonth(nextDue.getMonth()+1);
           else if(rec.frequency==="quarterly")nextDue.setMonth(nextDue.getMonth()+3);
           else if(rec.frequency==="yearly")nextDue.setFullYear(nextDue.getFullYear()+1);
-          else break; // safety
+          else break;
         }catch(e){
           console.log("Auto-gen failed for",rec.description,e);
           break;
