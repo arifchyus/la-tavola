@@ -3400,7 +3400,9 @@ function PLStatement({orders,expenses,fromDate,toDate,branch,onClose}){
   // Calculate income breakdown
   var periodOrders=(orders||[]).filter(o=>{
     try{
-      var d=new Date(o.placedAt||o.createdAt||0).toISOString().split("T")[0];
+      var dateStr=o.created_at||o.placedAt||o.createdAt;
+      if(!dateStr)return false;
+      var d=new Date(dateStr).toISOString().split("T")[0];
       return d>=fromDate&&d<=toDate&&o.status!=="cancelled";
     }catch(e){return false;}
   });
@@ -4924,7 +4926,10 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       var toDateOnly=financeToDate;
       var periodOrders=fil.filter(o=>{
         try{
-          var d=new Date(o.placedAt||o.createdAt||0).toISOString().split("T")[0];
+          // Use created_at (DB field), fallback to placedAt or createdAt
+          var dateStr=o.created_at||o.placedAt||o.createdAt;
+          if(!dateStr)return false;
+          var d=new Date(dateStr).toISOString().split("T")[0];
           return d>=fromDateOnly&&d<=toDateOnly&&o.status!=="cancelled";
         }catch(e){return false;}
       });
@@ -5897,7 +5902,7 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   var placeOrder=(paid)=>{
     if(!cart.length)return;
     if(orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok){alert(deliveryCheck.reason);return;}
-    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone",notes:orderNotes||""};
+    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),created_at:new Date().toISOString(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone",notes:orderNotes||""};
     onOrder(o);
     setCustomers(cs=>cs.map(c=>c.id===found.id?{...c,lastOrder:o.id,totalOrders:c.totalOrders+1,totalSpent:c.totalSpent+total}:c));
     push({title:"Phone order placed!",body:o.id+" - "+fmt(total),color:"#059669"});
@@ -8830,7 +8835,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
       serviceCharge:serviceCharge,
       tip:payData?payData.tip:0,
       total:payData?payData.total:total,
-      status:"preparing",time:nowT(),type:orderType,
+      status:"preparing",time:nowT(),created_at:new Date().toISOString(),type:orderType,
       paid:paid||false,payMethod:payMethod||null,takenBy:user?.name,
       tableId,source:phoneCust?"phone":"staff",guests:parseInt(guests)||1,
       address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,
@@ -9360,7 +9365,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       orderType=type;
       deliveryCode=null;
     }
-    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&(payData.method==="split"||payData.method==="item-split")?{cash:payData.cashPart||payData.totalCash,card:payData.cardPart||payData.totalCard}:null,cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,changeReturn:payData&&payData.changeReturn?payData.changeReturn:null,itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null};
+    var o={id:uid(),branchId:branch?.id,userId:phoneCust?phoneCust.id:(user?.id||"staff"),customer,phone:phoneNum,items:cart,subtotal:rawSub,discount:discAmt,discReason:discReason,serviceCharge:serviceCharge,tip:payData?payData.tip:tip,total:payData?payData.total:total,status:"preparing",time:nowT(),created_at:new Date().toISOString(),type:orderType,paid,slot:null,payMethod:method||null,takenBy:user?.name,splitN:splitN,tableId:tableId,source:phoneCust?"phone":"staff",address:address,deliveryCode:deliveryCode,phoneCustomer:phoneCust?true:false,paymentSplit:payData&&(payData.method==="split"||payData.method==="item-split")?{cash:payData.cashPart||payData.totalCash,card:payData.cardPart||payData.totalCard}:null,cashGiven:payData&&payData.cashGiven?payData.cashGiven:null,changeReturn:payData&&payData.changeReturn?payData.changeReturn:null,itemSplit:payData&&payData.method==="item-split"?{customerCount:payData.customerCount,customerItems:payData.customerItems,customerPayments:payData.customerPayments,payments:payData.payments}:null};
     onOrder(o);setLastOrder(o);
     var msgBody=phoneCust?(phoneCust.name+" - "+fmt(o.total)+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(o.total));
     push({title:paid?"Paid by "+method:(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
