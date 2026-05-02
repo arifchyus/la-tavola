@@ -10,7 +10,40 @@ const SUPABASE_KEY = 'sb_publishable_m4GflHDxK5JN_xfxa5Aa0w_pVimYuFd';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Your restaurant's unique ID (matches what we inserted in SQL)
-export const RESTAURANT_ID = '00000000-0000-0000-0000-000000000001';
+// MULTI-TENANT: Restaurant ID is dynamic - changes based on logged-in restaurant
+// Default is your restaurant (auto-detected by slug 'la-tavola')
+// In SaaS-2 we'll add proper login to switch restaurants
+let _currentRestaurantId = null; // will be set after fetchRestaurantBySlug
+
+export const setCurrentRestaurantId = (id) => {
+  if (id) _currentRestaurantId = id;
+};
+
+export const getCurrentRestaurantId = () => _currentRestaurantId;
+
+// Auto-detect "your" restaurant on app load
+export async function autoDetectMyRestaurant() {
+  try {
+    const { data } = await supabase
+      .from('restaurants')
+      .select('id, name, slug, plan')
+      .eq('slug', 'la-tavola')
+      .single();
+    if (data) {
+      _currentRestaurantId = data.id;
+      return data;
+    }
+  } catch (e) {
+    console.log('Auto-detect failed:', e);
+  }
+  return null;
+}
+
+// Backward compat: keep RESTAURANT_ID as a getter (but it might be null until autoDetect runs)
+export const RESTAURANT_ID = '11111111-1111-1111-1111-111111111111';
+
+// New: function that returns the current tenant's ID (preferred for new code)
+export const TENANT_ID = () => _currentRestaurantId;
 
 // Helper: generate a simple order number like ORD-12345
 export const genOrderNumber = () => 'ORD-' + Math.floor(10000 + Math.random() * 90000);
@@ -1203,4 +1236,83 @@ export async function updateRecurringLastGenerated(id, dateStr) {
   const { data, error } = await supabase.from('recurring_expenses')
     .update({ last_generated_date: dateStr }).eq('id', id).select().single();
   return { data, error };
+}
+
+// ===========================================================
+// SAAS MULTI-TENANCY - Restaurant management
+// ===========================================================
+
+// Get a restaurant by ID
+export async function fetchRestaurant(restaurantId) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('id', restaurantId)
+    .single();
+  if (error) console.error('fetchRestaurant:', error);
+  return data;
+}
+
+// Get a restaurant by subdomain (e.g., "marios" -> Mario's Pizza)
+export async function fetchRestaurantBySubdomain(subdomain) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('subdomain', subdomain)
+    .single();
+  if (error) console.error('fetchRestaurantBySubdomain:', error);
+  return data;
+}
+
+// Get all restaurants (admin view - you'll use this later)
+export async function fetchAllRestaurants() {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchAllRestaurants:', error);
+  return data || [];
+}
+
+// Update a restaurant
+export async function updateRestaurant(id, updates) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// Create new restaurant (used during signup - Session SaaS-2)
+export async function createRestaurant(restaurant) {
+  const payload = {
+    name: restaurant.name,
+    subdomain: restaurant.subdomain,
+    owner_email: restaurant.ownerEmail,
+    owner_name: restaurant.ownerName,
+    phone: restaurant.phone || null,
+    cuisine_type: restaurant.cuisineType || 'other',
+    plan: 'trial',
+    subscription_status: 'trialing',
+    trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    onboarding_complete: false,
+  };
+  const { data, error } = await supabase
+    .from('restaurants')
+    .insert(payload)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// Check if subdomain is available
+export async function isSubdomainAvailable(subdomain) {
+  const { data } = await supabase
+    .from('restaurants')
+    .select('id')
+    .eq('subdomain', subdomain)
+    .maybeSingle();
+  return !data; // available if no result
 }
