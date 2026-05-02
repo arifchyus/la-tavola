@@ -15,8 +15,25 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // In SaaS-2 we'll add proper login to switch restaurants
 let _currentRestaurantId = null; // will be set after fetchRestaurantBySlug
 
+// On module load, immediately try to read saved restaurant from localStorage
+// This ensures _currentRestaurantId is set BEFORE any queries run
+try {
+  if (typeof localStorage !== 'undefined') {
+    const raw = localStorage.getItem('latavola_saas_restaurant');
+    if (raw) {
+      const r = JSON.parse(raw);
+      if (r && r.id) _currentRestaurantId = r.id;
+    }
+  }
+} catch (e) {
+  // ignore - localStorage might not be available
+}
+
 export const setCurrentRestaurantId = (id) => {
-  if (id) _currentRestaurantId = id;
+  if (id) {
+    _currentRestaurantId = id;
+    RESTAURANT_ID = id; // also update legacy export
+  }
 };
 
 export const getCurrentRestaurantId = () => _currentRestaurantId;
@@ -39,9 +56,14 @@ export async function autoDetectMyRestaurant() {
   return null;
 }
 
-// Backward compat: keep RESTAURANT_ID as the actual ID in your database
-// (Your existing La Tavola row has this ID from the original setup)
-export const RESTAURANT_ID = '00000000-0000-0000-0000-000000000001';
+// RESTAURANT_ID: A let variable that updates when restaurant switches
+// All queries should use _rid() to get current value dynamically
+export let RESTAURANT_ID = _currentRestaurantId || '00000000-0000-0000-0000-000000000001';
+
+// Helper that returns current restaurant ID (always fresh)
+function _rid() {
+  return _currentRestaurantId || RESTAURANT_ID;
+}
 
 // New: function that returns the current tenant's ID (preferred for new code)
 export const TENANT_ID = () => _currentRestaurantId;
@@ -54,7 +76,7 @@ export const genOrderNumber = () => 'ORD-' + Math.floor(10000 + Math.random() * 
 export async function saveOrderToDb(order) {
   const { data, error } = await supabase.from('orders').insert({
     order_number: order.id,
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: order.branchId || null,
     customer_name: order.customer,
     customer_phone: order.phone || null,
@@ -86,7 +108,7 @@ export async function fetchOrders() {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) console.error('fetchOrders error:', error);
@@ -116,7 +138,7 @@ export async function findCustomerByPhone(phone) {
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .eq('phone', clean)
     .maybeSingle();
   if (error) console.error('findCustomerByPhone error:', error);
@@ -127,7 +149,7 @@ export async function fetchCustomers() {
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .order('created_at', { ascending: false });
   if (error) console.error('fetchCustomers error:', error);
   return data || [];
@@ -135,7 +157,7 @@ export async function fetchCustomers() {
 
 export async function saveCustomer(customer) {
   const { data, error } = await supabase.from('customers').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     phone: customer.phone,
     name: customer.name,
     email: customer.email || null,
@@ -166,7 +188,7 @@ export async function fetchMenu() {
   const { data, error } = await supabase
     .from('menu_items')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID);
+    .eq('restaurant_id', _rid());
   if (error) console.error('fetchMenu error:', error);
   return data || [];
 }
@@ -174,7 +196,7 @@ export async function fetchMenu() {
 export async function saveMenuItem(item) {
   // Save menu item with category name directly
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: item.name,
     description: item.desc || null,
     price: parseFloat(item.price),
@@ -224,7 +246,7 @@ export async function fetchCategories() {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .order('display_order', { ascending: true });
   if (error) console.error('fetchCategories error:', error);
   return data || [];
@@ -232,7 +254,7 @@ export async function fetchCategories() {
 
 export async function saveCategory(cat) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: cat.name,
     icon: cat.icon || 'star',
     display_order: parseInt(cat.order) || 99,
@@ -266,14 +288,14 @@ export async function fetchSetMeals() {
   const { data, error } = await supabase
     .from('set_meals')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID);
+    .eq('restaurant_id', _rid());
   if (error) console.error('fetchSetMeals error:', error);
   return data || [];
 }
 
 export async function saveSetMeal(meal) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: meal.name,
     description: meal.desc || null,
     price: parseFloat(meal.price),
@@ -310,7 +332,7 @@ export async function fetchReviews() {
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) console.error('fetchReviews error:', error);
@@ -319,7 +341,7 @@ export async function fetchReviews() {
 
 export async function submitReview(review) {
   const { error } = await supabase.from('reviews').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     customer_name: review.customer,
     rating: review.rating,
     comment: review.comment,
@@ -345,7 +367,7 @@ export function subscribeToOrders(onChange) {
 export async function fetchOpeningHours(branchId) {
   const { data, error } = await supabase.from('opening_hours')
     .select('*')
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .eq('branch_id', branchId)
     .order('day_of_week');
   if (error) console.error('fetchOpeningHours:', error);
@@ -356,12 +378,12 @@ export async function saveOpeningHours(branchId, dayOfWeek, openTime, closeTime,
   // Upsert: delete old then insert new (simpler than upsert for our case)
   await supabase.from('opening_hours')
     .delete()
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .eq('branch_id', branchId)
     .eq('day_of_week', dayOfWeek);
   
   const { data, error } = await supabase.from('opening_hours').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: branchId,
     day_of_week: dayOfWeek,
     open_time: isClosed ? null : openTime,
@@ -375,7 +397,7 @@ export async function saveOpeningHours(branchId, dayOfWeek, openTime, closeTime,
 // ---- RESERVATIONS ---------------------------------------------------------
 export async function saveReservation(res) {
   const { data, error } = await supabase.from('reservations').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: res.branchId,
     customer_name: res.name,
     customer_email: res.email,
@@ -392,7 +414,7 @@ export async function saveReservation(res) {
 }
 
 export async function fetchReservations(branchId, dateFrom, dateTo) {
-  let q = supabase.from('reservations').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('reservations').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId);
   if (dateFrom) q = q.gte('reservation_date', dateFrom);
   if (dateTo) q = q.lte('reservation_date', dateTo);
@@ -411,7 +433,7 @@ export async function updateReservationStatus(id, status) {
 
 // ---- TABLES ---------------------------------------------------------------
 export async function fetchTables(branchId) {
-  let q = supabase.from('restaurant_tables').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('restaurant_tables').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId);
   const { data, error } = await q.order('table_number');
   if (error) console.error('fetchTables:', error);
@@ -443,7 +465,7 @@ export async function saveTable(table) {
     return { data, error };
   } else {
     const { data, error } = await supabase.from('restaurant_tables').insert({
-      restaurant_id: RESTAURANT_ID,
+      restaurant_id: _rid(),
       branch_id: table.branchId || 'b1',
       table_number: table.id,
       seats: table.seats,
@@ -472,14 +494,14 @@ export async function registerCustomer(name, email, password, phone) {
   const { data: existing } = await supabase.from('customers')
     .select('id')
     .eq('email', email)
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .maybeSingle();
   if (existing) {
     return { error: { message: 'Email already registered' } };
   }
   // Insert new customer with password (stored as-is for demo; use Supabase Auth in production)
   const { data, error } = await supabase.from('customers').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: name,
     email: email,
     phone: phone || null,
@@ -494,7 +516,7 @@ export async function loginCustomer(email, password) {
   const { data, error } = await supabase.from('customers')
     .select('*')
     .eq('email', email)
-    .eq('restaurant_id', RESTAURANT_ID)
+    .eq('restaurant_id', _rid())
     .maybeSingle();
   if (error) {
     console.error('loginCustomer:', error);
@@ -507,7 +529,7 @@ export async function loginCustomer(email, password) {
 
 // ---- DELIVERY SETTINGS ------------------------------------------------------
 export async function fetchDeliverySettings(branchId) {
-  let q = supabase.from('delivery_settings').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('delivery_settings').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId).maybeSingle();
   const { data, error } = await q;
   if (error) console.error('fetchDeliverySettings:', error);
@@ -516,7 +538,7 @@ export async function fetchDeliverySettings(branchId) {
 
 export async function fetchAllDeliverySettings() {
   const { data, error } = await supabase.from('delivery_settings')
-    .select('*').eq('restaurant_id', RESTAURANT_ID);
+    .select('*').eq('restaurant_id', _rid());
   if (error) console.error('fetchAllDeliverySettings:', error);
   return data || [];
 }
@@ -524,10 +546,10 @@ export async function fetchAllDeliverySettings() {
 export async function saveDeliverySettings(branchId, settings) {
   // Check if exists
   const { data: existing } = await supabase.from('delivery_settings')
-    .select('id').eq('restaurant_id', RESTAURANT_ID).eq('branch_id', branchId).maybeSingle();
+    .select('id').eq('restaurant_id', _rid()).eq('branch_id', branchId).maybeSingle();
   
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: branchId,
     method: settings.method || 'radius',
     enabled: settings.enabled !== false,
@@ -563,14 +585,14 @@ export async function saveDeliverySettings(branchId, settings) {
 // ---- DISCOUNT CODES ---------------------------------------------------------
 export async function fetchDiscountCodes() {
   const { data, error } = await supabase.from('discount_codes')
-    .select('*').eq('restaurant_id', RESTAURANT_ID).order('created_at', { ascending: false });
+    .select('*').eq('restaurant_id', _rid()).order('created_at', { ascending: false });
   if (error) console.error('fetchDiscountCodes:', error);
   return data || [];
 }
 
 export async function saveDiscountCode(code) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     code: code.code.toUpperCase().trim(),
     type: code.type || 'percent',
     value: parseFloat(code.value) || 0,
@@ -601,25 +623,25 @@ export async function deleteDiscountCode(dbId) {
 
 export async function incrementDiscountUse(code) {
   const { data } = await supabase.from('discount_codes')
-    .select('uses').eq('restaurant_id', RESTAURANT_ID).eq('code', code.toUpperCase()).maybeSingle();
+    .select('uses').eq('restaurant_id', _rid()).eq('code', code.toUpperCase()).maybeSingle();
   if (data) {
     await supabase.from('discount_codes')
       .update({ uses: (data.uses || 0) + 1 })
-      .eq('restaurant_id', RESTAURANT_ID).eq('code', code.toUpperCase());
+      .eq('restaurant_id', _rid()).eq('code', code.toUpperCase());
   }
 }
 
 // ---- AUTO DISCOUNTS ---------------------------------------------------------
 export async function fetchAutoDiscounts() {
   const { data, error } = await supabase.from('auto_discounts')
-    .select('*').eq('restaurant_id', RESTAURANT_ID).order('created_at', { ascending: false });
+    .select('*').eq('restaurant_id', _rid()).order('created_at', { ascending: false });
   if (error) console.error('fetchAutoDiscounts:', error);
   return data || [];
 }
 
 export async function saveAutoDiscount(ad) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: ad.name,
     description: ad.description || null,
     rule_type: ad.ruleType || 'min_order',
@@ -649,7 +671,7 @@ export async function deleteAutoDiscount(dbId) {
 // ---- KITCHEN STATIONS -------------------------------------------------------
 export async function fetchStations() {
   const { data, error } = await supabase.from('kitchen_stations')
-    .select('*').eq('restaurant_id', RESTAURANT_ID)
+    .select('*').eq('restaurant_id', _rid())
     .order('sort_order', { ascending: true });
   if (error) console.error('fetchStations:', error);
   return data || [];
@@ -657,7 +679,7 @@ export async function fetchStations() {
 
 export async function saveStation(s) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     name: s.name,
     icon: s.icon || 'cook',
     color: s.color || '#bf4626',
@@ -727,7 +749,7 @@ export async function recordCashCollected(orderId, amount, driverName) {
 }
 
 export async function fetchCashHandovers(branchId) {
-  let q = supabase.from('cash_handovers').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('cash_handovers').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId);
   const { data, error } = await q.order('created_at', { ascending: false });
   if (error) console.error('fetchCashHandovers:', error);
@@ -736,7 +758,7 @@ export async function fetchCashHandovers(branchId) {
 
 export async function recordCashHandover(handover) {
   const { data, error } = await supabase.from('cash_handovers').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: handover.branchId || null,
     driver_name: handover.driverName,
     manager_name: handover.managerName,
@@ -779,7 +801,7 @@ export async function awardLoyaltyPoints(customerId, points, orderId, descriptio
   }).eq('id', customerId);
   // Log transaction
   await supabase.from('loyalty_transactions').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     customer_id: customerId,
     type: 'earn',
     points: points,
@@ -797,7 +819,7 @@ export async function redeemLoyaltyPoints(customerId, points, orderId, descripti
   const newPoints = cust.loyalty_points - points;
   await supabase.from('customers').update({ loyalty_points: newPoints }).eq('id', customerId);
   await supabase.from('loyalty_transactions').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     customer_id: customerId,
     type: 'redeem',
     points: -points,
@@ -831,7 +853,7 @@ export async function saveDietaryPrefs(customerId, prefs) {
 
 // ---- STAFF SCHEDULING -------------------------------------------------------
 export async function fetchSchedules(branchId, fromDate, toDate) {
-  let q = supabase.from('staff_schedules').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('staff_schedules').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId);
   if (fromDate) q = q.gte('shift_date', fromDate);
   if (toDate) q = q.lte('shift_date', toDate);
@@ -842,7 +864,7 @@ export async function fetchSchedules(branchId, fromDate, toDate) {
 
 export async function saveSchedule(schedule) {
   const payload = {
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: schedule.branchId || null,
     staff_id: schedule.staffId,
     staff_name: schedule.staffName,
@@ -872,7 +894,7 @@ export async function clockIn(staffId, staffName, branchId) {
     .select('*').eq('staff_id', staffId).is('clock_out', null).maybeSingle();
   if (open) return { error: 'Already clocked in', record: open };
   const { data, error } = await supabase.from('staff_clock_records').insert({
-    restaurant_id: RESTAURANT_ID,
+    restaurant_id: _rid(),
     branch_id: branchId || null,
     staff_id: staffId,
     staff_name: staffName,
@@ -895,7 +917,7 @@ export async function clockOut(staffId) {
 }
 
 export async function fetchClockRecords(staffId, fromDate) {
-  let q = supabase.from('staff_clock_records').select('*').eq('restaurant_id', RESTAURANT_ID);
+  let q = supabase.from('staff_clock_records').select('*').eq('restaurant_id', _rid());
   if (staffId) q = q.eq('staff_id', staffId);
   if (fromDate) q = q.gte('clock_in', fromDate);
   const { data, error } = await q.order('clock_in', { ascending: false }).limit(50);
