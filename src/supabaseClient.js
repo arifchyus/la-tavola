@@ -39,8 +39,9 @@ export async function autoDetectMyRestaurant() {
   return null;
 }
 
-// Backward compat: keep RESTAURANT_ID as a getter (but it might be null until autoDetect runs)
-export const RESTAURANT_ID = '11111111-1111-1111-1111-111111111111';
+// Backward compat: keep RESTAURANT_ID as the actual ID in your database
+// (Your existing La Tavola row has this ID from the original setup)
+export const RESTAURANT_ID = '00000000-0000-0000-0000-000000000001';
 
 // New: function that returns the current tenant's ID (preferred for new code)
 export const TENANT_ID = () => _currentRestaurantId;
