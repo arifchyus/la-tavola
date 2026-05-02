@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -9688,6 +9688,414 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
 }
 
 
+// ============================================================
+// SAAS-2: SIGNUP / LOGIN / VERIFICATION SCREENS
+// ============================================================
+
+function SaaSAuthScreen({onAuthSuccess}){
+  var [mode,setMode]=useState("login"); // "login", "signup", "verify"
+  var [email,setEmail]=useState("");
+  var [password,setPassword]=useState("");
+  var [restaurantName,setRestaurantName]=useState("");
+  var [ownerName,setOwnerName]=useState("");
+  var [phone,setPhone]=useState("");
+  var [cuisineType,setCuisineType]=useState("italian");
+  var [verifyCode,setVerifyCode]=useState("");
+  var [pendingVerifyEmail,setPendingVerifyEmail]=useState("");
+  var [demoVerifyCode,setDemoVerifyCode]=useState(""); // shown for demo only
+  var [error,setError]=useState("");
+  var [loading,setLoading]=useState(false);
+  
+  var doSignup=async()=>{
+    setError("");
+    if(!restaurantName.trim()){setError("Enter restaurant name");return;}
+    if(!ownerName.trim()){setError("Enter your name");return;}
+    if(!email.trim()){setError("Enter email");return;}
+    if(password.length<6){setError("Password must be at least 6 characters");return;}
+    
+    setLoading(true);
+    try{
+      var r=await dbSignup({
+        restaurantName:restaurantName.trim(),
+        ownerName:ownerName.trim(),
+        email:email.trim(),
+        password,
+        cuisineType,
+        phone:phone.trim()||null,
+      });
+      setLoading(false);
+      if(r.error){setError(r.error.message);return;}
+      // Show verification screen
+      setPendingVerifyEmail(email.trim());
+      setDemoVerifyCode(r.data.verificationCode);
+      setMode("verify");
+    }catch(e){
+      setLoading(false);
+      setError("Signup failed: "+e.message);
+    }
+  };
+  
+  var doLogin=async()=>{
+    setError("");
+    if(!email.trim()){setError("Enter email");return;}
+    if(!password){setError("Enter password");return;}
+    
+    setLoading(true);
+    try{
+      var r=await dbLogin(email.trim(),password);
+      setLoading(false);
+      if(r.error){
+        if(r.error.needsVerification){
+          setPendingVerifyEmail(r.error.email);
+          setMode("verify");
+          return;
+        }
+        setError(r.error.message);
+        return;
+      }
+      // Save and login
+      dbSaveOwner(r.data.owner,r.data.restaurant);
+      onAuthSuccess(r.data.owner,r.data.restaurant);
+    }catch(e){
+      setLoading(false);
+      setError("Login failed: "+e.message);
+    }
+  };
+  
+  var doVerify=async()=>{
+    setError("");
+    if(!verifyCode||verifyCode.length!==6){setError("Enter 6-digit code");return;}
+    setLoading(true);
+    try{
+      var r=await dbVerifyEmail(pendingVerifyEmail,verifyCode);
+      setLoading(false);
+      if(r.error){setError(r.error.message);return;}
+      // Auto-login after verification
+      var loginR=await dbLogin(pendingVerifyEmail,password);
+      if(loginR.data){
+        dbSaveOwner(loginR.data.owner,loginR.data.restaurant);
+        onAuthSuccess(loginR.data.owner,loginR.data.restaurant);
+      }else{
+        setMode("login");
+        setError("Verified! Please login.");
+      }
+    }catch(e){
+      setLoading(false);
+      setError("Verification failed: "+e.message);
+    }
+  };
+  
+  var resendCode=async()=>{
+    setLoading(true);
+    var r=await dbResendVer(pendingVerifyEmail);
+    setLoading(false);
+    if(r.data)setDemoVerifyCode(r.data.verificationCode);
+  };
+  
+  return <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a1208 0%,#3d2e22 50%,#1a1208 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:14,fontFamily:"-apple-system,sans-serif"}}>
+    <div style={{maxWidth:500,width:"100%",background:"#fafaf5",borderRadius:18,boxShadow:"0 30px 80px rgba(0,0,0,.5)",overflow:"hidden"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",padding:"30px 24px",textAlign:"center"}}>
+        <p style={{fontSize:38,marginBottom:5,fontWeight:300,letterSpacing:6,fontFamily:"Georgia,serif"}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} La Tavola</p>
+        <p style={{fontSize:13,opacity:.85,letterSpacing:2}}>RESTAURANT POS PLATFORM</p>
+      </div>
+      
+      <div style={{padding:24}}>
+        {error&&<div style={{padding:11,background:"#fee2e2",border:"2px solid #dc2626",borderRadius:7,marginBottom:14,color:"#991b1b",fontSize:13,fontWeight:600}}>{String.fromCharCode(0x26A0,0xFE0F)} {error}</div>}
+        
+        {/* MODE: VERIFY */}
+        {mode==="verify"&&<div>
+          <h2 style={{fontSize:22,fontWeight:700,marginBottom:5,textAlign:"center"}}>Verify Your Email</h2>
+          <p style={{fontSize:13,color:"#8a8078",textAlign:"center",marginBottom:18}}>We sent a 6-digit code to:<br/><b>{pendingVerifyEmail}</b></p>
+          
+          {demoVerifyCode&&<div style={{padding:14,background:"#fef3c7",border:"3px dashed #d4952a",borderRadius:9,marginBottom:14,textAlign:"center"}}>
+            <p style={{fontSize:11,color:"#92400e",fontWeight:700,letterSpacing:2}}>DEMO MODE - Your Code:</p>
+            <p style={{fontSize:32,fontWeight:700,color:"#92400e",fontFamily:"'Courier New',monospace",letterSpacing:8,marginTop:5}}>{demoVerifyCode}</p>
+            <p style={{fontSize:10,color:"#92400e",marginTop:5,fontStyle:"italic"}}>(In production this would be emailed to you)</p>
+          </div>}
+          
+          <input value={verifyCode} onChange={e=>setVerifyCode(e.target.value.replace(/[^0-9]/g,"").substring(0,6))} placeholder="000000" autoFocus maxLength="6" style={{width:"100%",padding:"18px",fontSize:30,fontWeight:700,fontFamily:"'Courier New',monospace",textAlign:"center",letterSpacing:14,border:"3px solid #d4952a",borderRadius:9,marginBottom:14,boxSizing:"border-box"}}/>
+          
+          <button onClick={doVerify} disabled={loading||verifyCode.length!==6} style={{width:"100%",padding:"15px",background:loading||verifyCode.length!==6?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:loading?"not-allowed":"pointer",marginBottom:9}}>{loading?"Verifying...":(String.fromCharCode(0x2713)+" Verify Email")}</button>
+          
+          <div style={{display:"flex",gap:6,fontSize:12}}>
+            <button onClick={resendCode} disabled={loading} style={{flex:1,padding:"9px",background:"none",border:"1px solid #ede8de",borderRadius:6,color:"#8a8078",cursor:"pointer"}}>Resend code</button>
+            <button onClick={()=>{setMode("login");setError("");}} style={{flex:1,padding:"9px",background:"none",border:"1px solid #ede8de",borderRadius:6,color:"#8a8078",cursor:"pointer"}}>{"<"} Back to login</button>
+          </div>
+        </div>}
+        
+        {/* MODE: LOGIN */}
+        {mode==="login"&&<div>
+          <h2 style={{fontSize:22,fontWeight:700,marginBottom:18,textAlign:"center"}}>Sign In</h2>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL</p>
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@restaurant.com" autoFocus style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PASSWORD</p>
+          <input value={password} onChange={e=>setPassword(e.target.value)} onKeyPress={e=>e.key==="Enter"&&doLogin()} type="password" placeholder="******" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:14,boxSizing:"border-box"}}/>
+          
+          <button onClick={doLogin} disabled={loading} style={{width:"100%",padding:"15px",background:loading?"#9ca3af":"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:loading?"not-allowed":"pointer",marginBottom:11}}>{loading?"Signing in...":"Sign In"}</button>
+          
+          <div style={{textAlign:"center",fontSize:12,color:"#8a8078",marginBottom:11}}>or</div>
+          
+          <button onClick={()=>{setMode("signup");setError("");}} style={{width:"100%",padding:"13px",background:"#fff",color:"#bf4626",border:"2px solid #bf4626",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2728)} Start Free 14-day Trial</button>
+          
+          <div style={{marginTop:18,padding:11,background:"#f7f3ee",borderRadius:7,fontSize:11,color:"#8a8078"}}>
+            <p style={{fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDD11)} Demo Accounts (for testing):</p>
+            <p>arif@latavola.app / demo123 (La Tavola - Pro)</p>
+            <p>mario@example.com / test123 (Mario's Pizza - Trial)</p>
+            <p>rahul@example.com / test123 (Curry Point - Trial)</p>
+            <p>sarah@example.com / test123 (Burger Spot - Trial)</p>
+          </div>
+        </div>}
+        
+        {/* MODE: SIGNUP */}
+        {mode==="signup"&&<div>
+          <h2 style={{fontSize:22,fontWeight:700,marginBottom:5,textAlign:"center"}}>Start Your Free Trial</h2>
+          <p style={{fontSize:12,color:"#8a8078",textAlign:"center",marginBottom:18}}>14 days free - No credit card required</p>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>RESTAURANT NAME</p>
+          <input value={restaurantName} onChange={e=>setRestaurantName(e.target.value)} placeholder="Mario's Pizza" autoFocus style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>YOUR FULL NAME</p>
+          <input value={ownerName} onChange={e=>setOwnerName(e.target.value)} placeholder="Mario Rossi" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL</p>
+          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@restaurant.com" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PHONE (OPTIONAL)</p>
+          <input value={phone} onChange={e=>setPhone(e.target.value)} type="tel" placeholder="+44 7700 900000" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>CUISINE TYPE</p>
+          <select value={cuisineType} onChange={e=>setCuisineType(e.target.value)} style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}>
+            <option value="italian">Italian</option>
+            <option value="indian">Indian</option>
+            <option value="chinese">Chinese</option>
+            <option value="british">British</option>
+            <option value="american">American/Burger</option>
+            <option value="mexican">Mexican</option>
+            <option value="japanese">Japanese/Sushi</option>
+            <option value="thai">Thai</option>
+            <option value="cafe">Cafe</option>
+            <option value="other">Other</option>
+          </select>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PASSWORD (MIN 6 CHARS)</p>
+          <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="******" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:14,boxSizing:"border-box"}}/>
+          
+          <button onClick={doSignup} disabled={loading} style={{width:"100%",padding:"15px",background:loading?"#9ca3af":"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:loading?"not-allowed":"pointer",marginBottom:11}}>{loading?"Creating account...":(String.fromCharCode(0x2728)+" Start Free Trial")}</button>
+          
+          <p style={{fontSize:10,color:"#8a8078",textAlign:"center",marginBottom:11}}>By signing up you agree to our Terms of Service and Privacy Policy.</p>
+          
+          <button onClick={()=>{setMode("login");setError("");}} style={{width:"100%",padding:"11px",background:"#fff",color:"#8a8078",border:"1px solid #ede8de",borderRadius:9,fontSize:13,cursor:"pointer"}}>Already have an account? Sign in</button>
+        </div>}
+      </div>
+      
+      <div style={{padding:14,background:"#1a1208",color:"#fff",textAlign:"center",fontSize:11,opacity:.7}}>
+        La Tavola Platform - Multi-Restaurant POS
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// SAAS-2: ONBOARDING WIZARD - new restaurant setup
+// ============================================================
+
+function OnboardingWizard({restaurant,onComplete}){
+  var [step,setStep]=useState(1);
+  var [vatRate,setVatRate]=useState(20);
+  var [vatNumber,setVatNumber]=useState("");
+  var [brandColor,setBrandColor]=useState(restaurant?.brand_color||"#bf4626");
+  var [phone,setPhone]=useState(restaurant?.phone||"");
+  var [address,setAddress]=useState(restaurant?.address||"");
+  var [saving,setSaving]=useState(false);
+  
+  var totalSteps=4;
+  
+  var saveAndComplete=async()=>{
+    setSaving(true);
+    await dbUpdateRestaurant(restaurant.id,{
+      vat_rate:parseFloat(vatRate)||20,
+      vat_number:vatNumber||null,
+      brand_color:brandColor,
+      phone:phone||null,
+      address:address||null,
+      onboarding_complete:true,
+    });
+    setSaving(false);
+    onComplete();
+  };
+  
+  return <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#fafaf5,#f5f0e8)",display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{maxWidth:540,width:"100%",background:"#fff",borderRadius:14,boxShadow:"0 20px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
+      {/* Header with progress */}
+      <div style={{background:"linear-gradient(135deg,"+brandColor+","+brandColor+"99)",color:"#fff",padding:"22px 24px",textAlign:"center"}}>
+        <p style={{fontSize:11,opacity:.85,letterSpacing:3,fontWeight:700,marginBottom:6}}>WELCOME TO LA TAVOLA</p>
+        <h2 style={{fontSize:24,fontWeight:700,marginBottom:4}}>{restaurant?.name||"Your Restaurant"}</h2>
+        <p style={{fontSize:12,opacity:.85}}>Let's get you set up - Step {step} of {totalSteps}</p>
+        
+        {/* Progress bar */}
+        <div style={{height:6,background:"rgba(255,255,255,.2)",borderRadius:3,marginTop:14,overflow:"hidden"}}>
+          <div style={{height:"100%",background:"#fff",width:(step/totalSteps*100)+"%",transition:"width 0.3s"}}/>
+        </div>
+      </div>
+      
+      <div style={{padding:24}}>
+        {/* STEP 1: Welcome */}
+        {step===1&&<div>
+          <p style={{fontSize:48,textAlign:"center",marginBottom:14}}>{String.fromCharCode(0xD83C,0xDF89)}</p>
+          <h3 style={{fontSize:20,fontWeight:700,textAlign:"center",marginBottom:11}}>Welcome aboard!</h3>
+          <p style={{fontSize:13,color:"#666",textAlign:"center",marginBottom:18,lineHeight:1.6}}>You're now starting your <b>14-day free trial</b> of La Tavola. Let's spend a few minutes setting up your restaurant for success.</p>
+          
+          <div style={{padding:14,background:"#f5f3ff",borderRadius:9,marginBottom:14,fontSize:12,color:"#5b21b6"}}>
+            <p style={{fontWeight:700,marginBottom:7}}>{String.fromCharCode(0x2728)} What you get during your trial:</p>
+            <ul style={{paddingLeft:18,lineHeight:1.8,margin:0}}>
+              <li>Full POS system (dine-in, takeaway, delivery)</li>
+              <li>Customer ordering app + QR codes</li>
+              <li>Menu management & inventory</li>
+              <li>Payment processing (cash, card, split)</li>
+              <li>Receipts, refunds, vouchers</li>
+              <li>Staff shifts & cash drawer</li>
+              <li>Reports & analytics</li>
+              <li>Profit & Loss statements</li>
+              <li>And much more!</li>
+            </ul>
+          </div>
+          
+          <button onClick={()=>setStep(2)} style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,"+brandColor+","+brandColor+"99)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>Let's Get Started {String.fromCharCode(0x2192)}</button>
+        </div>}
+        
+        {/* STEP 2: Branding */}
+        {step===2&&<div>
+          <h3 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDFA8)} Brand Your Restaurant</h3>
+          <p style={{fontSize:12,color:"#666",marginBottom:18}}>Choose a color that represents your restaurant. This appears on receipts, menus, and customer-facing screens.</p>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>BRAND COLOR</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:6,marginBottom:14}}>
+            {["#dc2626","#ea580c","#d97706","#65a30d","#059669","#0891b2","#2563eb","#7c3aed","#bf4626","#0d9488","#1e40af","#be185d","#9333ea","#374151","#ca8a04","#16a34a"].map(c=>
+              <button key={c} onClick={()=>setBrandColor(c)} style={{padding:18,background:c,border:"3px solid "+(brandColor===c?"#1a1208":"transparent"),borderRadius:9,cursor:"pointer",transform:brandColor===c?"scale(1.1)":"scale(1)",transition:"all 0.2s"}}/>
+            )}
+          </div>
+          
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:11}}>Selected: <b style={{color:brandColor}}>{brandColor}</b></p>
+          
+          <div style={{padding:18,borderRadius:11,background:"linear-gradient(135deg,"+brandColor+","+brandColor+"99)",color:"#fff",textAlign:"center",marginBottom:18}}>
+            <p style={{fontSize:11,opacity:.85,letterSpacing:2,fontWeight:700,marginBottom:5}}>PREVIEW</p>
+            <p style={{fontSize:18,fontWeight:700}}>{restaurant?.name}</p>
+          </div>
+          
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>setStep(1)} style={{flex:1,padding:"13px",background:"#fff",color:"#666",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
+            <button onClick={()=>setStep(3)} style={{flex:2,padding:"13px",background:"linear-gradient(135deg,"+brandColor+","+brandColor+"99)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Continue {String.fromCharCode(0x2192)}</button>
+          </div>
+        </div>}
+        
+        {/* STEP 3: Restaurant Info */}
+        {step===3&&<div>
+          <h3 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDFE0)} Restaurant Details</h3>
+          <p style={{fontSize:12,color:"#666",marginBottom:18}}>This appears on your receipts and customer communications.</p>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PHONE</p>
+          <input value={phone} onChange={e=>setPhone(e.target.value)} type="tel" placeholder="+44 20 7946 0000" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>ADDRESS</p>
+          <textarea value={address} onChange={e=>setAddress(e.target.value)} placeholder="123 High Street, London, EC1A 1BB" rows={2} style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,fontFamily:"inherit",resize:"vertical",marginBottom:14,boxSizing:"border-box"}}/>
+          
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>setStep(2)} style={{flex:1,padding:"13px",background:"#fff",color:"#666",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
+            <button onClick={()=>setStep(4)} style={{flex:2,padding:"13px",background:"linear-gradient(135deg,"+brandColor+","+brandColor+"99)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>Continue {String.fromCharCode(0x2192)}</button>
+          </div>
+        </div>}
+        
+        {/* STEP 4: VAT & Tax */}
+        {step===4&&<div>
+          <h3 style={{fontSize:18,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB7)} Tax Settings (UK VAT)</h3>
+          <p style={{fontSize:12,color:"#666",marginBottom:18}}>Configure your VAT settings. You can change these later in settings.</p>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>VAT RATE (%)</p>
+          <input value={vatRate} onChange={e=>setVatRate(e.target.value)} type="number" min="0" max="50" step="0.5" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+          <p style={{fontSize:10,color:"#8a8078",marginBottom:14}}>UK standard rate is 20%. Set 0 if not VAT registered.</p>
+          
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>VAT NUMBER (OPTIONAL)</p>
+          <input value={vatNumber} onChange={e=>setVatNumber(e.target.value)} placeholder="GB 123 4567 89" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:18,boxSizing:"border-box"}}/>
+          
+          <div style={{padding:11,background:"#fef3c7",borderRadius:7,fontSize:11,color:"#92400e",marginBottom:14}}>
+            <p>{String.fromCharCode(0x2139,0xFE0F)} Don't worry, you can update these settings any time in Admin {String.fromCharCode(0x2192)} Settings.</p>
+          </div>
+          
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>setStep(3)} style={{flex:1,padding:"13px",background:"#fff",color:"#666",border:"2px solid #ede8de",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{"<"} Back</button>
+            <button onClick={saveAndComplete} disabled={saving} style={{flex:2,padding:"13px",background:saving?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:saving?"not-allowed":"pointer"}}>{saving?"Saving...":(String.fromCharCode(0x2713)+" Complete Setup")}</button>
+          </div>
+        </div>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// SAAS-2: RESTAURANT SWITCHER (for testing multi-tenancy)
+// ============================================================
+
+function RestaurantSwitcher({currentRestaurant,onSwitch,onClose}){
+  var [restaurants,setRestaurants]=useState([]);
+  var [loading,setLoading]=useState(true);
+  
+  useEffect(()=>{
+    dbFetchAllRests().then(rs=>{
+      setRestaurants(rs||[]);
+      setLoading(false);
+    });
+  },[]);
+  
+  var doSwitch=async(r)=>{
+    var switched=await dbSwitchRest(r.id);
+    if(switched){
+      onSwitch(switched);
+      window.location.reload(); // Reload to refresh all data
+    }
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",borderRadius:14,maxWidth:540,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+      <div style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>SUPER ADMIN</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD04)} Switch Restaurant</h2>
+        </div>
+        <button onClick={onClose} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:18}}>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:11}}>{String.fromCharCode(0x26A0,0xFE0F)} This is a TEST feature. Switch between restaurants to see how multi-tenancy works.</p>
+        
+        {loading?<p style={{textAlign:"center",color:"#8a8078"}}>Loading...</p>:
+          restaurants.map(r=>{
+            var isCurrent=r.id===currentRestaurant?.id;
+            var trialDays=r.trial_ends_at?Math.ceil((new Date(r.trial_ends_at)-new Date())/(1000*60*60*24)):0;
+            return <div key={r.id} style={{padding:14,border:"2px solid "+(isCurrent?(r.brand_color||"#7c3aed"):"#ede8de"),borderRadius:9,marginBottom:7,background:isCurrent?(r.brand_color||"#7c3aed")+"15":"#fff",cursor:isCurrent?"default":"pointer"}} onClick={()=>!isCurrent&&doSwitch(r)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"start",gap:8}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                    <span style={{padding:"3px 9px",background:r.brand_color||"#7c3aed",color:"#fff",borderRadius:5,fontSize:10,fontWeight:700,letterSpacing:1}}>{(r.cuisine_type||"OTHER").toUpperCase()}</span>
+                    {isCurrent&&<span style={{padding:"3px 9px",background:"#059669",color:"#fff",borderRadius:5,fontSize:10,fontWeight:700}}>{String.fromCharCode(0x2713)} CURRENT</span>}
+                  </div>
+                  <p style={{fontSize:15,fontWeight:700}}>{r.name}</p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>{r.subdomain}.latavola.app - {r.owner_email}</p>
+                  <p style={{fontSize:11,color:"#8a8078",marginTop:3}}>Plan: <b>{(r.plan||"trial").toUpperCase()}</b>{r.plan==="trial"&&trialDays>0?" ("+trialDays+" days left)":""}{r.plan==="trial"&&trialDays<=0?" (EXPIRED)":""}</p>
+                </div>
+                {!isCurrent&&<button style={{padding:"7px 14px",background:r.brand_color||"#7c3aed",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>Switch {String.fromCharCode(0x2192)}</button>}
+              </div>
+            </div>;
+          })
+        }
+      </div>
+    </div>
+  </div>;
+}
+
+
 export default function App(){
   var [view,setView]=useState("menu"),[orders,setOrders]=useState([]),[menu,setMenu]=useState([]);
   var [discs,setDiscs]=useState([]),[users,setUsers]=useState(USERS);
@@ -9708,19 +10116,33 @@ export default function App(){
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
   
-  // SAAS: Load current restaurant on mount (auto-detect by slug first)
+  // SAAS-2: Auth state
+  var [saasOwner,setSaasOwner]=useState(()=>dbGetOwner());
+  var [showOnboarding,setShowOnboarding]=useState(false);
+  var [showRestaurantSwitcher,setShowRestaurantSwitcher]=useState(false);
+  
+  // SAAS: Load current restaurant on mount
   useEffect(()=>{
+    // First try to load the saved SaaS restaurant from localStorage
+    var savedRest=dbGetSaasRest();
+    if(savedRest){
+      setRestaurant(savedRest);
+      try{window.__currentRestaurant=savedRest;console.log("SaaS Restaurant loaded:",savedRest.name);}catch(e){}
+      // Show onboarding if not complete
+      if(!savedRest.onboarding_complete&&saasOwner){
+        setShowOnboarding(true);
+      }
+      return;
+    }
+    // Fallback: auto-detect by slug for backward compat
     autoDetectMyRestaurant().then(detected=>{
       if(detected){
-        // Now fetch full details
         dbFetchRestaurant(detected.id).then(r=>{
           if(r){
             setRestaurant(r);
             try{window.__currentRestaurant=r;console.log("Restaurant loaded:",r.name,"ID:",r.id);}catch(e){}
           }
         });
-      }else{
-        console.log("No restaurant found - run SAAS migration first");
       }
     }).catch(e=>console.log("Restaurant detect failed:",e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -9732,6 +10154,29 @@ export default function App(){
       document.title=restaurant.name+" - "+(restaurant.plan==="trial"?"Trial":"POS");
     }
   },[restaurant]);
+  
+  // SAAS-2: Handle successful auth
+  var handleAuthSuccess=(owner,rest)=>{
+    setSaasOwner(owner);
+    setRestaurant(rest);
+    if(!rest.onboarding_complete){
+      setShowOnboarding(true);
+    }
+  };
+  
+  // SAAS-2: Logout
+  var handleSaasLogout=()=>{
+    if(window.confirm("Sign out of La Tavola Platform?")){
+      dbLogoutSaaS();
+      setSaasOwner(null);
+      setRestaurant(null);
+      // Also clear regular user
+      try{localStorage.removeItem("latavola_user");localStorage.removeItem("latavola_branch");}catch(e){}
+      setUser(null);
+      setBranch(null);
+      window.location.reload();
+    }
+  };
 
   // Persist user session so refresh doesn't log out
   useEffect(()=>{
@@ -10002,6 +10447,20 @@ export default function App(){
   var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
   var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag",driver:"pin"};
 
+  // SAAS-2: AUTH GATE - show login if not authenticated
+  if(!saasOwner||!restaurant){
+    return <><style>{CSS}</style><SaaSAuthScreen onAuthSuccess={handleAuthSuccess}/></>;
+  }
+  
+  // SAAS-2: ONBOARDING GATE - show wizard for new restaurants
+  if(showOnboarding){
+    return <><style>{CSS}</style><OnboardingWizard restaurant={restaurant} onComplete={()=>{
+      setShowOnboarding(false);
+      // Reload restaurant data
+      dbFetchRestaurant(restaurant.id).then(r=>{if(r)setRestaurant(r);});
+    }}/></>;
+  }
+  
   if(!branch) return <>
     <style>{CSS}</style>
     <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
@@ -10016,14 +10475,17 @@ export default function App(){
 
   return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
     <nav className="nav">
-      <span className="nlogo">La Tavola</span>
+      <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
+      {restaurant&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
       <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
         {notifs.length>0&&<span style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>{notifs.length}</span>}
         {user?<><div className="av">{user.avatar}</div><button onClick={()=>{setUser(null);setView("menu");}} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></>:<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>}
+        {saasOwner&&<button onClick={handleSaasLogout} title="Sign out of platform" style={{color:"#dc2626",fontSize:10,border:"1px solid rgba(220,38,38,.3)",background:"none",cursor:"pointer",padding:"3px 7px",borderRadius:5}}>{String.fromCharCode(0x21AA,0xFE0F)} Logout</button>}
       </div>
     </nav>
+    {showRestaurantSwitcher&&<RestaurantSwitcher currentRestaurant={restaurant} onSwitch={r=>setRestaurant(r)} onClose={()=>setShowRestaurantSwitcher(false)}/>}
     <div className="mnav">
       {tabs.map(k=><button key={k} className={"mbtn"+(view===k?" on":"")} onClick={()=>setView(k)}>
         <span className="mico">{EM[ti[k]]||""}</span>

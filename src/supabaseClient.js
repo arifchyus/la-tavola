@@ -1317,3 +1317,276 @@ export async function isSubdomainAvailable(subdomain) {
     .maybeSingle();
   return !data; // available if no result
 }
+
+// ===========================================================
+// SAAS-2: AUTH (signup, login, email verification)
+// ===========================================================
+
+// Generate a random 6-digit verification code
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Generate a random token (for verification links and password reset)
+function generateToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token + Date.now();
+}
+
+// Generate URL-safe slug from name
+function generateSlug(name) {
+  return name.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50);
+}
+
+// Sign up new restaurant owner (creates restaurant + owner account)
+export async function signupRestaurant({ restaurantName, ownerName, email, password, cuisineType, phone }) {
+  // Step 1: Check if email already exists
+  const { data: existing } = await supabase
+    .from('restaurant_owners')
+    .select('id')
+    .eq('email', email.toLowerCase().trim())
+    .maybeSingle();
+  
+  if (existing) {
+    return { error: { message: 'Email already registered' } };
+  }
+  
+  // Step 2: Generate unique slug
+  let slug = generateSlug(restaurantName);
+  let slugAttempts = 0;
+  while (slugAttempts < 10) {
+    const { data: slugCheck } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (!slugCheck) break;
+    slug = generateSlug(restaurantName) + '-' + Math.floor(Math.random() * 1000);
+    slugAttempts++;
+  }
+  
+  // Step 3: Create restaurant
+  const { data: restaurant, error: restError } = await supabase
+    .from('restaurants')
+    .insert({
+      name: restaurantName,
+      slug: slug,
+      subdomain: slug,
+      owner_email: email.toLowerCase().trim(),
+      owner_name: ownerName,
+      phone: phone || null,
+      plan: 'trial',
+      subscription_status: 'trialing',
+      trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      onboarding_complete: false,
+      cuisine_type: cuisineType || 'other',
+      active: true,
+    })
+    .select()
+    .single();
+  
+  if (restError) return { error: restError };
+  
+  // Step 4: Create owner account
+  const { data: owner, error: ownerError } = await supabase
+    .from('restaurant_owners')
+    .insert({
+      restaurant_id: restaurant.id,
+      email: email.toLowerCase().trim(),
+      password_hash: password, // TEMPORARY: plain text for demo. Hash in production.
+      full_name: ownerName,
+      phone: phone || null,
+      email_verified: false,
+      active: true,
+      is_owner: true,
+    })
+    .select()
+    .single();
+  
+  if (ownerError) {
+    // Rollback: delete restaurant
+    await supabase.from('restaurants').delete().eq('id', restaurant.id);
+    return { error: ownerError };
+  }
+  
+  // Step 5: Create verification token
+  const verCode = generateVerificationCode();
+  const verToken = generateToken();
+  await supabase.from('email_verifications').insert({
+    owner_id: owner.id,
+    email: owner.email,
+    token: verToken,
+    verification_code: verCode,
+  });
+  
+  // For demo: log verification code to console (in production, send email)
+  console.log('🔑 Verification code for', email, ':', verCode);
+  
+  return { 
+    data: { 
+      restaurant, 
+      owner: { ...owner, password_hash: undefined }, 
+      verificationCode: verCode 
+    } 
+  };
+}
+
+// Login with email + password
+export async function loginRestaurant(email, password) {
+  const { data: owner, error } = await supabase
+    .from('restaurant_owners')
+    .select('*, restaurants(*)')
+    .eq('email', email.toLowerCase().trim())
+    .eq('active', true)
+    .maybeSingle();
+  
+  if (error || !owner) {
+    return { error: { message: 'Invalid email or password' } };
+  }
+  
+  if (owner.password_hash !== password) {
+    return { error: { message: 'Invalid email or password' } };
+  }
+  
+  if (!owner.email_verified) {
+    return { error: { message: 'Email not verified', needsVerification: true, ownerId: owner.id, email: owner.email } };
+  }
+  
+  // Update last login
+  await supabase
+    .from('restaurant_owners')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('id', owner.id);
+  
+  // Set current restaurant
+  if (owner.restaurants) {
+    setCurrentRestaurantId(owner.restaurant_id);
+  }
+  
+  return {
+    data: {
+      owner: { ...owner, password_hash: undefined, restaurants: undefined },
+      restaurant: owner.restaurants,
+    }
+  };
+}
+
+// Verify email with code
+export async function verifyEmail(email, code) {
+  const { data: verification } = await supabase
+    .from('email_verifications')
+    .select('*')
+    .eq('email', email.toLowerCase().trim())
+    .eq('verification_code', code)
+    .is('verified_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+  
+  if (!verification) {
+    return { error: { message: 'Invalid or expired code' } };
+  }
+  
+  // Mark verification as used
+  await supabase
+    .from('email_verifications')
+    .update({ verified_at: new Date().toISOString() })
+    .eq('id', verification.id);
+  
+  // Mark owner as verified
+  await supabase
+    .from('restaurant_owners')
+    .update({ 
+      email_verified: true, 
+      email_verified_at: new Date().toISOString() 
+    })
+    .eq('id', verification.owner_id);
+  
+  return { data: { verified: true, ownerId: verification.owner_id } };
+}
+
+// Resend verification code
+export async function resendVerification(email) {
+  const { data: owner } = await supabase
+    .from('restaurant_owners')
+    .select('id, email')
+    .eq('email', email.toLowerCase().trim())
+    .maybeSingle();
+  
+  if (!owner) return { error: { message: 'Account not found' } };
+  
+  const verCode = generateVerificationCode();
+  const verToken = generateToken();
+  await supabase.from('email_verifications').insert({
+    owner_id: owner.id,
+    email: owner.email,
+    token: verToken,
+    verification_code: verCode,
+  });
+  
+  console.log('🔑 New verification code for', email, ':', verCode);
+  return { data: { verificationCode: verCode } };
+}
+
+// Get current logged-in owner from localStorage
+export function getCurrentOwner() {
+  try {
+    const raw = localStorage.getItem('latavola_saas_owner');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+// Save logged-in owner to localStorage
+export function saveCurrentOwner(owner, restaurant) {
+  try {
+    localStorage.setItem('latavola_saas_owner', JSON.stringify(owner));
+    localStorage.setItem('latavola_saas_restaurant', JSON.stringify(restaurant));
+    if (restaurant) setCurrentRestaurantId(restaurant.id);
+  } catch (e) {}
+}
+
+// Logout
+export function logoutSaaS() {
+  try {
+    localStorage.removeItem('latavola_saas_owner');
+    localStorage.removeItem('latavola_saas_restaurant');
+  } catch (e) {}
+}
+
+// Get currently logged-in restaurant
+export function getCurrentSaasRestaurant() {
+  try {
+    const raw = localStorage.getItem('latavola_saas_restaurant');
+    if (raw) {
+      const r = JSON.parse(raw);
+      setCurrentRestaurantId(r.id);
+      return r;
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Switch to a different restaurant (for testing)
+export async function switchRestaurant(restaurantId) {
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('id', restaurantId)
+    .single();
+  if (restaurant) {
+    setCurrentRestaurantId(restaurant.id);
+    try {
+      localStorage.setItem('latavola_saas_restaurant', JSON.stringify(restaurant));
+    } catch (e) {}
+    return restaurant;
+  }
+  return null;
+}
