@@ -8640,21 +8640,37 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     todayOrders=orders.filter(o=>{
       if(!o)return false;
       if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+      // Prefer created_at (full ISO date) for accurate filtering
+      var dateStr=o.created_at||o.placedAt;
+      if(dateStr){
+        try{
+          var d=new Date(dateStr);
+          if(!isNaN(d.getTime())){
+            return d.toISOString().split("T")[0]===todayStr;
+          }
+        }catch(err){}
+      }
+      // Fallback: only treat HH:MM time as today if no date info exists at all
       if(!o.time)return false;
-      // o.time might be "14:32" (just time) or full ISO date string
-      // Only count it if it's a valid full date
       try{
         var t=String(o.time);
-        // If it's just HH:MM format, treat it as today
-        if(/^\d{1,2}:\d{2}/.test(t)&&t.length<=8)return true;
-        var d=new Date(t);
-        if(!d||isNaN(d.getTime()))return false;
-        return d.toISOString().split("T")[0]===todayStr;
+        if(/^\d{1,2}:\d{2}/.test(t)&&t.length<=8){
+          // Time-only format - only count if order has no created_at (legacy)
+          return !o.created_at;
+        }
+        var d2=new Date(t);
+        if(!d2||isNaN(d2.getTime()))return false;
+        return d2.toISOString().split("T")[0]===todayStr;
       }catch(err){return false;}
     });
   }catch(e){todayOrders=[];}
   var todayRevenue=0;
-  try{todayRevenue=todayOrders.filter(o=>o.paid).reduce((s,o)=>s+(parseFloat(o.total)||0),0);}catch(e){todayRevenue=0;}
+  try{
+    // Only count PAID orders that aren't cancelled/voided
+    todayRevenue=todayOrders
+      .filter(o=>o.paid&&o.status!=="cancelled"&&!o.refunded&&!o.voided)
+      .reduce((s,o)=>s+(parseFloat(o.total)||0),0);
+  }catch(e){todayRevenue=0;}
 
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
