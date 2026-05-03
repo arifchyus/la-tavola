@@ -848,7 +848,7 @@ function printA4Invoice(o,b){
     ${deliveryCodeSection}
     
     <div class="footer">
-      <p>Thank you for choosing La Tavola!</p>
+      <p>Thank you for choosing ${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola")}!</p>
       ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
