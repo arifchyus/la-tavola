@@ -799,8 +799,8 @@ function printA4Invoice(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
-        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+        <h1>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h1>
+        ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
         <h2>INVOICE</h2>
@@ -1128,8 +1128,8 @@ function printRefundA4(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
-        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+        <h1>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h1>
+        ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
         <h2>CREDIT NOTE</h2>
@@ -1305,8 +1305,8 @@ function printVoucherA4(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
-        ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+        <h1>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h1>
+        ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
         <h2>GIFT VOUCHER</h2>
