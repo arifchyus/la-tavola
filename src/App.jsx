@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -9736,6 +9736,171 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
 
 
 // ============================================================
+// PHASE A: RESTAURANT DIRECTORY - shown when no restaurant selected
+// ============================================================
+
+function RestaurantDirectory({onSelectRestaurant}){
+  var [restaurants,setRestaurants]=useState([]);
+  var [loading,setLoading]=useState(true);
+  var [search,setSearch]=useState("");
+  
+  useEffect(()=>{
+    dbFetchPublicRests().then(rs=>{
+      setRestaurants((rs||[]).filter(r=>r.show_in_directory!==false));
+      setLoading(false);
+    });
+  },[]);
+  
+  var cuisineEmojis={
+    italian:String.fromCharCode(0xD83C,0xDF55),
+    indian:String.fromCharCode(0xD83C,0xDF5B),
+    chinese:String.fromCharCode(0xD83C,0xDF5C),
+    british:String.fromCharCode(0xD83C,0xDF5F),
+    american:String.fromCharCode(0xD83C,0xDF54),
+    mexican:String.fromCharCode(0xD83C,0xDF2E),
+    japanese:String.fromCharCode(0xD83C,0xDF63),
+    thai:String.fromCharCode(0xD83C,0xDF5C),
+    cafe:String.fromCharCode(0x2615),
+    other:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),
+  };
+  
+  var filtered=restaurants.filter(r=>{
+    if(!search.trim())return true;
+    var s=search.toLowerCase();
+    return r.name.toLowerCase().includes(s)||(r.cuisine_type||"").toLowerCase().includes(s);
+  });
+  
+  var goToRestaurant=(slug)=>{
+    window.location.href="/?r="+encodeURIComponent(slug);
+  };
+  
+  return <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1a1208,#3d2e22)",padding:"20px 14px",fontFamily:"-apple-system,sans-serif"}}>
+    <div style={{maxWidth:880,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:30,color:"#fff"}}>
+        <p style={{fontSize:38,fontFamily:"Georgia,serif",fontWeight:300,letterSpacing:5,marginBottom:7}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} La Tavola</p>
+        <p style={{fontSize:14,opacity:.8,letterSpacing:3}}>RESTAURANT ORDERING PLATFORM</p>
+      </div>
+      
+      {/* Search */}
+      <div style={{marginBottom:24,position:"relative"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search restaurants or cuisines..." style={{width:"100%",padding:"15px 18px",fontSize:14,border:"none",borderRadius:11,boxShadow:"0 8px 30px rgba(0,0,0,.3)",boxSizing:"border-box"}}/>
+      </div>
+      
+      {/* Restaurant Grid */}
+      {loading?<p style={{textAlign:"center",color:"#fff",opacity:.7}}>Loading restaurants...</p>:
+        filtered.length===0?<div style={{textAlign:"center",color:"#fff",padding:50}}>
+          <p style={{fontSize:50,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDD0D)}</p>
+          <p style={{fontSize:16,opacity:.85}}>No restaurants found</p>
+          {search&&<p style={{fontSize:13,opacity:.6,marginTop:6}}>Try searching for something else</p>}
+        </div>:
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
+          {filtered.map(r=>{
+            var emoji=cuisineEmojis[r.cuisine_type]||cuisineEmojis.other;
+            return <button key={r.id} onClick={()=>goToRestaurant(r.slug)} style={{textAlign:"left",background:"#fff",border:"none",borderRadius:13,padding:0,cursor:"pointer",overflow:"hidden",transition:"transform 0.2s",boxShadow:"0 8px 24px rgba(0,0,0,.2)"}} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-3px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+              <div style={{height:90,background:"linear-gradient(135deg,"+(r.brand_color||"#bf4626")+","+(r.brand_color||"#bf4626")+"99)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:42}}>{emoji}</div>
+              <div style={{padding:13}}>
+                <p style={{fontWeight:700,fontSize:16,marginBottom:3,color:"#1a1208"}}>{r.name}</p>
+                <p style={{fontSize:11,color:"#8a8078",textTransform:"capitalize",marginBottom:5}}>{(r.cuisine_type||"Restaurant").toUpperCase()}</p>
+                {r.address&&<p style={{fontSize:11,color:"#8a8078",marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCCD)} {r.address.substring(0,40)}</p>}
+                <div style={{padding:"7px 11px",background:r.brand_color||"#bf4626",color:"#fff",borderRadius:6,textAlign:"center",fontSize:12,fontWeight:700}}>Order Now {String.fromCharCode(0x2192)}</div>
+              </div>
+            </button>;
+          })}
+        </div>
+      }
+      
+      {/* Footer */}
+      <div style={{textAlign:"center",marginTop:35,color:"#fff",opacity:.5,fontSize:11}}>
+        <p>Are you a restaurant owner?</p>
+        <button onClick={()=>{window.location.href="/?signup=1";}} style={{marginTop:7,padding:"7px 16px",background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>Join La Tavola Platform</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// PHASE A: QR CODE GENERATOR FOR OWNERS
+// ============================================================
+
+function RestaurantQRGenerator({restaurant,onClose}){
+  var baseUrl=window.location.origin;
+  var customerUrl=baseUrl+"/?r="+restaurant.slug;
+  var subdomainUrl="https://"+(restaurant.subdomain||restaurant.slug)+".latavola.app";
+  
+  var qrUrl=encodeURIComponent(customerUrl);
+  var qrImageUrl="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data="+qrUrl+"&color=1a1208&bgcolor=fafaf5";
+  var qrLargeUrl="https://api.qrserver.com/v1/create-qr-code/?size=800x800&data="+qrUrl+"&color=1a1208&bgcolor=fafaf5";
+  
+  var copyLink=()=>{
+    try{
+      navigator.clipboard.writeText(customerUrl);
+      alert("Link copied to clipboard!");
+    }catch(e){
+      alert("Link: "+customerUrl);
+    }
+  };
+  
+  var printQR=()=>{
+    var w=window.open("","_blank","width=600,height=800");
+    if(!w)return;
+    w.document.write('<html><head><title>QR Code - '+restaurant.name+'</title><style>body{font-family:-apple-system,sans-serif;padding:30px;text-align:center;color:#1a1208}h1{font-size:32px;margin-bottom:8px}h2{font-size:18px;color:'+(restaurant.brand_color||"#bf4626")+';margin-bottom:24px;font-weight:600}img{width:300px;height:300px;border:2px dashed #8a8078;padding:12px;border-radius:14px;background:#fafaf5}p.url{margin-top:18px;font-family:monospace;font-size:11px;color:#666;word-break:break-all}p.instr{margin-top:18px;font-size:14px;color:#1a1208;font-weight:600}p.brand{margin-top:30px;font-size:9px;color:#aaa;letter-spacing:2px}.frame{display:inline-block;padding:30px;border:3px solid '+(restaurant.brand_color||"#bf4626")+';border-radius:18px;margin-top:14px}</style></head><body><h1>'+restaurant.name+'</h1><h2>SCAN TO ORDER</h2><div class="frame"><img src="'+qrLargeUrl+'"/></div><p class="instr">Point your phone camera at the QR code</p><p class="url">'+customerUrl+'</p><p class="brand">POWERED BY LA TAVOLA PLATFORM</p></body></html>');
+    setTimeout(()=>{w.print();},500);
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div style={{background:"#fafaf5",borderRadius:14,maxWidth:520,width:"100%",maxHeight:"96vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,"+(restaurant.brand_color||"#bf4626")+","+(restaurant.brand_color||"#bf4626")+"99)",color:"#fff",padding:"15px 22px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{fontSize:11,opacity:.85,fontWeight:700,letterSpacing:2}}>SHARE YOUR RESTAURANT</p>
+          <h2 style={{fontSize:18,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCF1)} QR Code &amp; Links</h2>
+        </div>
+        <button onClick={onClose} style={{width:34,height:34,borderRadius:"50%",background:"rgba(255,255,255,.15)",color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>x</button>
+      </div>
+      
+      <div style={{flex:1,overflowY:"auto",padding:22}}>
+        {/* QR Code */}
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <p style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"#8a8078",marginBottom:11}}>SCAN TO ORDER</p>
+          <div style={{display:"inline-block",padding:14,background:"#fff",borderRadius:13,border:"3px dashed "+(restaurant.brand_color||"#bf4626"),boxShadow:"0 4px 14px rgba(0,0,0,.08)"}}>
+            <img src={qrImageUrl} alt="QR Code" style={{width:200,height:200,display:"block"}}/>
+          </div>
+        </div>
+        
+        <button onClick={printQR} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,"+(restaurant.brand_color||"#bf4626")+","+(restaurant.brand_color||"#bf4626")+"99)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:11}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Print QR Code Poster</button>
+        
+        {/* Direct Link */}
+        <div style={{padding:14,background:"#fff",borderRadius:9,marginBottom:11,border:"1px solid #ede8de"}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>DIRECT LINK (Path)</p>
+          <p style={{fontSize:13,fontFamily:"monospace",color:"#1a1208",wordBreak:"break-all",marginBottom:9}}>{customerUrl}</p>
+          <button onClick={copyLink} style={{padding:"7px 13px",background:"#1a1208",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCCB)} Copy Link</button>
+        </div>
+        
+        {/* Subdomain Link */}
+        <div style={{padding:14,background:"#fff",borderRadius:9,marginBottom:14,border:"1px solid #ede8de"}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>SUBDOMAIN (Available After Domain Setup)</p>
+          <p style={{fontSize:13,fontFamily:"monospace",color:"#8a8078",wordBreak:"break-all",marginBottom:5,textDecoration:"line-through"}}>{subdomainUrl}</p>
+          <p style={{fontSize:10,color:"#8a8078",fontStyle:"italic"}}>Available when you upgrade to Pro plan with custom domain</p>
+        </div>
+        
+        {/* Tips */}
+        <div style={{padding:13,background:"#fef3c7",borderRadius:9,fontSize:11,color:"#92400e",marginBottom:11}}>
+          <p style={{fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCA1)} TIPS:</p>
+          <ul style={{paddingLeft:18,lineHeight:1.7,margin:0}}>
+            <li>Print the QR code and put it on every table</li>
+            <li>Add the link to your Instagram bio</li>
+            <li>Share the link in WhatsApp groups</li>
+            <li>Print on flyers and business cards</li>
+            <li>Add to your Google Business profile</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+
+// ============================================================
 // SAAS-2: SIGNUP / LOGIN / VERIFICATION SCREENS
 // ============================================================
 
@@ -10185,6 +10350,34 @@ export default function App(){
   var [saasOwner,setSaasOwner]=useState(()=>dbGetOwner());
   var [showOnboarding,setShowOnboarding]=useState(false);
   var [showRestaurantSwitcher,setShowRestaurantSwitcher]=useState(false);
+  var [showQRGenerator,setShowQRGenerator]=useState(false);
+  // PHASE A: URL-based restaurant detection (for customers visiting from links/QR)
+  var [urlRestaurant,setUrlRestaurant]=useState(null);
+  var [urlChecked,setUrlChecked]=useState(false);
+  var [showDirectory,setShowDirectory]=useState(false);
+  
+  // PHASE A: Check URL for restaurant on first load
+  useEffect(()=>{
+    dbDetectFromUrl().then(result=>{
+      if(result&&result.restaurant){
+        // Customer arrived via URL with restaurant slug
+        setUrlRestaurant(result.restaurant);
+        setRestaurant(result.restaurant);
+        // For URL-detected restaurants, set as current
+        try{window.__currentRestaurant=result.restaurant;}catch(e){}
+      }
+      setUrlChecked(true);
+      
+      // Check for ?signup=1 query - show signup directly
+      try{
+        var params=new URLSearchParams(window.location.search);
+        if(params.get("signup")==="1"){
+          setShowDirectory(false);
+        }
+      }catch(e){}
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   
   // SAAS: Load current restaurant on mount
   useEffect(()=>{
@@ -10539,8 +10732,37 @@ export default function App(){
   var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
   var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag",driver:"pin"};
 
-  // SAAS-2: AUTH GATE - show login if not authenticated
-  if(!saasOwner||!restaurant){
+  // PHASE A: Don't show anything until URL is checked
+  if(!urlChecked){
+    return <></>;
+  }
+  
+  // PHASE A: If customer visited via URL and detected a restaurant, skip auth - go to ordering
+  // (customer doesn't need to login - they're a CUSTOMER not a restaurant owner)
+  if(urlRestaurant&&!saasOwner){
+    // Customer flow - load restaurant data and show menu
+    // (continues to normal flow below with restaurant set)
+  }else if(!saasOwner){
+    // Not logged in AND no URL match - show DIRECTORY of all restaurants
+    // OR show signup/login if explicitly requested
+    var params;
+    try{params=new URLSearchParams(window.location.search);}catch(e){params=null;}
+    var wantSignup=params?(params.get("signup")==="1"):false;
+    var wantLogin=params?(params.get("login")==="1"):false;
+    
+    if(!wantSignup&&!wantLogin&&!restaurant){
+      // No specific request - show directory
+      return <><style>{CSS}</style><RestaurantDirectory onSelectRestaurant={r=>{
+        window.location.href="/?r="+r.slug;
+      }}/></>;
+    }
+    
+    // Show auth screen
+    return <><style>{CSS}</style><SaaSAuthScreen onAuthSuccess={handleAuthSuccess}/></>;
+  }
+  
+  // SAAS-2: AUTH GATE - show login if not authenticated AND not customer view
+  if(!restaurant){
     return <><style>{CSS}</style><SaaSAuthScreen onAuthSuccess={handleAuthSuccess}/></>;
   }
   
@@ -10568,7 +10790,8 @@ export default function App(){
   return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
     <nav className="nav">
       <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
-      {restaurant&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
+      {restaurant&&saasOwner&&<button onClick={()=>setShowQRGenerator(true)} title="Get QR code & link" style={{background:"rgba(34,197,94,.2)",color:"#22c55e",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(34,197,94,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDCF1)} QR</button>}
+      {restaurant&&saasOwner&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
       <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
@@ -10578,6 +10801,7 @@ export default function App(){
       </div>
     </nav>
     {showRestaurantSwitcher&&<RestaurantSwitcher currentRestaurant={restaurant} onSwitch={r=>setRestaurant(r)} onClose={()=>setShowRestaurantSwitcher(false)}/>}
+    {showQRGenerator&&restaurant&&<RestaurantQRGenerator restaurant={restaurant} onClose={()=>setShowQRGenerator(false)}/>}
     <div className="mnav">
       {tabs.map(k=><button key={k} className={"mbtn"+(view===k?" on":"")} onClick={()=>setView(k)}>
         <span className="mico">{EM[ti[k]]||""}</span>

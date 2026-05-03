@@ -1801,3 +1801,89 @@ async function setupNewRestaurant(restaurantId, restaurantName, cuisineType) {
   
   console.log('Auto-setup complete for', restaurantName);
 }
+
+// ===========================================================
+// PHASE A: URL ROUTING - Find restaurants for customer ordering
+// ===========================================================
+
+// Detect restaurant from URL (path, subdomain, or query param)
+export async function detectRestaurantFromUrl() {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // 1. Check ?r= query param first (highest priority)
+    const params = new URLSearchParams(window.location.search);
+    const queryRestaurant = params.get('r') || params.get('restaurant');
+    if (queryRestaurant) {
+      const r = await fetchRestaurantBySlug(queryRestaurant);
+      if (r) return { source: 'query', restaurant: r };
+    }
+    
+    // 2. Check subdomain (e.g., marios.latavola.app)
+    const hostname = window.location.hostname;
+    const parts = hostname.split('.');
+    if (parts.length > 2 && parts[0] !== 'www') {
+      // Has a subdomain
+      const subdomain = parts[0];
+      // Skip vercel app subdomains
+      if (subdomain !== 'la-tavola-xi') {
+        const r = await fetchRestaurantBySubdomain(subdomain);
+        if (r) return { source: 'subdomain', restaurant: r };
+      }
+    }
+    
+    // 3. Check URL path (e.g., /marios)
+    const path = window.location.pathname;
+    const pathParts = path.split('/').filter(p => p);
+    if (pathParts.length > 0) {
+      const slug = pathParts[0];
+      // Skip system paths
+      const systemPaths = ['signup', 'login', 'admin', 'api', 'static'];
+      if (!systemPaths.includes(slug)) {
+        const r = await fetchRestaurantBySlug(slug);
+        if (r) return { source: 'path', restaurant: r };
+      }
+    }
+  } catch (e) {
+    console.warn('Restaurant URL detection error:', e);
+  }
+  
+  return null;
+}
+
+// Find restaurant by slug
+export async function fetchRestaurantBySlug(slug) {
+  if (!slug) return null;
+  const { data } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('slug', slug.toLowerCase().trim())
+    .maybeSingle();
+  return data;
+}
+
+// Get all active restaurants (for directory page)
+export async function fetchPublicRestaurants() {
+  const { data } = await supabase
+    .from('restaurants')
+    .select('id, name, slug, subdomain, cuisine_type, brand_color, address, phone')
+    .eq('active', true)
+    .order('name');
+  return data || [];
+}
+
+// Update restaurant's online ordering settings
+export async function updateRestaurantOrderTypes(restaurantId, settings) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({
+      enable_dinein: settings.dinein !== false,
+      enable_takeaway: settings.takeaway !== false,
+      enable_delivery: settings.delivery !== false,
+      enable_online_ordering: settings.onlineOrdering !== false,
+    })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  return { data, error };
+}
