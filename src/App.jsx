@@ -10354,7 +10354,6 @@ export default function App(){
   // PHASE A: URL-based restaurant detection (for customers visiting from links/QR)
   var [urlRestaurant,setUrlRestaurant]=useState(null);
   var [urlChecked,setUrlChecked]=useState(false);
-  var [showDirectory,setShowDirectory]=useState(false);
   
   // PHASE A: Check URL for restaurant on first load
   useEffect(()=>{
@@ -10367,14 +10366,6 @@ export default function App(){
         try{window.__currentRestaurant=result.restaurant;}catch(e){}
       }
       setUrlChecked(true);
-      
-      // Check for ?signup=1 query - show signup directly
-      try{
-        var params=new URLSearchParams(window.location.search);
-        if(params.get("signup")==="1"){
-          setShowDirectory(false);
-        }
-      }catch(e){}
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
