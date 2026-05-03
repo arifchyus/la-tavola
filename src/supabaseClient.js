@@ -1902,3 +1902,283 @@ export async function updateRestaurantOrderTypes(restaurantId, settings) {
     .single();
   return { data, error };
 }
+
+// ===========================================================
+// SUPER ADMIN PANEL - Platform owner functionality
+// ===========================================================
+
+// Check if currently logged in user is a super admin
+export async function isSuperAdmin() {
+  const owner = getCurrentOwner();
+  if (!owner) return false;
+  try {
+    const { data } = await supabase
+      .from('restaurant_owners')
+      .select('is_super_admin')
+      .eq('id', owner.id)
+      .maybeSingle();
+    return data?.is_super_admin === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Get all restaurants with comprehensive stats for super admin panel
+export async function fetchAllRestaurantsWithStats() {
+  try {
+    // Get all restaurants
+    const { data: restaurants } = await supabase
+      .from('restaurants')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (!restaurants) return [];
+    
+    // For each restaurant, get stats
+    const enriched = await Promise.all(restaurants.map(async (r) => {
+      const stats = {};
+      
+      // Get menu count
+      const { count: menuCount } = await supabase
+        .from('menu_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('restaurant_id', r.id);
+      stats.menu_count = menuCount || 0;
+      
+      // Get table count
+      const { count: tableCount } = await supabase
+        .from('restaurant_tables')
+        .select('*', { count: 'exact', head: true })
+        .eq('restaurant_id', r.id);
+      stats.table_count = tableCount || 0;
+      
+      // Get order count + revenue
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('total, paid, status, refunded, voided, created_at')
+        .eq('restaurant_id', r.id);
+      
+      stats.orders_total = orders?.length || 0;
+      stats.revenue = (orders || [])
+        .filter(o => o.paid && o.status !== 'cancelled' && !o.refunded && !o.voided)
+        .reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
+      
+      // Last order date
+      const lastOrder = (orders || []).sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      )[0];
+      stats.last_activity = lastOrder?.created_at || r.updated_at || r.created_at;
+      
+      // Get owner info
+      const { data: owner } = await supabase
+        .from('restaurant_owners')
+        .select('email, full_name, last_login')
+        .eq('restaurant_id', r.id)
+        .maybeSingle();
+      stats.owner_email = owner?.email || r.owner_email || 'unknown';
+      stats.owner_name = owner?.full_name || r.owner_name || 'Unknown';
+      
+      // Trial calculations
+      if (r.plan === 'trial' && r.trial_ends_at) {
+        const trialEnd = new Date(r.trial_ends_at);
+        const now = new Date();
+        const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+        stats.trial_days_left = daysLeft;
+        stats.trial_status = daysLeft < 0 ? 'expired' : daysLeft <= 3 ? 'urgent' : daysLeft <= 7 ? 'warning' : 'ok';
+      }
+      
+      return { ...r, stats };
+    }));
+    
+    return enriched;
+  } catch (e) {
+    console.error('fetchAllRestaurantsWithStats error:', e);
+    return [];
+  }
+}
+
+// Calculate platform-wide stats
+export async function fetchPlatformStats() {
+  try {
+    const { data: restaurants } = await supabase
+      .from('restaurants')
+      .select('plan, trial_ends_at, active, created_at');
+    
+    if (!restaurants) return {};
+    
+    const now = new Date();
+    const planPrices = { starter: 29, pro: 69, enterprise: 149 };
+    
+    const stats = {
+      total: restaurants.length,
+      active: restaurants.filter(r => r.active !== false).length,
+      trial: restaurants.filter(r => r.plan === 'trial').length,
+      paid: restaurants.filter(r => r.plan && r.plan !== 'trial').length,
+      mrr: restaurants
+        .filter(r => r.plan && r.plan !== 'trial' && r.active !== false)
+        .reduce((s, r) => s + (planPrices[r.plan] || 0), 0),
+      signups_last_7d: restaurants.filter(r => {
+        const created = new Date(r.created_at);
+        return (now - created) / (1000 * 60 * 60 * 24) <= 7;
+      }).length,
+      signups_last_30d: restaurants.filter(r => {
+        const created = new Date(r.created_at);
+        return (now - created) / (1000 * 60 * 60 * 24) <= 30;
+      }).length,
+      trials_expiring_soon: restaurants.filter(r => {
+        if (r.plan !== 'trial' || !r.trial_ends_at) return false;
+        const days = (new Date(r.trial_ends_at) - now) / (1000 * 60 * 60 * 24);
+        return days >= 0 && days <= 3;
+      }).length,
+    };
+    
+    return stats;
+  } catch (e) {
+    console.error('fetchPlatformStats error:', e);
+    return {};
+  }
+}
+
+// Log an admin action
+export async function logPlatformActivity(adminEmail, action, restaurantId, restaurantName, details = {}) {
+  try {
+    await supabase.from('platform_activity').insert({
+      admin_email: adminEmail,
+      action: action,
+      target_restaurant_id: restaurantId,
+      target_restaurant_name: restaurantName,
+      details: details,
+    });
+  } catch (e) {
+    console.warn('Failed to log activity:', e);
+  }
+}
+
+// Get recent platform activity
+export async function fetchPlatformActivity(limit = 50) {
+  try {
+    const { data } = await supabase
+      .from('platform_activity')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// Update restaurant plan (manual billing)
+export async function updateRestaurantPlan(restaurantId, plan, adminEmail) {
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .update({ plan: plan, updated_at: new Date().toISOString() })
+      .eq('id', restaurantId)
+      .select()
+      .single();
+    
+    if (data) {
+      await logPlatformActivity(adminEmail, 'plan_changed', restaurantId, data.name, { new_plan: plan });
+    }
+    return { data, error };
+  } catch (e) {
+    return { error: e };
+  }
+}
+
+// Toggle restaurant active status (suspend/activate)
+export async function toggleRestaurantActive(restaurantId, active, adminEmail) {
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .update({ active: active, updated_at: new Date().toISOString() })
+      .eq('id', restaurantId)
+      .select()
+      .single();
+    
+    if (data) {
+      await logPlatformActivity(adminEmail, active ? 'restaurant_activated' : 'restaurant_suspended', restaurantId, data.name);
+    }
+    return { data, error };
+  } catch (e) {
+    return { error: e };
+  }
+}
+
+// Impersonate a restaurant (login as them for support)
+export async function impersonateRestaurant(restaurantId, adminEmail) {
+  try {
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', restaurantId)
+      .single();
+    
+    if (restaurant) {
+      // Save current admin session for restoration
+      const currentOwner = getCurrentOwner();
+      try {
+        localStorage.setItem('latavola_admin_backup', JSON.stringify({
+          owner: currentOwner,
+          restaurant: getCurrentSaasRestaurant(),
+          timestamp: new Date().toISOString(),
+        }));
+        // Switch to target restaurant
+        localStorage.setItem('latavola_saas_restaurant', JSON.stringify(restaurant));
+        // Mark that we're in impersonation mode
+        localStorage.setItem('latavola_impersonating', JSON.stringify({
+          target_id: restaurant.id,
+          target_name: restaurant.name,
+          admin_email: adminEmail,
+          started_at: new Date().toISOString(),
+        }));
+      } catch (e) {}
+      
+      setCurrentRestaurantId(restaurant.id);
+      await logPlatformActivity(adminEmail, 'impersonate_started', restaurantId, restaurant.name);
+      return restaurant;
+    }
+    return null;
+  } catch (e) {
+    console.error('Impersonation failed:', e);
+    return null;
+  }
+}
+
+// Stop impersonation - restore original admin session
+export async function stopImpersonation() {
+  try {
+    const backup = localStorage.getItem('latavola_admin_backup');
+    const impersonation = localStorage.getItem('latavola_impersonating');
+    
+    if (impersonation) {
+      const imp = JSON.parse(impersonation);
+      await logPlatformActivity(imp.admin_email, 'impersonate_ended', imp.target_id, imp.target_name);
+    }
+    
+    if (backup) {
+      const data = JSON.parse(backup);
+      if (data.restaurant) {
+        localStorage.setItem('latavola_saas_restaurant', JSON.stringify(data.restaurant));
+        setCurrentRestaurantId(data.restaurant.id);
+      }
+    }
+    
+    localStorage.removeItem('latavola_admin_backup');
+    localStorage.removeItem('latavola_impersonating');
+    localStorage.removeItem('latavola_branch');
+    localStorage.removeItem('latavola_user');
+  } catch (e) {
+    console.error('Stop impersonation error:', e);
+  }
+}
+
+// Check if currently impersonating
+export function isImpersonating() {
+  try {
+    return JSON.parse(localStorage.getItem('latavola_impersonating') || 'null');
+  } catch (e) {
+    return null;
+  }
+}

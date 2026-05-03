@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -9978,6 +9978,200 @@ function RestaurantQRGenerator({restaurant,onClose}){
 
 
 // ============================================================
+// SUPER ADMIN PANEL - Platform owner control center
+// ============================================================
+
+function SuperAdminPanel({onExit,saasOwner}){
+  var [restaurants,setRestaurants]=useState([]);
+  var [stats,setStats]=useState({});
+  var [activity,setActivity]=useState([]);
+  var [loading,setLoading]=useState(true);
+  var [search,setSearch]=useState("");
+  var [selectedRest,setSelectedRest]=useState(null);
+  var [activeTab,setActiveTab]=useState("overview");
+  
+  var loadData=()=>{
+    setLoading(true);
+    Promise.all([
+      dbFetchAllRestStats(),
+      dbFetchPlatStats(),
+      dbFetchPlatActivity(20)
+    ]).then(([rests,plat,act])=>{
+      setRestaurants(rests||[]);
+      setStats(plat||{});
+      setActivity(act||[]);
+      setLoading(false);
+    });
+  };
+  
+  useEffect(()=>{loadData();},[]);
+  
+  var doImpersonate=async(r)=>{
+    if(!window.confirm("Login as "+r.name+"?\n\nYou'll see what they see. Click 'Exit Impersonation' (top banner) to come back.")) return;
+    var result=await dbImpersonate(r.id,saasOwner.email);
+    if(result){
+      alert("Now logged in as "+r.name+". Page will reload.");
+      window.location.href="/?r="+r.slug;
+    }
+  };
+  
+  var doChangePlan=async(r)=>{
+    var newPlan=window.prompt("Change plan for "+r.name+":\n\nOptions: trial, starter, pro, enterprise","pro");
+    if(!newPlan)return;
+    if(!["trial","starter","pro","enterprise"].includes(newPlan)){
+      alert("Invalid plan");return;
+    }
+    var {data,error}=await dbUpdatePlan(r.id,newPlan,saasOwner.email);
+    if(error){alert("Failed: "+error.message);return;}
+    if(data){alert("Plan changed to "+newPlan);loadData();}
+  };
+  
+  var doToggleActive=async(r)=>{
+    var willActivate=r.active===false;
+    if(!window.confirm((willActivate?"ACTIVATE":"SUSPEND")+" "+r.name+"?\n\n"+(willActivate?"Restaurant will work normally.":"Restaurant won't be accessible to customers."))) return;
+    var {data,error}=await dbToggleActive(r.id,willActivate,saasOwner.email);
+    if(error){alert("Failed: "+error.message);return;}
+    if(data){alert(willActivate?"Activated":"Suspended");loadData();}
+  };
+  
+  var filtered=restaurants.filter(r=>{
+    if(!search.trim())return true;
+    var s=search.toLowerCase();
+    return r.name?.toLowerCase().includes(s)||r.slug?.toLowerCase().includes(s)||r.stats?.owner_email?.toLowerCase().includes(s);
+  });
+  
+  var planColor=p=>({trial:"#d97706",starter:"#2563eb",pro:"#059669",enterprise:"#7c3aed"})[p]||"#6b7280";
+  var planBg=p=>({trial:"#fef3c7",starter:"#dbeafe",pro:"#d1fae5",enterprise:"#ede9fe"})[p]||"#f3f4f6";
+  
+  var trialColor=s=>({expired:"#dc2626",urgent:"#dc2626",warning:"#d97706",ok:"#059669"})[s]||"#6b7280";
+  var trialBg=s=>({expired:"#fee2e2",urgent:"#fee2e2",warning:"#fef3c7",ok:"#d1fae5"})[s]||"#f3f4f6";
+  
+  return <div style={{minHeight:"100vh",background:"#0f0a05",color:"#fff",fontFamily:"-apple-system,sans-serif"}}>
+    {/* Header */}
+    <div style={{background:"linear-gradient(135deg,#1a1208,#3d2e22)",padding:"15px 22px",borderBottom:"2px solid #5d3a1f",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:11}}>
+      <div>
+        <p style={{fontSize:11,color:"#fbbf24",letterSpacing:3,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDC51)} SUPER ADMIN PANEL</p>
+        <h1 style={{fontSize:22,fontWeight:700,fontFamily:"Georgia,serif"}}>La Tavola Platform Control</h1>
+      </div>
+      <div style={{display:"flex",gap:9,alignItems:"center"}}>
+        <span style={{fontSize:11,color:"#fbbf24",opacity:.8}}>Logged in as: {saasOwner?.email}</span>
+        <button onClick={loadData} style={{padding:"7px 13px",background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD04)} Refresh</button>
+        <button onClick={onExit} style={{padding:"7px 13px",background:"#dc2626",color:"#fff",border:"none",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>Exit Admin</button>
+      </div>
+    </div>
+    
+    {/* Stats Cards */}
+    <div style={{padding:"22px 22px 0 22px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:11,maxWidth:1400,margin:"0 auto"}}>
+      <div style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:11,padding:14}}>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>RESTAURANTS</p>
+        <p style={{fontSize:30,fontWeight:700,color:"#fff",lineHeight:1}}>{stats.total||0}</p>
+        <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>{stats.signups_last_30d||0} new this month</p>
+      </div>
+      <div style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:11,padding:14}}>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>ACTIVE</p>
+        <p style={{fontSize:30,fontWeight:700,color:"#22c55e",lineHeight:1}}>{stats.active||0}</p>
+        <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>of {stats.total||0} total</p>
+      </div>
+      <div style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:11,padding:14}}>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>PAID</p>
+        <p style={{fontSize:30,fontWeight:700,color:"#fbbf24",lineHeight:1}}>{stats.paid||0}</p>
+        <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>{stats.trial||0} on trial</p>
+      </div>
+      <div style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:11,padding:14}}>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>MRR</p>
+        <p style={{fontSize:30,fontWeight:700,color:"#22c55e",lineHeight:1}}>\u00A3{stats.mrr||0}</p>
+        <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>recurring revenue</p>
+      </div>
+      <div style={{background:"#1a1208",border:"1px solid "+(stats.trials_expiring_soon>0?"#dc2626":"#5d3a1f"),borderRadius:11,padding:14}}>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>EXPIRING SOON</p>
+        <p style={{fontSize:30,fontWeight:700,color:stats.trials_expiring_soon>0?"#dc2626":"#fff",lineHeight:1}}>{stats.trials_expiring_soon||0}</p>
+        <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>trials in 3 days</p>
+      </div>
+    </div>
+    
+    {/* Tabs */}
+    <div style={{padding:"22px 22px 0 22px",maxWidth:1400,margin:"0 auto",display:"flex",gap:6,borderBottom:"1px solid #3d2e22"}}>
+      {[{id:"overview",label:String.fromCharCode(0xD83C,0xDFEA)+" Restaurants"},{id:"activity",label:String.fromCharCode(0xD83D,0xDCDC)+" Activity Log"}].map(t=>
+        <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{padding:"11px 18px",background:activeTab===t.id?"#3d2e22":"transparent",color:activeTab===t.id?"#fbbf24":"#a8956a",border:"none",borderBottom:"3px solid "+(activeTab===t.id?"#fbbf24":"transparent"),fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.label}</button>
+      )}
+    </div>
+    
+    {/* Content */}
+    <div style={{padding:22,maxWidth:1400,margin:"0 auto"}}>
+      
+      {activeTab==="overview"&&<>
+        {/* Search */}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search restaurants by name, slug, or owner email..." style={{width:"100%",padding:"11px 14px",background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:9,color:"#fff",fontSize:13,marginBottom:14,boxSizing:"border-box"}}/>
+        
+        {/* Restaurants */}
+        {loading?<p style={{textAlign:"center",color:"#a8956a",padding:50}}>Loading...</p>:
+          filtered.length===0?<p style={{textAlign:"center",color:"#a8956a",padding:50}}>No restaurants found</p>:
+          <div style={{display:"grid",gap:9}}>
+            {filtered.map(r=>{
+              var initials=(r.name||"R").split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
+              return <div key={r.id} style={{background:"#1a1208",border:"1px solid "+(r.active===false?"#dc2626":"#3d2e22"),borderRadius:11,padding:14,opacity:r.active===false?0.6:1}}>
+                <div style={{display:"grid",gridTemplateColumns:"auto 1fr auto",gap:14,alignItems:"center"}}>
+                  {/* Avatar */}
+                  <div style={{width:46,height:46,borderRadius:11,background:r.brand_color||"#bf4626",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:16}}>{initials}</div>
+                  
+                  {/* Info */}
+                  <div style={{minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3,flexWrap:"wrap"}}>
+                      <p style={{fontSize:15,fontWeight:700,color:"#fff"}}>{r.name}</p>
+                      <span style={{fontSize:9,padding:"2px 7px",background:planBg(r.plan),color:planColor(r.plan),borderRadius:5,fontWeight:700,letterSpacing:1}}>{(r.plan||"trial").toUpperCase()}</span>
+                      {r.plan==="trial"&&r.stats?.trial_status&&<span style={{fontSize:9,padding:"2px 7px",background:trialBg(r.stats.trial_status),color:trialColor(r.stats.trial_status),borderRadius:5,fontWeight:700}}>{r.stats.trial_days_left>=0?r.stats.trial_days_left+" days left":"EXPIRED"}</span>}
+                      {r.active===false&&<span style={{fontSize:9,padding:"2px 7px",background:"#fee2e2",color:"#dc2626",borderRadius:5,fontWeight:700,letterSpacing:1}}>SUSPENDED</span>}
+                    </div>
+                    <p style={{fontSize:11,color:"#a8956a",marginBottom:3}}>{r.stats?.owner_email}{r.cuisine_type?" - "+r.cuisine_type:""}</p>
+                    <div style={{display:"flex",gap:11,fontSize:10,color:"#6b5d3f",flexWrap:"wrap"}}>
+                      <span>{r.stats?.menu_count||0} menu</span>
+                      <span>{r.stats?.table_count||0} tables</span>
+                      <span>{r.stats?.orders_total||0} orders</span>
+                      <span style={{color:"#22c55e"}}>\u00A3{(r.stats?.revenue||0).toFixed(2)} revenue</span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    <button onClick={()=>doImpersonate(r)} title="Login as this restaurant" style={{padding:"6px 11px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD11)} Login As</button>
+                    <button onClick={()=>doChangePlan(r)} title="Change plan" style={{padding:"6px 11px",background:"#1e40af",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCB3)} Plan</button>
+                    <button onClick={()=>doToggleActive(r)} title={r.active===false?"Activate":"Suspend"} style={{padding:"6px 11px",background:r.active===false?"#059669":"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{r.active===false?String.fromCharCode(0x2713)+" Activate":String.fromCharCode(0x26D4)+" Suspend"}</button>
+                  </div>
+                </div>
+              </div>;
+            })}
+          </div>
+        }
+      </>}
+      
+      {activeTab==="activity"&&<>
+        <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:11}}>RECENT PLATFORM ACTIVITY</p>
+        {activity.length===0?<p style={{color:"#a8956a"}}>No activity yet</p>:
+          <div style={{display:"grid",gap:5}}>
+            {activity.map(a=>{
+              var dt=new Date(a.created_at);
+              var iconColor={impersonate_started:"#7c3aed",impersonate_ended:"#7c3aed",plan_changed:"#1e40af",restaurant_suspended:"#dc2626",restaurant_activated:"#059669",restaurant_signed_up:"#22c55e"}[a.action]||"#6b7280";
+              return <div key={a.id} style={{background:"#1a1208",border:"1px solid #3d2e22",borderRadius:9,padding:11,fontSize:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:11,flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:200}}>
+                    <p style={{color:iconColor,fontWeight:700,marginBottom:3,letterSpacing:1,fontSize:11}}>{a.action.replace(/_/g," ").toUpperCase()}</p>
+                    <p style={{color:"#fff"}}>{a.target_restaurant_name||"Platform"} {a.admin_email&&a.admin_email!=="system"&&" - by "+a.admin_email}</p>
+                    {a.details&&Object.keys(a.details).length>0&&<p style={{color:"#a8956a",fontSize:10,marginTop:3}}>{JSON.stringify(a.details)}</p>}
+                  </div>
+                  <p style={{color:"#6b5d3f",fontSize:10}}>{dt.toLocaleString("en-GB")}</p>
+                </div>
+              </div>;
+            })}
+          </div>
+        }
+      </>}
+      
+    </div>
+  </div>;
+}
+
+
+// ============================================================
 // SAAS-2: SIGNUP / LOGIN / VERIFICATION SCREENS
 // ============================================================
 
@@ -10445,6 +10639,24 @@ export default function App(){
   var [showOnboarding,setShowOnboarding]=useState(false);
   var [showRestaurantSwitcher,setShowRestaurantSwitcher]=useState(false);
   var [showQRGenerator,setShowQRGenerator]=useState(false);
+  // SUPER ADMIN: Platform owner panel
+  var [showSuperAdmin,setShowSuperAdmin]=useState(()=>{
+    try{
+      var p=new URLSearchParams(window.location.search);
+      return p.get("admin")==="lt-secret-2026";
+    }catch(e){return false;}
+  });
+  var [isAdmin,setIsAdmin]=useState(false);
+  var [impersonating,setImpersonating]=useState(()=>dbIsImpersonating());
+  
+  // Check if current user is super admin
+  useEffect(()=>{
+    if(saasOwner){
+      dbIsSuperAdmin().then(result=>setIsAdmin(result));
+    }else{
+      setIsAdmin(false);
+    }
+  },[saasOwner]);
   // PHASE A: URL-based restaurant detection (for customers visiting from links/QR)
   var [urlRestaurant,setUrlRestaurant]=useState(null);
   var [urlChecked,setUrlChecked]=useState(false);
@@ -10832,6 +11044,30 @@ export default function App(){
     return <></>;
   }
   
+  // SUPER ADMIN: Show panel if URL has admin code AND user is logged in as admin
+  if(showSuperAdmin){
+    if(!saasOwner){
+      // Not logged in - show login first
+      return <><style>{CSS}</style><SaaSAuthScreen onAuthSuccess={(o,r)=>{
+        handleAuthSuccess(o,r);
+        // Will check admin status in next render
+      }}/></>;
+    }
+    if(!isAdmin){
+      // Logged in but not admin
+      return <div style={{minHeight:"100vh",background:"#0f0a05",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",padding:22,fontFamily:"-apple-system,sans-serif"}}>
+        <div style={{textAlign:"center",maxWidth:420}}>
+          <p style={{fontSize:60,marginBottom:14}}>{String.fromCharCode(0xD83D,0xDD12)}</p>
+          <h2 style={{fontSize:22,marginBottom:9,fontFamily:"Georgia,serif"}}>Access Denied</h2>
+          <p style={{color:"#a8956a",marginBottom:18,fontSize:13}}>You don't have super admin permissions. This area is restricted to platform administrators only.</p>
+          <button onClick={()=>{setShowSuperAdmin(false);window.history.replaceState({},"","/");}} style={{padding:"11px 22px",background:"#bf4626",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Back to App</button>
+        </div>
+      </div>;
+    }
+    // User is admin - show panel
+    return <><style>{CSS}</style><SuperAdminPanel saasOwner={saasOwner} onExit={()=>{setShowSuperAdmin(false);window.history.replaceState({},"","/");}}/></>;
+  }
+  
   // PHASE A: If customer visited via URL and detected a restaurant, skip auth - go to ordering
   // (customer doesn't need to login - they're a CUSTOMER not a restaurant owner)
   if(urlRestaurant&&!saasOwner){
@@ -10883,9 +11119,24 @@ export default function App(){
   </>;
 
   return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
+    {/* SUPER ADMIN: Impersonation banner */}
+    {impersonating&&<div style={{background:"#7c3aed",color:"#fff",padding:"9px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:11,fontSize:12,fontWeight:700,position:"sticky",top:0,zIndex:9999,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
+        <span style={{fontSize:14}}>{String.fromCharCode(0xD83D,0xDC51)}</span>
+        <span>SUPER ADMIN MODE - Viewing as: {impersonating.target_name}</span>
+        <span style={{opacity:.7,fontSize:10}}>({impersonating.admin_email})</span>
+      </div>
+      <button onClick={async()=>{
+        await dbStopImpersonate();
+        setImpersonating(null);
+        window.location.href="/?admin=lt-secret-2026";
+      }} style={{padding:"5px 11px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x21A9,0xFE0F)} Exit Impersonation</button>
+    </div>}
     <nav className="nav">
       <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
       {restaurant&&saasOwner&&<button onClick={()=>setShowQRGenerator(true)} title="Get QR code & link" style={{background:"rgba(34,197,94,.2)",color:"#22c55e",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(34,197,94,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDCF1)} QR</button>}
+      {/* SUPER ADMIN: Show admin button only to admins */}
+      {isAdmin&&!impersonating&&<button onClick={()=>{setShowSuperAdmin(true);window.history.replaceState({},"","/?admin=lt-secret-2026");}} title="Super Admin Panel" style={{background:"rgba(251,191,36,.2)",color:"#fbbf24",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(251,191,36,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDC51)} ADMIN</button>}
       {restaurant&&saasOwner&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
       <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
