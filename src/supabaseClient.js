@@ -1439,6 +1439,13 @@ export async function signupRestaurant({ restaurantName, ownerName, email, passw
     return { error: ownerError };
   }
   
+  // Step 4.5: AUTO-SETUP - Create starter content for new restaurant
+  try {
+    await setupNewRestaurant(restaurant.id, restaurant.name, cuisineType || 'other');
+  } catch (e) {
+    console.warn('Auto-setup failed (non-critical):', e);
+  }
+  
   // Step 5: Create verification token
   const verCode = generateVerificationCode();
   const verToken = generateToken();
@@ -1450,7 +1457,7 @@ export async function signupRestaurant({ restaurantName, ownerName, email, passw
   });
   
   // For demo: log verification code to console (in production, send email)
-  console.log('🔑 Verification code for', email, ':', verCode);
+  console.log('[KEY] Verification code for', email, ':', verCode);
   
   return { 
     data: { 
@@ -1553,7 +1560,7 @@ export async function resendVerification(email) {
     verification_code: verCode,
   });
   
-  console.log('🔑 New verification code for', email, ':', verCode);
+  console.log('[KEY] New verification code for', email, ':', verCode);
   return { data: { verificationCode: verCode } };
 }
 
@@ -1611,4 +1618,186 @@ export async function switchRestaurant(restaurantId) {
     return restaurant;
   }
   return null;
+}
+
+// ===========================================================
+// AUTO-SETUP: Create starter content for new restaurants
+// ===========================================================
+
+async function setupNewRestaurant(restaurantId, restaurantName, cuisineType) {
+  console.log('Setting up new restaurant:', restaurantName, 'cuisine:', cuisineType);
+  
+  // 1. Create default categories (uses display_order, not sort_order)
+  const defaultCategories = [
+    { name: 'Starters', icon: 'salad', display_order: 1 },
+    { name: 'Mains', icon: 'bowl', display_order: 2 },
+    { name: 'Drinks', icon: 'glass', display_order: 3 },
+    { name: 'Desserts', icon: 'cake', display_order: 4 },
+  ];
+  
+  for (const cat of defaultCategories) {
+    try {
+      await supabase.from('categories').insert({
+        ...cat,
+        restaurant_id: restaurantId,
+      });
+    } catch (e) {
+      console.warn('Category insert failed:', cat.name, e);
+    }
+  }
+  
+  // 2. Create cuisine-specific sample menu items
+  const cuisineMenus = {
+    italian: [
+      { name: 'Bruschetta', cat: 'Starters', price: 6.50, desc: 'Toasted bread with tomato, garlic, and basil' },
+      { name: 'Margherita Pizza', cat: 'Mains', price: 9.99, desc: 'Tomato, mozzarella, fresh basil' },
+      { name: 'Spaghetti Carbonara', cat: 'Mains', price: 12.50, desc: 'Bacon, egg, pecorino, black pepper' },
+      { name: 'Tiramisu', cat: 'Desserts', price: 5.50, desc: 'Classic Italian dessert' },
+      { name: 'Italian Soda', cat: 'Drinks', price: 3.00, desc: 'Sparkling water with syrup' },
+    ],
+    indian: [
+      { name: 'Onion Bhaji', cat: 'Starters', price: 4.50, desc: 'Crispy onion fritters' },
+      { name: 'Chicken Tikka Masala', cat: 'Mains', price: 11.50, desc: 'Creamy tomato curry with chicken' },
+      { name: 'Lamb Biryani', cat: 'Mains', price: 13.99, desc: 'Aromatic basmati rice with tender lamb' },
+      { name: 'Gulab Jamun', cat: 'Desserts', price: 4.50, desc: 'Sweet milk dumplings' },
+      { name: 'Mango Lassi', cat: 'Drinks', price: 3.50, desc: 'Yogurt drink with mango' },
+    ],
+    chinese: [
+      { name: 'Spring Rolls', cat: 'Starters', price: 5.50, desc: 'Crispy vegetable spring rolls' },
+      { name: 'Sweet and Sour Chicken', cat: 'Mains', price: 10.50, desc: 'Crispy chicken with sweet and sour sauce' },
+      { name: 'Beef Chow Mein', cat: 'Mains', price: 11.99, desc: 'Stir-fried noodles with beef' },
+      { name: 'Banana Fritters', cat: 'Desserts', price: 5.00, desc: 'Crispy banana with honey' },
+      { name: 'Jasmine Tea', cat: 'Drinks', price: 2.50, desc: 'Traditional Chinese tea' },
+    ],
+    british: [
+      { name: 'Soup of the Day', cat: 'Starters', price: 5.50, desc: 'Homemade with crusty bread' },
+      { name: 'Fish and Chips', cat: 'Mains', price: 13.50, desc: 'Beer-battered cod with chips' },
+      { name: 'Sunday Roast', cat: 'Mains', price: 15.99, desc: 'Roast beef with all the trimmings' },
+      { name: 'Sticky Toffee Pudding', cat: 'Desserts', price: 6.50, desc: 'With vanilla ice cream' },
+      { name: 'Builders Tea', cat: 'Drinks', price: 2.00, desc: 'Strong English tea' },
+    ],
+    american: [
+      { name: 'Mozzarella Sticks', cat: 'Starters', price: 6.50, desc: 'Crispy fried with marinara sauce' },
+      { name: 'Classic Burger', cat: 'Mains', price: 9.99, desc: 'Beef patty, lettuce, tomato, onion' },
+      { name: 'BBQ Bacon Burger', cat: 'Mains', price: 11.99, desc: 'BBQ sauce, bacon, cheddar' },
+      { name: 'Apple Pie', cat: 'Desserts', price: 5.50, desc: 'With vanilla ice cream' },
+      { name: 'Soft Drink', cat: 'Drinks', price: 2.50, desc: 'Coke, Sprite, or Fanta' },
+    ],
+    mexican: [
+      { name: 'Nachos', cat: 'Starters', price: 6.99, desc: 'With cheese, salsa, guacamole' },
+      { name: 'Beef Tacos', cat: 'Mains', price: 9.50, desc: '3 soft tacos with seasoned beef' },
+      { name: 'Chicken Burrito', cat: 'Mains', price: 10.99, desc: 'Rice, beans, chicken, salsa' },
+      { name: 'Churros', cat: 'Desserts', price: 5.50, desc: 'Cinnamon sugar with chocolate sauce' },
+      { name: 'Horchata', cat: 'Drinks', price: 3.00, desc: 'Sweet rice and cinnamon drink' },
+    ],
+    japanese: [
+      { name: 'Edamame', cat: 'Starters', price: 4.50, desc: 'Steamed soybeans with sea salt' },
+      { name: 'Salmon Sushi (8 pcs)', cat: 'Mains', price: 12.99, desc: 'Fresh salmon nigiri and rolls' },
+      { name: 'Chicken Teriyaki', cat: 'Mains', price: 11.50, desc: 'Grilled chicken with teriyaki sauce' },
+      { name: 'Mochi Ice Cream', cat: 'Desserts', price: 5.00, desc: '3 pieces, assorted flavors' },
+      { name: 'Green Tea', cat: 'Drinks', price: 2.50, desc: 'Traditional Japanese tea' },
+    ],
+    thai: [
+      { name: 'Spring Rolls', cat: 'Starters', price: 5.50, desc: 'Crispy with sweet chili sauce' },
+      { name: 'Pad Thai', cat: 'Mains', price: 10.99, desc: 'Stir-fried rice noodles with peanuts' },
+      { name: 'Green Curry', cat: 'Mains', price: 11.99, desc: 'Spicy curry with coconut milk' },
+      { name: 'Mango Sticky Rice', cat: 'Desserts', price: 5.50, desc: 'Sweet sticky rice with mango' },
+      { name: 'Thai Iced Tea', cat: 'Drinks', price: 3.00, desc: 'Sweet tea with milk' },
+    ],
+    cafe: [
+      { name: 'Avocado Toast', cat: 'Starters', price: 7.50, desc: 'Sourdough with smashed avocado' },
+      { name: 'Club Sandwich', cat: 'Mains', price: 8.99, desc: 'Chicken, bacon, lettuce, tomato' },
+      { name: 'Grilled Panini', cat: 'Mains', price: 7.50, desc: 'Cheese and ham toasted panini' },
+      { name: 'Carrot Cake', cat: 'Desserts', price: 4.50, desc: 'Slice with cream cheese frosting' },
+      { name: 'Latte', cat: 'Drinks', price: 3.50, desc: 'Espresso with steamed milk' },
+    ],
+    other: [
+      { name: 'Side Salad', cat: 'Starters', price: 5.00, desc: 'Mixed greens with dressing' },
+      { name: 'Daily Special', cat: 'Mains', price: 11.99, desc: 'Ask staff for todays special' },
+      { name: 'House Pasta', cat: 'Mains', price: 9.99, desc: 'Chefs choice pasta dish' },
+      { name: 'Chocolate Brownie', cat: 'Desserts', price: 5.50, desc: 'Warm with vanilla ice cream' },
+      { name: 'Soft Drink', cat: 'Drinks', price: 2.50, desc: 'Coke, Sprite, or water' },
+    ],
+  };
+  
+  const menuItems = cuisineMenus[cuisineType] || cuisineMenus.other;
+  
+  for (const item of menuItems) {
+    try {
+      await supabase.from('menu_items').insert({
+        name: item.name,
+        category_name: item.cat,
+        price: item.price,
+        price_dinein: item.price,
+        price_takeaway: item.price,
+        price_delivery: item.price,
+        description: item.desc,
+        available: true,
+        avail_dinein: true,
+        avail_takeaway: true,
+        avail_delivery: true,
+        stock: 99,
+        icon: 'cart',
+        restaurant_id: restaurantId,
+      });
+    } catch (e) {
+      console.warn('Menu item insert failed:', item.name, e);
+    }
+  }
+  
+  // 3. Create default tables (table is restaurant_tables)
+  const branchId = 'b-' + restaurantId.substring(0, 8);
+  for (let i = 1; i <= 6; i++) {
+    try {
+      await supabase.from('restaurant_tables').insert({
+        table_number: 'T' + i,
+        seats: i === 3 ? 2 : (i === 4 ? 6 : (i === 6 ? 8 : 4)),
+        status: 'free',
+        branch_id: branchId,
+        x_pos: 100 + ((i - 1) % 3) * 100,
+        y_pos: 100 + Math.floor((i - 1) / 3) * 100,
+        restaurant_id: restaurantId,
+      });
+    } catch (e) {
+      console.warn('Table insert failed:', i, e);
+    }
+  }
+  
+  // 4. Create default manager PIN (1234)
+  try {
+    await supabase.from('manager_pins').insert({
+      pin_hash: '1234',
+      label: 'Manager',
+      active: true,
+      restaurant_id: restaurantId,
+    });
+  } catch (e) {
+    console.warn('Manager PIN insert failed:', e);
+  }
+  
+  // 5. Create default expense categories
+  const expCategories = [
+    { name: 'Food & Beverages', icon: 'food', color: '#dc2626', display_order: 1 },
+    { name: 'Utilities', icon: 'bolt', color: '#0891b2', display_order: 2 },
+    { name: 'Rent', icon: 'building', color: '#7c3aed', display_order: 3 },
+    { name: 'Salaries', icon: 'users', color: '#059669', display_order: 4 },
+    { name: 'Equipment', icon: 'wrench', color: '#d97706', display_order: 5 },
+    { name: 'Marketing', icon: 'speaker', color: '#be185d', display_order: 6 },
+    { name: 'Cleaning', icon: 'broom', color: '#0d9488', display_order: 7 },
+    { name: 'Other', icon: 'box', color: '#6b7280', display_order: 8 },
+  ];
+  
+  for (const cat of expCategories) {
+    try {
+      await supabase.from('expense_categories').insert({
+        ...cat,
+        active: true,
+        restaurant_id: restaurantId,
+      });
+    } catch (e) {
+      console.warn('Expense category insert failed:', cat.name, e);
+    }
+  }
+  
+  console.log('Auto-setup complete for', restaurantName);
 }

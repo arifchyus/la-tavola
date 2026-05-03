@@ -1510,7 +1510,7 @@ function BranchSel({onSelect,restaurant}){
   </div>;
 }
 
-function MenuV({menu,user,branch,onOrder,push,discounts}){
+function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]),[cart,setCart]=useState({}),[step,setStep]=useState("menu");
   // Auto-select first category when menu data loads from DB
@@ -1879,7 +1879,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts}){
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 50%,rgba(212,149,42,.12),transparent 70%)"}}/>
       <div style={{position:"relative",zIndex:1}}>
         <p style={{color:"#d4952a",fontSize:10,letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>Welcome to</p>
-        <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>La Tavola</h1>
+        <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>{restaurant?.name||"La Tavola"}</h1>
         {branch&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:6,flexWrap:"wrap"}}>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{EM.pin} {branch.addr}</p>
           <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))window.location.href="/";}} style={{padding:"5px 11px",fontSize:11,background:"rgba(212,149,42,.2)",color:"#d4952a",border:"1px solid rgba(212,149,42,.4)",borderRadius:6,cursor:"pointer",fontWeight:700}}>Change Branch</button>
@@ -10198,6 +10198,26 @@ export default function App(){
     }
   },[restaurant]);
   
+  // SAAS: Auto-login as restaurant owner for POS access
+  // When SaaS owner is logged in, treat them as the restaurant's "owner" role staff
+  useEffect(()=>{
+    if(saasOwner&&!user){
+      // Create a virtual staff user from SaaS owner
+      var avatarLetters=(saasOwner.full_name||"Owner").split(" ").map(p=>p[0]).join("").substring(0,2).toUpperCase()||"OW";
+      var virtualStaff={
+        id:"saas-"+saasOwner.id,
+        name:saasOwner.full_name||"Owner",
+        email:saasOwner.email,
+        pw:"",
+        avatar:avatarLetters,
+        role:"owner",
+      };
+      setUser(virtualStaff);
+      try{localStorage.setItem("latavola_user",JSON.stringify(virtualStaff));}catch(e){}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[saasOwner]);
+  
   // SAAS-2: Handle successful auth
   var handleAuthSuccess=(owner,rest)=>{
     setSaasOwner(owner);
@@ -10545,7 +10565,7 @@ export default function App(){
     </div>}
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
-      {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs}/>}
+      {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs} restaurant={restaurant}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
