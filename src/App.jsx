@@ -10083,6 +10083,11 @@ function RestaurantSwitcher({currentRestaurant,onSwitch,onClose}){
   var doSwitch=async(r)=>{
     var switched=await dbSwitchRest(r.id);
     if(switched){
+      // Clear saved branch and user - they belong to the OLD restaurant
+      try{
+        localStorage.removeItem("latavola_branch");
+        localStorage.removeItem("latavola_user");
+      }catch(e){}
       onSwitch(switched);
       window.location.reload(); // Reload to refresh all data
     }
@@ -10220,6 +10225,13 @@ export default function App(){
   
   // SAAS-2: Handle successful auth
   var handleAuthSuccess=(owner,rest)=>{
+    // Clear any cached branch/user from previous restaurant
+    try{
+      localStorage.removeItem("latavola_branch");
+      localStorage.removeItem("latavola_user");
+    }catch(e){}
+    setBranch(null);
+    setUser(null);
     setSaasOwner(owner);
     setRestaurant(rest);
     if(!rest.onboarding_complete){
