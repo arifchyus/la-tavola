@@ -10372,31 +10372,29 @@ export default function App(){
   
   // SAAS: Load current restaurant on mount (only for logged-in owners)
   useEffect(()=>{
-    // First try to load the saved SaaS restaurant from localStorage
+    // PHASE A FIX: If URL has ?r= param, the URL detection effect handles it
+    // Don't load from localStorage if URL is requesting a specific restaurant
+    try{
+      var urlParams=new URLSearchParams(window.location.search);
+      if(urlParams.get("r")||urlParams.get("restaurant")){
+        // URL-based restaurant - URL detection effect will set it
+        return;
+      }
+    }catch(e){}
+    
+    // First try to load the saved SaaS restaurant from localStorage (for logged-in owners)
     var savedRest=dbGetSaasRest();
-    if(savedRest){
+    if(savedRest&&saasOwner){
+      // Only use saved restaurant if user is actually a SaaS owner
       setRestaurant(savedRest);
       try{window.__currentRestaurant=savedRest;console.log("SaaS Restaurant loaded:",savedRest.name);}catch(e){}
       // Show onboarding if not complete
-      if(!savedRest.onboarding_complete&&saasOwner){
+      if(!savedRest.onboarding_complete){
         setShowOnboarding(true);
       }
       return;
     }
-    // Fallback: auto-detect by slug ONLY if SaaS owner is logged in
-    // (Customers visiting via URL get their restaurant from urlRestaurant instead)
-    if(saasOwner){
-      autoDetectMyRestaurant().then(detected=>{
-        if(detected){
-          dbFetchRestaurant(detected.id).then(r=>{
-            if(r){
-              setRestaurant(r);
-              try{window.__currentRestaurant=r;console.log("Restaurant loaded:",r.name,"ID:",r.id);}catch(e){}
-            }
-          });
-        }
-      }).catch(e=>console.log("Restaurant detect failed:",e));
-    }
+    // If no saasOwner, don't auto-load any restaurant (customer should see directory)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   

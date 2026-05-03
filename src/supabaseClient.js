@@ -17,12 +17,18 @@ let _currentRestaurantId = null; // will be set after fetchRestaurantBySlug
 
 // On module load, immediately try to read saved restaurant from localStorage
 // This ensures _currentRestaurantId is set BEFORE any queries run
+// EXCEPT if URL has ?r= param - then URL takes priority (customer browsing)
 try {
-  if (typeof localStorage !== 'undefined') {
-    const raw = localStorage.getItem('latavola_saas_restaurant');
-    if (raw) {
-      const r = JSON.parse(raw);
-      if (r && r.id) _currentRestaurantId = r.id;
+  if (typeof localStorage !== 'undefined' && typeof window !== 'undefined') {
+    // Check if URL is requesting a specific restaurant (customer link)
+    const urlHasRestaurant = window.location.search.includes('r=') || window.location.search.includes('restaurant=');
+    if (!urlHasRestaurant) {
+      // Only use localStorage if not visiting via URL
+      const raw = localStorage.getItem('latavola_saas_restaurant');
+      if (raw) {
+        const r = JSON.parse(raw);
+        if (r && r.id) _currentRestaurantId = r.id;
+      }
     }
   }
 } catch (e) {
