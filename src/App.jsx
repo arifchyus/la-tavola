@@ -1598,10 +1598,38 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
     setCheckingPc(true);
     try{
       var clean=pc.replace(/\s+/g,"").toUpperCase();
-      var res=await fetch("https://api.postcodes.io/postcodes/"+clean);
+      console.log("Checking postcode:",clean,"for branch:",branch?.name,"at",branch?.lat,branch?.lng);
+      var res=await fetch("https://api.postcodes.io/postcodes/"+encodeURIComponent(clean));
       var data=await res.json();
-      if(!data||data.status!==200||!data.result){setPostcodeData({valid:false,reason:"Postcode not found"});setCheckingPc(false);return;}
+      console.log("Postcode API response:",data);
+      if(!data||data.status!==200||!data.result){
+        // Try outcode lookup as fallback (just first part like E14)
+        var outcode=clean.replace(/\d[A-Z]{2}$/,"");
+        if(outcode&&outcode.length>=2){
+          console.log("Trying outcode fallback:",outcode);
+          var res2=await fetch("https://api.postcodes.io/outcodes/"+encodeURIComponent(outcode));
+          var data2=await res2.json();
+          if(data2&&data2.status===200&&data2.result){
+            // Use outcode location
+            data={status:200,result:{latitude:data2.result.latitude,longitude:data2.result.longitude,outcode:outcode}};
+            console.log("Using outcode location:",data2.result);
+          }else{
+            setPostcodeData({valid:false,reason:"Postcode not found - please check spelling"});
+            setCheckingPc(false);
+            return;
+          }
+        }else{
+          setPostcodeData({valid:false,reason:"Postcode not found"});
+          setCheckingPc(false);
+          return;
+        }
+      }
       var custLat=data.result.latitude,custLng=data.result.longitude;
+      if(!branch||!branch.lat||!branch.lng){
+        setPostcodeData({valid:false,reason:"Restaurant location not set - cannot calculate distance"});
+        setCheckingPc(false);
+        return;
+      }
       // Calculate distance using Haversine
       var R=3958.8; // miles
       var dLat=(custLat-branch.lat)*Math.PI/180;
@@ -1609,6 +1637,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
       var a=Math.sin(dLat/2)**2+Math.cos(branch.lat*Math.PI/180)*Math.cos(custLat*Math.PI/180)*Math.sin(dLng/2)**2;
       var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
       var miles=R*c;
+      console.log("Distance to customer:",miles.toFixed(2),"miles");
       // Determine fee based on delivery method
       var d=dbDelivery;
       if(!d||!d.enabled){setPostcodeData({valid:false,reason:"Delivery not available from this branch"});setCheckingPc(false);return;}
