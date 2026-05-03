@@ -723,8 +723,8 @@ function printThermalReceipt(o,b){
     .footer{text-align:center;color:#999;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
   </style></head><body>
     <div class="header">
-      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
-      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      <h2>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h2>
+      ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     <div class="order-info">
       <p><b>Order:</b> ${o.id}</p>
@@ -848,7 +848,7 @@ function printA4Invoice(o,b){
     ${deliveryCodeSection}
     
     <div class="footer">
-      <p>Thank you for choosing ${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola")}!</p>
+      <p>Thank you for choosing ${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"us"))}!</p>
       ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
@@ -1007,8 +1007,8 @@ function printRefundThermal(o,b){
     .signature-line{margin-top:18px;padding-top:8px;border-top:1px solid #000;text-align:center;font-size:10px;color:#666}
   </style></head><body>
     <div class="header">
-      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
-      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      <h2>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h2>
+      ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     
     <div class="refund-banner">
@@ -1227,8 +1227,8 @@ function printVoucherThermal(o,b){
     .footer{text-align:center;color:#666;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
   </style></head><body>
     <div class="header">
-      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
-      ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
+      <h2>${(b?b.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase()}</h2>
+      ${b?`<p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     
     <div class="voucher-banner">
@@ -4662,7 +4662,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             var cards=branchTables.map(t=>{
               var url=baseUrl+"?branch="+adminBranch+"&table="+t.id;
               var qrImgUrl="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
-              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>"+((typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase())+"</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
+              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>"+(((branches.find(b=>b.id===adminBranch)||{}).name||(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase())+"</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
             }).join("");
             win.document.write("<html><head><title>QR Codes - "+(branches.find(b=>b.id===adminBranch)||{}).name+"</title><style>body{font-family:system-ui,sans-serif;padding:20px;background:#f5f5f5}h1{text-align:center;margin-bottom:20px}.print-hint{text-align:center;color:#666;margin-bottom:20px}@media print{body{background:#fff;padding:0}.print-hint{display:none}}</style></head><body><h1>QR Codes - Stick on Tables</h1><p class='print-hint'>Use Cmd/Ctrl+P to print. Stick each QR code on its corresponding table.</p>"+cards+"</body></html>");
             win.document.close();
@@ -5751,7 +5751,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
               var win=window.open("","","width=300,height=500");
               if(!win)return;
               var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
-              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>"+((typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase())+"</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>"+((branch?.name||(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase())+"</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
               win.document.close();
               setTimeout(()=>win.print(),200);
             }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
