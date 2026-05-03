@@ -10340,8 +10340,23 @@ export default function App(){
     }
   ]:BRANCHES;
   // Restore user and branch from localStorage so refresh doesn't log out
-  var [user,setUser]=useState(()=>{try{var u=localStorage.getItem("latavola_user");return u?JSON.parse(u):null;}catch(e){return null;}});
-  var [branch,setBranch]=useState(()=>{try{var b=localStorage.getItem("latavola_branch");return b?JSON.parse(b):null;}catch(e){return null;}});
+  // PHASE A FIX: If URL has ?r=, don't restore old branch (it's from previous restaurant)
+  var [user,setUser]=useState(()=>{
+    try{
+      var hasUrlRest=window.location.search.includes("r=")||window.location.search.includes("restaurant=");
+      if(hasUrlRest)return null; // customer browsing - don't restore old user
+      var u=localStorage.getItem("latavola_user");
+      return u?JSON.parse(u):null;
+    }catch(e){return null;}
+  });
+  var [branch,setBranch]=useState(()=>{
+    try{
+      var hasUrlRest=window.location.search.includes("r=")||window.location.search.includes("restaurant=");
+      if(hasUrlRest)return null; // customer browsing - don't restore old branch
+      var b=localStorage.getItem("latavola_branch");
+      return b?JSON.parse(b):null;
+    }catch(e){return null;}
+  });
   var [showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
