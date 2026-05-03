@@ -10485,7 +10485,16 @@ export default function App(){
   },[]);
 
   // Load data from Supabase on app start
+  // PHASE A: Wait until URL is checked AND restaurant is set so queries use correct ID
   useEffect(()=>{
+    if(!urlChecked)return;
+    if(!restaurant)return;
+    // Clear old data first (in case restaurant changed)
+    setOrders([]);
+    setMenu([]);
+    setCategories([]);
+    setTables([]);
+    setCustomers([]);
     // Load orders from the database
     fetchOrders().then(dbOrders=>{
       if(dbOrders&&dbOrders.length){
@@ -10641,7 +10650,7 @@ export default function App(){
       }
     }).catch(e=>console.log("Stations load failed:",e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
+  },[urlChecked,restaurant?.id]);
 
   // Auto-refresh orders every 15 seconds (so customers see status updates and staff sees new orders)
   useEffect(()=>{

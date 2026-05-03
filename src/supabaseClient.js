@@ -1816,7 +1816,10 @@ export async function detectRestaurantFromUrl() {
     const queryRestaurant = params.get('r') || params.get('restaurant');
     if (queryRestaurant) {
       const r = await fetchRestaurantBySlug(queryRestaurant);
-      if (r) return { source: 'query', restaurant: r };
+      if (r) {
+        setCurrentRestaurantId(r.id); // CRITICAL: tell queries which restaurant
+        return { source: 'query', restaurant: r };
+      }
     }
     
     // 2. Check subdomain (e.g., marios.latavola.app)
@@ -1828,7 +1831,10 @@ export async function detectRestaurantFromUrl() {
       // Skip vercel app subdomains
       if (subdomain !== 'la-tavola-xi') {
         const r = await fetchRestaurantBySubdomain(subdomain);
-        if (r) return { source: 'subdomain', restaurant: r };
+        if (r) {
+          setCurrentRestaurantId(r.id);
+          return { source: 'subdomain', restaurant: r };
+        }
       }
     }
     
@@ -1841,7 +1847,10 @@ export async function detectRestaurantFromUrl() {
       const systemPaths = ['signup', 'login', 'admin', 'api', 'static'];
       if (!systemPaths.includes(slug)) {
         const r = await fetchRestaurantBySlug(slug);
-        if (r) return { source: 'path', restaurant: r };
+        if (r) {
+          setCurrentRestaurantId(r.id);
+          return { source: 'path', restaurant: r };
+        }
       }
     }
   } catch (e) {
