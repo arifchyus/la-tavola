@@ -1485,7 +1485,9 @@ function BranchSel({onSelect,restaurant}){
       name:restaurant.name||"Main",
       addr:restaurant.address||"",
       phone:restaurant.phone||"",
-      lat:51.5,lng:-0.1,
+      postcode:restaurant.postcode||"",
+      lat:parseFloat(restaurant.lat)||51.5,
+      lng:parseFloat(restaurant.lng)||-0.1,
       delivery:{enabled:true,method:"radius",postcodes:[],radius:5,zones:[],flatFee:2.50,freeOver:25,minOrder:15},
       cod:{enabled:true,minOrder:15,maxMiles:5}
     }
@@ -5328,6 +5330,52 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
 
     {tab==="settings"&&<div>
+      {/* PHASE A: Restaurant Info - critical for delivery */}
+      {restaurant&&<div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #bf4626"}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83C,0xDFEA)} Restaurant Information</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>This is your restaurant's address and location. Used for delivery distance calculations.</p>
+        <div className="g2" style={{marginBottom:9}}>
+          <div><label className="lbl">Restaurant name</label><input className="field" defaultValue={restaurant.name||""} id="rest_name_input" placeholder="My Restaurant"/></div>
+          <div><label className="lbl">Phone</label><input className="field" defaultValue={restaurant.phone||""} id="rest_phone_input" placeholder="020 7123 4567"/></div>
+        </div>
+        <div className="g2" style={{marginBottom:9}}>
+          <div><label className="lbl">Full address</label><input className="field" defaultValue={restaurant.address||""} id="rest_addr_input" placeholder="123 High Street, London"/></div>
+          <div><label className="lbl">Postcode</label><input className="field" defaultValue={restaurant.postcode||""} id="rest_postcode_input" placeholder="E1 6QL" style={{textTransform:"uppercase"}}/></div>
+        </div>
+        <div className="g2" style={{marginBottom:9}}>
+          <div><label className="lbl">Latitude {String.fromCharCode(0x2139,0xFE0F)}</label><input className="field" type="number" step="0.0001" defaultValue={restaurant.lat||""} id="rest_lat_input" placeholder="51.5246"/></div>
+          <div><label className="lbl">Longitude {String.fromCharCode(0x2139,0xFE0F)}</label><input className="field" type="number" step="0.0001" defaultValue={restaurant.lng||""} id="rest_lng_input" placeholder="-0.0716"/></div>
+        </div>
+        <div style={{padding:10,background:"#fef3c7",borderRadius:7,marginBottom:11,fontSize:11,color:"#92400e"}}>
+          <p style={{fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDCA1)} How to find lat/lng:</p>
+          <p>1. Open Google Maps, search your address</p>
+          <p>2. Right-click on the location marker</p>
+          <p>3. Click the coordinates that appear (e.g., "51.5246, -0.0716")</p>
+          <p>4. Paste the first number in Latitude, second in Longitude</p>
+        </div>
+        <button onClick={()=>{
+          var name=document.getElementById("rest_name_input").value.trim();
+          var phone=document.getElementById("rest_phone_input").value.trim();
+          var addr=document.getElementById("rest_addr_input").value.trim();
+          var pc=document.getElementById("rest_postcode_input").value.trim().toUpperCase();
+          var lat=parseFloat(document.getElementById("rest_lat_input").value);
+          var lng=parseFloat(document.getElementById("rest_lng_input").value);
+          if(!name){push({title:"Name required",body:"Restaurant name cannot be empty",color:"#dc2626"});return;}
+          dbUpdateRestaurant(restaurant.id,{
+            name:name,phone:phone,address:addr,postcode:pc,
+            lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng
+          }).then(({data,error})=>{
+            if(error){push({title:"Save failed",body:error.message,color:"#dc2626"});return;}
+            if(data){
+              setRestaurant(data);
+              try{window.__currentRestaurant=data;}catch(e){}
+              try{localStorage.setItem("latavola_saas_restaurant",JSON.stringify(data));}catch(e){}
+              push({title:"Restaurant info saved",body:"Address and location updated",color:"#059669"});
+            }
+          });
+        }} className="btn btn-r" style={{width:"100%",padding:"11px",fontSize:13}}>Save Restaurant Info</button>
+      </div>}
+
       <div className="card" style={{padding:16,marginBottom:12}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>POS User Interface</p>
         <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Choose how the POS screen looks for staff. Each style is optimized for different needs.</p>
@@ -10334,7 +10382,9 @@ export default function App(){
       name:restaurant.name||"Main",
       addr:restaurant.address||"",
       phone:restaurant.phone||"",
-      lat:51.5,lng:-0.1,
+      postcode:restaurant.postcode||"",
+      lat:parseFloat(restaurant.lat)||51.5,
+      lng:parseFloat(restaurant.lng)||-0.1,
       delivery:{enabled:true,method:"radius",postcodes:[],radius:5,zones:[],flatFee:2.50,freeOver:25,minOrder:15},
       cod:{enabled:true,minOrder:15,maxMiles:5}
     }
