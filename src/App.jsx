@@ -1478,10 +1478,10 @@ function Pay({amount,onSuccess,onClose}){
 
 function BranchSel({onSelect,restaurant}){
   // SAAS: For now, each restaurant = single branch using their info
-  // Multi-branch support can be added later in admin
+  // For La Tavola, use 'b3' (existing branch_id) for backwards compat
   var displayBranches=restaurant?[
     {
-      id:"main",
+      id:restaurant.slug==="la-tavola"?"b3":"main",
       name:restaurant.name||"Main",
       addr:restaurant.address||"",
       phone:restaurant.phone||"",
@@ -10145,10 +10145,11 @@ export default function App(){
   var [stations,setStations]=useState([]);
   // SAAS: Current restaurant (tenant) info
   var [restaurant,setRestaurant]=useState(null);
-  // SAAS: Current restaurant's branches (for now, 1 auto-branch per restaurant)
+  // SAAS: Current restaurant's branches (auto-branch using their info)
+  // For La Tavola, use 'b3' to match existing data; for others, use 'main'
   var currentBranches=restaurant?[
     {
-      id:"main",
+      id:restaurant.slug==="la-tavola"?"b3":"main",
       name:restaurant.name||"Main",
       addr:restaurant.address||"",
       phone:restaurant.phone||"",
