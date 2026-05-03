@@ -9987,7 +9987,6 @@ function SuperAdminPanel({onExit,saasOwner}){
   var [activity,setActivity]=useState([]);
   var [loading,setLoading]=useState(true);
   var [search,setSearch]=useState("");
-  var [selectedRest,setSelectedRest]=useState(null);
   var [activeTab,setActiveTab]=useState("overview");
   
   var loadData=()=>{
