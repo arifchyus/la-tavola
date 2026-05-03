@@ -10370,7 +10370,7 @@ export default function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   
-  // SAAS: Load current restaurant on mount
+  // SAAS: Load current restaurant on mount (only for logged-in owners)
   useEffect(()=>{
     // First try to load the saved SaaS restaurant from localStorage
     var savedRest=dbGetSaasRest();
@@ -10383,17 +10383,20 @@ export default function App(){
       }
       return;
     }
-    // Fallback: auto-detect by slug for backward compat
-    autoDetectMyRestaurant().then(detected=>{
-      if(detected){
-        dbFetchRestaurant(detected.id).then(r=>{
-          if(r){
-            setRestaurant(r);
-            try{window.__currentRestaurant=r;console.log("Restaurant loaded:",r.name,"ID:",r.id);}catch(e){}
-          }
-        });
-      }
-    }).catch(e=>console.log("Restaurant detect failed:",e));
+    // Fallback: auto-detect by slug ONLY if SaaS owner is logged in
+    // (Customers visiting via URL get their restaurant from urlRestaurant instead)
+    if(saasOwner){
+      autoDetectMyRestaurant().then(detected=>{
+        if(detected){
+          dbFetchRestaurant(detected.id).then(r=>{
+            if(r){
+              setRestaurant(r);
+              try{window.__currentRestaurant=r;console.log("Restaurant loaded:",r.name,"ID:",r.id);}catch(e){}
+            }
+          });
+        }
+      }).catch(e=>console.log("Restaurant detect failed:",e));
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   
