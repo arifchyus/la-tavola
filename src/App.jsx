@@ -289,7 +289,7 @@ function buildTicketHtml(order,station,branch,format){
     ".item{display:flex;justify-content:space-between;margin:2px 0}"+
     ".section{font-weight:bold;text-decoration:underline;margin:6px 0 3px;text-transform:uppercase}"+
     "</style></head><body>";
-  html+="<h1>"+(branch?branch.name:"LA TAVOLA")+"</h1>";
+  html+="<h1>"+(branch?branch.name:(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola"))+"</h1>";
   if(stationName)html+="<div style='text-align:center;font-weight:bold;font-size:"+(isThermal?"13px":"16px")+"'>"+stationName.toUpperCase()+" STATION"+copyText+"</div>";
   html+="<div class='divider'></div>";
   html+="<div class='big'>ORDER "+order.id+"</div>";
@@ -547,6 +547,15 @@ input,select,textarea{font-family:inherit;font-size:14px}
 // Get receipt settings from localStorage
 function getReceiptSettings(){
   try{
+    // SAAS: Use current restaurant's VAT info if available
+    var rest=(typeof window!=="undefined")?window.__currentRestaurant:null;
+    if(rest&&rest.vat_rate!==null&&rest.vat_rate!==undefined){
+      return {
+        showVAT:localStorage.getItem("show_vat")!=="0"&&parseFloat(rest.vat_rate)>0,
+        vatRate:parseFloat(rest.vat_rate)||0,
+        vatNumber:rest.vat_number||"",
+      };
+    }
     return {
       showVAT:localStorage.getItem("show_vat")!=="0",
       vatRate:parseFloat(localStorage.getItem("vat_rate"))||20,
@@ -714,7 +723,7 @@ function printThermalReceipt(o,b){
     .footer{text-align:center;color:#999;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
   </style></head><body>
     <div class="header">
-      <h2>LA TAVOLA</h2>
+      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
       ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     <div class="order-info">
@@ -736,7 +745,7 @@ function printThermalReceipt(o,b){
     ${deliveryCodeSection}
     <div class="footer">
       <p>Thank you for your order!</p>
-      <p>www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var s=w.document.createElement("script");s.textContent=js;w.document.body.appendChild(s);
@@ -790,7 +799,7 @@ function printA4Invoice(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>LA TAVOLA</h1>
+        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
         ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
@@ -840,7 +849,7 @@ function printA4Invoice(o,b){
     
     <div class="footer">
       <p>Thank you for choosing La Tavola!</p>
-      <p>www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var s=w.document.createElement("script");s.textContent=js;w.document.body.appendChild(s);
@@ -998,7 +1007,7 @@ function printRefundThermal(o,b){
     .signature-line{margin-top:18px;padding-top:8px;border-top:1px solid #000;text-align:center;font-size:10px;color:#666}
   </style></head><body>
     <div class="header">
-      <h2>LA TAVOLA</h2>
+      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
       ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     
@@ -1044,7 +1053,7 @@ function printRefundThermal(o,b){
     <div class="footer">
       <p style="font-weight:700;color:#dc2626">${String.fromCharCode(0x2713)} REFUND PROCESSED</p>
       <p style="margin-top:6px">Keep this receipt for your records</p>
-      <p>www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
@@ -1119,7 +1128,7 @@ function printRefundA4(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>LA TAVOLA</h1>
+        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
         ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
@@ -1183,7 +1192,7 @@ function printRefundA4(o,b){
     <div class="footer">
       <p style="font-weight:700;color:#dc2626;font-size:13px">${String.fromCharCode(0x2713)} REFUND PROCESSED - Keep for HMRC Records</p>
       <p style="margin-top:6px">This is a credit note. Please retain for accounting purposes.</p>
-      <p>www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
@@ -1218,7 +1227,7 @@ function printVoucherThermal(o,b){
     .footer{text-align:center;color:#666;margin-top:14px;font-size:10px;border-top:1px dashed #ccc;padding-top:8px}
   </style></head><body>
     <div class="header">
-      <h2>LA TAVOLA</h2>
+      <h2>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h2>
       ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
     </div>
     
@@ -1255,7 +1264,7 @@ function printVoucherThermal(o,b){
     <div class="footer">
       <p style="font-weight:700;color:#7c3aed">${String.fromCharCode(0x2713)} VOUCHER ISSUED</p>
       <p style="margin-top:6px">Thank you for your patience!</p>
-      <p>www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p>www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
@@ -1296,7 +1305,7 @@ function printVoucherA4(o,b){
   </style></head><body>
     <div class="header">
       <div class="header-left">
-        <h1>LA TAVOLA</h1>
+        <h1>${(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase()}</h1>
         ${b?`<p><b>${b.name}</b></p><p>${b.addr||""}</p><p>Tel: ${b.phone||""}</p>`:""}
       </div>
       <div class="header-right">
@@ -1342,7 +1351,7 @@ function printVoucherA4(o,b){
     <div class="footer">
       <p style="font-weight:700;color:#7c3aed;font-size:14px">Thank you for your patience and understanding!</p>
       <p style="margin-top:6px">We look forward to welcoming you back to La Tavola.</p>
-      <p style="margin-top:9px">www.latavola.co.uk</p>
+      ${(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug!=="la-tavola")?"":'<p style="margin-top:9px">www.latavola.co.uk</p>'}
     </div>
   </body></html>`);
   var sc=w.document.createElement("script");sc.textContent=js;w.document.body.appendChild(sc);
@@ -1467,13 +1476,35 @@ function Pay({amount,onSuccess,onClose}){
   </div>;
 }
 
-function BranchSel({onSelect}){
+function BranchSel({onSelect,restaurant}){
+  // SAAS: For now, each restaurant = single branch using their info
+  // Multi-branch support can be added later in admin
+  var displayBranches=restaurant?[
+    {
+      id:"main",
+      name:restaurant.name||"Main",
+      addr:restaurant.address||"",
+      phone:restaurant.phone||"",
+      lat:51.5,lng:-0.1,
+      delivery:{enabled:true,method:"radius",postcodes:[],radius:5,zones:[],flatFee:2.50,freeOver:25,minOrder:15},
+      cod:{enabled:true,minOrder:15,maxMiles:5}
+    }
+  ]:BRANCHES; // fallback to hardcoded if no restaurant
+  
+  // Auto-select if only 1 branch
+  useEffect(()=>{
+    if(displayBranches.length===1){
+      onSelect(displayBranches[0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  
   return <div className="page" style={{maxWidth:560}}>
-    <h2 style={{fontSize:26,marginBottom:4,textAlign:"center"}}>Choose Your Branch</h2>
-    <p style={{color:"#8a8078",textAlign:"center",marginBottom:20,fontSize:14}}>Select a location to start ordering</p>
+    <h2 style={{fontSize:26,marginBottom:4,textAlign:"center"}}>{restaurant?.name||"Choose Your Branch"}</h2>
+    <p style={{color:"#8a8078",textAlign:"center",marginBottom:20,fontSize:14}}>Loading...</p>
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {BRANCHES.map(b=><button key={b.id} onClick={()=>onSelect(b)} style={{textAlign:"left",background:"#fff",borderRadius:13,padding:"15px 16px",border:"2px solid #ede8de",boxShadow:"0 2px 10px rgba(0,0,0,.06)",cursor:"pointer",width:"100%",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#bf4626"} onMouseLeave={e=>e.currentTarget.style.borderColor="#ede8de"}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><p style={{fontWeight:700,fontSize:15,marginBottom:2}}>La Tavola - {b.name}</p><p style={{color:"#8a8078",fontSize:13,marginBottom:1}}>{b.addr}</p><p style={{color:"#8a8078",fontSize:13}}>{b.phone}</p></div><span className="bdg" style={{background:"#d1fae5",color:"#059669"}}>Open</span></div>
+      {displayBranches.map(b=><button key={b.id} onClick={()=>onSelect(b)} style={{textAlign:"left",background:"#fff",borderRadius:13,padding:"15px 16px",border:"2px solid #ede8de",boxShadow:"0 2px 10px rgba(0,0,0,.06)",cursor:"pointer",width:"100%",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#bf4626"} onMouseLeave={e=>e.currentTarget.style.borderColor="#ede8de"}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><p style={{fontWeight:700,fontSize:15,marginBottom:2}}>{b.name}</p>{b.addr&&<p style={{color:"#8a8078",fontSize:13,marginBottom:1}}>{b.addr}</p>}{b.phone&&<p style={{color:"#8a8078",fontSize:13}}>{b.phone}</p>}</div><span className="bdg" style={{background:"#d1fae5",color:"#059669"}}>Open</span></div>
       </button>)}
     </div>
   </div>;
@@ -4600,7 +4631,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             var cards=branchTables.map(t=>{
               var url=baseUrl+"?branch="+adminBranch+"&table="+t.id;
               var qrImgUrl="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
-              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>LA TAVOLA</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
+              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>"+((typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase())+"</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
             }).join("");
             win.document.write("<html><head><title>QR Codes - "+(branches.find(b=>b.id===adminBranch)||{}).name+"</title><style>body{font-family:system-ui,sans-serif;padding:20px;background:#f5f5f5}h1{text-align:center;margin-bottom:20px}.print-hint{text-align:center;color:#666;margin-bottom:20px}@media print{body{background:#fff;padding:0}.print-hint{display:none}}</style></head><body><h1>QR Codes - Stick on Tables</h1><p class='print-hint'>Use Cmd/Ctrl+P to print. Stick each QR code on its corresponding table.</p>"+cards+"</body></html>");
             win.document.close();
@@ -5643,7 +5674,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
               var win=window.open("","","width=300,height=500");
               if(!win)return;
               var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
-              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>LA TAVOLA</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>"+((typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"La Tavola").toUpperCase())+"</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
               win.document.close();
               setTimeout(()=>win.print(),200);
             }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
@@ -10109,6 +10140,18 @@ export default function App(){
   var [stations,setStations]=useState([]);
   // SAAS: Current restaurant (tenant) info
   var [restaurant,setRestaurant]=useState(null);
+  // SAAS: Current restaurant's branches (for now, 1 auto-branch per restaurant)
+  var currentBranches=restaurant?[
+    {
+      id:"main",
+      name:restaurant.name||"Main",
+      addr:restaurant.address||"",
+      phone:restaurant.phone||"",
+      lat:51.5,lng:-0.1,
+      delivery:{enabled:true,method:"radius",postcodes:[],radius:5,zones:[],flatFee:2.50,freeOver:25,minOrder:15},
+      cod:{enabled:true,minOrder:15,maxMiles:5}
+    }
+  ]:BRANCHES;
   // Restore user and branch from localStorage so refresh doesn't log out
   var [user,setUser]=useState(()=>{try{var u=localStorage.getItem("latavola_user");return u?JSON.parse(u):null;}catch(e){return null;}});
   var [branch,setBranch]=useState(()=>{try{var b=localStorage.getItem("latavola_branch");return b?JSON.parse(b):null;}catch(e){return null;}});
@@ -10199,7 +10242,7 @@ export default function App(){
     var params=new URLSearchParams(window.location.search);
     var qrBranch=params.get("branch");
     if(qrBranch&&!branch){
-      var b=BRANCHES.find(x=>x.id===qrBranch);
+      var b=currentBranches.find(x=>x.id===qrBranch);
       if(b)setBranch(b);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -10469,7 +10512,7 @@ export default function App(){
         {!user?<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>:<div style={{display:"flex",alignItems:"center",gap:7}}><div className="av">{user.avatar}</div><button onClick={()=>setUser(null)} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></div>}
       </div>
       {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
-      <BranchSel onSelect={setBranch}/>
+      <BranchSel onSelect={setBranch} restaurant={restaurant}/>
     </div>
   </>;
 
@@ -10514,13 +10557,13 @@ export default function App(){
       {view==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
       {view==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables} stations={stations} menu={menu}/>}
       {view==="driver"&&<DriverV orders={orders} setOrders={setOrders} push={push} user={user} branch={branch}/>}
-      {view==="track"   &&<TrackV   orders={orders} branches={BRANCHES} user={user}/>}
-      {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={BRANCHES} push={push}/>}
+      {view==="track"   &&<TrackV   orders={orders} branches={currentBranches} user={user}/>}
+      {view==="book"    &&<BookV    reservations={reservations} setReservations={setRes} user={user} onAuth={()=>setAuth(true)} branches={currentBranches} push={push}/>}
       {view==="reviews" &&<ReviewsV reviews={reviews} setReviews={setReviews} user={user} onAuth={()=>setAuth(true)}/>}
-      {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={BRANCHES}/>}
+      {view==="account" &&<AccountV user={user} orders={orders} reviews={reviews} reservations={reservations} onAuth={()=>setAuth(true)} branches={currentBranches}/>}
       {view==="chat"    &&<ChatV    messages={messages} setMessages={setMessages} user={user} onAuth={()=>setAuth(true)}/>}
       {view==="kitchen" &&<KitchenV orders={orders} setOrders={setOrders} push={push} stations={stations} menu={menu}/>}
-      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={BRANCHES} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch} stations={stations} setStations={setStations} user={user}/>}
+      {view==="admin"   &&<AdminV   orders={orders} setOrders={setOrders} menu={menu} setMenu={setMenu} discounts={discs} setDiscounts={setDiscs} push={push} branches={currentBranches} setMeals={setMeals} setSetMeals={setSetMeals} categories={categories} setCategories={setCategories} tables={tables} setTables={setTables} branch={branch} stations={stations} setStations={setStations} user={user}/>}
       {view==="report"  &&<ReportV  orders={orders}/>}
     </main>
   </div>;
