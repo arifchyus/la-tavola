@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,clockIn as dbStaffClockIn,clockOut as dbStaffClockOut,fetchClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -3697,6 +3697,709 @@ function PLStatement({orders,expenses,fromDate,toDate,branch,onClose}){
   </div>;
 }
 
+// ============================================================
+// STAFF MANAGEMENT MODULE
+// ============================================================
+
+function StaffManagementTab({restaurant, branch, push}){
+  var [view, setView] = useState("list"); // "list", "schedule", "timeclock", "payroll"
+  var [staff, setStaff] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [editingStaff, setEditingStaff] = useState(null);
+  var [showAddModal, setShowAddModal] = useState(false);
+  var [searchTerm, setSearchTerm] = useState("");
+  var [filterPosition, setFilterPosition] = useState("all");
+  var [showInactive, setShowInactive] = useState(false);
+  
+  var loadStaff = ()=>{
+    setLoading(true);
+    dbFetchStaff(showInactive).then(data=>{
+      setStaff(data || []);
+      setLoading(false);
+    });
+  };
+  
+  useEffect(()=>{loadStaff();}, [showInactive]);
+  
+  var handleSave = async (data)=>{
+    var result;
+    if(data.id){
+      result = await dbUpdateStaff(data.id, data);
+    } else {
+      result = await dbCreateStaff(data);
+    }
+    
+    if(result.error){
+      push&&push({title:"Failed", body:result.error.message||"Unknown error"});
+      return;
+    }
+    
+    push&&push({title:data.id?"Staff updated":"Staff added", color:"#059669"});
+    setEditingStaff(null);
+    setShowAddModal(false);
+    loadStaff();
+  };
+  
+  var handleDelete = async (staffId, name)=>{
+    if(!window.confirm("Remove "+name+" from staff?\n\nThey will be marked as terminated. Their records will be preserved.")) return;
+    var result = await dbDeleteStaff(staffId, false);
+    if(result.error){
+      push&&push({title:"Delete failed", body:result.error.message});
+      return;
+    }
+    push&&push({title:"Staff removed", color:"#059669"});
+    loadStaff();
+  };
+  
+  // Filter staff
+  var filteredStaff = staff.filter(s=>{
+    if(searchTerm && !s.full_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if(filterPosition!=="all" && s.position!==filterPosition) return false;
+    return true;
+  });
+  
+  // Quick stats
+  var stats = {
+    total: staff.length,
+    active: staff.filter(s=>s.status==="active").length,
+    drivers: staff.filter(s=>s.position==="driver").length,
+    waiters: staff.filter(s=>s.position==="waiter").length,
+    chefs: staff.filter(s=>s.position==="chef").length,
+  };
+  
+  return <div>
+    {/* Header */}
+    <div className="card" style={{marginBottom:11, padding:14, background:"linear-gradient(135deg,#1a1208,#3d2e22)", color:"#fff"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
+        <div>
+          <h3 style={{fontSize:18,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDC65)} Staff Management</h3>
+          <p style={{fontSize:12,opacity:.85}}>Manage employees, drivers, schedules, and payroll</p>
+        </div>
+        <button onClick={()=>setShowAddModal(true)} style={{padding:"10px 18px",background:"#22c55e",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:"pointer",fontSize:13}}>{String.fromCharCode(0x2795)} Add Staff</button>
+      </div>
+    </div>
+    
+    {/* Sub-navigation */}
+    <div style={{display:"flex",gap:5,marginBottom:11,flexWrap:"wrap"}}>
+      {[["list","Staff List"],["timeclock","Time Clock"],["schedule","Schedules"],["payroll","Payroll"]].map(t=>
+        <button key={t[0]} onClick={()=>setView(t[0])} style={{padding:"8px 14px",background:view===t[0]?"#bf4626":"#fff",color:view===t[0]?"#fff":"#1a1208",border:"2px solid "+(view===t[0]?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:12}}>{t[1]}</button>
+      )}
+    </div>
+    
+    {view==="list" && <>
+      {/* Stats cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:9,marginBottom:11}}>
+        <div className="card" style={{padding:11,textAlign:"center"}}>
+          <p style={{fontSize:24,fontWeight:700,color:"#bf4626"}}>{stats.total}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Total Staff</p>
+        </div>
+        <div className="card" style={{padding:11,textAlign:"center"}}>
+          <p style={{fontSize:24,fontWeight:700,color:"#059669"}}>{stats.active}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Active</p>
+        </div>
+        <div className="card" style={{padding:11,textAlign:"center"}}>
+          <p style={{fontSize:24,fontWeight:700,color:"#0891b2"}}>{stats.drivers}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Drivers</p>
+        </div>
+        <div className="card" style={{padding:11,textAlign:"center"}}>
+          <p style={{fontSize:24,fontWeight:700,color:"#7c3aed"}}>{stats.waiters}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Waiters</p>
+        </div>
+        <div className="card" style={{padding:11,textAlign:"center"}}>
+          <p style={{fontSize:24,fontWeight:700,color:"#d97706"}}>{stats.chefs}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Chefs</p>
+        </div>
+      </div>
+      
+      {/* Search & Filter */}
+      <div style={{display:"flex",gap:7,marginBottom:11,flexWrap:"wrap"}}>
+        <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search staff..." style={{flex:1,minWidth:180,padding:"9px 12px",border:"2px solid #ede8de",borderRadius:7,fontSize:13}}/>
+        <select value={filterPosition} onChange={e=>setFilterPosition(e.target.value)} style={{padding:"9px 12px",border:"2px solid #ede8de",borderRadius:7,fontSize:13}}>
+          <option value="all">All Positions</option>
+          <option value="manager">Manager</option>
+          <option value="waiter">Waiter</option>
+          <option value="chef">Chef</option>
+          <option value="driver">Driver</option>
+          <option value="kitchen">Kitchen Staff</option>
+          <option value="bar">Bar Staff</option>
+          <option value="cleaner">Cleaner</option>
+        </select>
+        <label style={{display:"flex",alignItems:"center",gap:5,padding:"9px 12px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer",fontSize:12}}>
+          <input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>
+          Show Inactive
+        </label>
+      </div>
+      
+      {/* Staff list */}
+      {loading ? <div className="card" style={{padding:30,textAlign:"center"}}>Loading...</div> :
+       filteredStaff.length===0 ? <div className="card" style={{padding:30,textAlign:"center"}}>
+         <p style={{fontSize:36,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDC64)}</p>
+         <p style={{fontSize:14,fontWeight:700,marginBottom:4}}>No staff yet</p>
+         <p style={{fontSize:12,color:"#8a8078"}}>Click "Add Staff" to add your first team member</p>
+       </div> :
+       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:9}}>
+         {filteredStaff.map(s=>{
+           var posIcon = {manager:String.fromCharCode(0xD83D,0xDC54),waiter:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),chef:String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),driver:String.fromCharCode(0xD83D,0xDEF5),kitchen:String.fromCharCode(0xD83C,0xDF73),bar:String.fromCharCode(0xD83C,0xDF78),cleaner:String.fromCharCode(0xD83E,0xDDF9)}[s.position] || String.fromCharCode(0xD83D,0xDC64);
+           var posColor = {manager:"#7c3aed",waiter:"#0891b2",chef:"#d97706",driver:"#059669",kitchen:"#dc2626",bar:"#ec4899",cleaner:"#6b7280"}[s.position] || "#1a1208";
+           return <div key={s.id} className="card" style={{padding:14,borderLeft:"4px solid "+posColor,opacity:s.status==="active"?1:.6}}>
+             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:9}}>
+               <div style={{display:"flex",alignItems:"center",gap:9,flex:1}}>
+                 <div style={{width:42,height:42,borderRadius:"50%",background:posColor,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700}}>
+                   {s.full_name.charAt(0).toUpperCase()}
+                 </div>
+                 <div style={{flex:1,minWidth:0}}>
+                   <p style={{fontSize:13,fontWeight:700,marginBottom:2}}>{s.full_name}</p>
+                   <p style={{fontSize:11,color:posColor,fontWeight:700,textTransform:"capitalize"}}>{posIcon} {s.position}</p>
+                 </div>
+                 {s.status!=="active" && <span style={{padding:"2px 7px",background:"#fee2e2",color:"#dc2626",borderRadius:5,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>{s.status}</span>}
+               </div>
+             </div>
+             
+             {s.phone && <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>{String.fromCharCode(0xD83D,0xDCDE)} {s.phone}</p>}
+             {s.email && <p style={{fontSize:11,color:"#8a8078",marginBottom:3}}>{String.fromCharCode(0xD83D,0xDCE7)} {s.email}</p>}
+             {s.employee_id && <p style={{fontSize:10,color:"#8a8078"}}>ID: {s.employee_id} {s.pin?"\u00B7 PIN: "+s.pin:""}</p>}
+             
+             {/* Compensation */}
+             {(s.hourly_rate||s.monthly_salary) && <div style={{marginTop:7,padding:7,background:"#f7f3ee",borderRadius:5,fontSize:11}}>
+               {s.payment_type==="hourly"&&s.hourly_rate ? <p><b>{"\u00A3"}{s.hourly_rate}/hr</b></p> : null}
+               {s.payment_type==="salary"&&s.monthly_salary ? <p><b>{"\u00A3"}{s.monthly_salary}/month</b></p> : null}
+             </div>}
+             
+             {/* Driver info */}
+             {s.position==="driver" && s.vehicle_registration && <div style={{marginTop:7,padding:7,background:"#ecfdf5",borderRadius:5,fontSize:11}}>
+               <p>{String.fromCharCode(0xD83D,0xDE97)} {s.vehicle_registration} {s.vehicle_make?"- "+s.vehicle_make:""}</p>
+             </div>}
+             
+             {/* Actions */}
+             <div style={{display:"flex",gap:5,marginTop:9}}>
+               <button onClick={()=>setEditingStaff(s)} style={{flex:1,padding:"7px",fontSize:11,background:"#0891b2",color:"#fff",border:"none",borderRadius:5,cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0x270F,0xFE0F)} Edit</button>
+               {s.status==="active" && <button onClick={()=>handleDelete(s.id,s.full_name)} style={{padding:"7px 11px",fontSize:11,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0xD83D,0xDDD1,0xFE0F)}</button>}
+             </div>
+           </div>;
+         })}
+       </div>
+      }
+    </>}
+    
+    {view==="timeclock" && <TimeClockView staff={staff.filter(s=>s.status==="active")} push={push}/>}
+    {view==="schedule" && <SchedulesView staff={staff.filter(s=>s.status==="active")} push={push}/>}
+    {view==="payroll" && <PayrollView staff={staff.filter(s=>s.status==="active")} push={push}/>}
+    
+    {/* Add/Edit Modal */}
+    {(showAddModal || editingStaff) && <StaffFormModal 
+      staff={editingStaff} 
+      onClose={()=>{setShowAddModal(false); setEditingStaff(null);}} 
+      onSave={handleSave}
+    />}
+  </div>;
+}
+
+// STAFF FORM MODAL - Add/Edit staff member
+function StaffFormModal({staff, onClose, onSave}){
+  var [form, setForm] = useState({
+    id: staff?.id || null,
+    full_name: staff?.full_name || "",
+    email: staff?.email || "",
+    phone: staff?.phone || "",
+    address: staff?.address || "",
+    postcode: staff?.postcode || "",
+    date_of_birth: staff?.date_of_birth || "",
+    emergency_contact_name: staff?.emergency_contact_name || "",
+    emergency_contact_phone: staff?.emergency_contact_phone || "",
+    national_insurance: staff?.national_insurance || "",
+    position: staff?.position || "waiter",
+    employee_id: staff?.employee_id || "",
+    start_date: staff?.start_date || new Date().toISOString().split("T")[0],
+    pin: staff?.pin || "",
+    payment_type: staff?.payment_type || "hourly",
+    hourly_rate: staff?.hourly_rate || "",
+    monthly_salary: staff?.monthly_salary || "",
+    payment_method: staff?.payment_method || "bank",
+    bank_account: staff?.bank_account || "",
+    bank_sort_code: staff?.bank_sort_code || "",
+    permissions: staff?.permissions || {take_orders:true,view_reports:false,manage_menu:false,process_refunds:false,manage_staff:false,manage_settings:false,view_finance:false},
+    driver_license_number: staff?.driver_license_number || "",
+    driver_license_expiry: staff?.driver_license_expiry || "",
+    vehicle_make: staff?.vehicle_make || "",
+    vehicle_model: staff?.vehicle_model || "",
+    vehicle_registration: staff?.vehicle_registration || "",
+    vehicle_color: staff?.vehicle_color || "",
+    insurance_provider: staff?.insurance_provider || "",
+    insurance_expiry: staff?.insurance_expiry || "",
+    delivery_zone: staff?.delivery_zone || "",
+    is_available_for_delivery: staff?.is_available_for_delivery !== false,
+    status: staff?.status || "active",
+    notes: staff?.notes || "",
+  });
+  var [saving, setSaving] = useState(false);
+  var [section, setSection] = useState("personal"); // personal, employment, compensation, driver, permissions
+  
+  var handleSave = async ()=>{
+    if(!form.full_name.trim()){alert("Full name is required"); return;}
+    if(!form.position){alert("Position is required"); return;}
+    
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  };
+  
+  var setField = (key, value)=>setForm(f=>({...f, [key]: value}));
+  var setPerm = (key, value)=>setForm(f=>({...f, permissions: {...f.permissions, [key]: value}}));
+  
+  var inputStyle = {width:"100%",padding:"9px 11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,boxSizing:"border-box"};
+  var labelStyle = {fontSize:11,fontWeight:700,color:"#1a1208",marginBottom:3,display:"block"};
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}} onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:600,maxHeight:"92vh",overflow:"auto",padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,paddingBottom:9,borderBottom:"2px solid #ede8de"}}>
+        <h2 style={{fontSize:20,fontWeight:700}}>{staff?"Edit "+staff.full_name:"Add Staff Member"}</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#8a8078",fontSize:22,cursor:"pointer"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      {/* Section tabs */}
+      <div style={{display:"flex",gap:5,marginBottom:14,flexWrap:"wrap"}}>
+        {[["personal","Personal"],["employment","Employment"],["compensation","Pay"],["permissions","Access"]].concat(form.position==="driver"?[["driver","Vehicle"]]:[]).map(t=>
+          <button key={t[0]} onClick={()=>setSection(t[0])} style={{padding:"6px 12px",background:section===t[0]?"#bf4626":"#fff",color:section===t[0]?"#fff":"#1a1208",border:"2px solid "+(section===t[0]?"#bf4626":"#ede8de"),borderRadius:5,cursor:"pointer",fontWeight:700,fontSize:11}}>{t[1]}</button>
+        )}
+      </div>
+      
+      {/* PERSONAL */}
+      {section==="personal" && <div style={{display:"grid",gap:11}}>
+        <div><label style={labelStyle}>FULL NAME *</label><input value={form.full_name} onChange={e=>setField("full_name",e.target.value)} style={inputStyle}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>PHONE</label><input value={form.phone} onChange={e=>setField("phone",e.target.value)} style={inputStyle}/></div>
+          <div><label style={labelStyle}>EMAIL</label><input value={form.email} onChange={e=>setField("email",e.target.value)} type="email" style={inputStyle}/></div>
+        </div>
+        <div><label style={labelStyle}>ADDRESS</label><input value={form.address} onChange={e=>setField("address",e.target.value)} style={inputStyle}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>POSTCODE</label><input value={form.postcode} onChange={e=>setField("postcode",e.target.value.toUpperCase())} style={inputStyle}/></div>
+          <div><label style={labelStyle}>DATE OF BIRTH</label><input type="date" value={form.date_of_birth} onChange={e=>setField("date_of_birth",e.target.value)} style={inputStyle}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>EMERGENCY CONTACT NAME</label><input value={form.emergency_contact_name} onChange={e=>setField("emergency_contact_name",e.target.value)} style={inputStyle}/></div>
+          <div><label style={labelStyle}>EMERGENCY PHONE</label><input value={form.emergency_contact_phone} onChange={e=>setField("emergency_contact_phone",e.target.value)} style={inputStyle}/></div>
+        </div>
+        <div><label style={labelStyle}>NATIONAL INSURANCE NO. (UK)</label><input value={form.national_insurance} onChange={e=>setField("national_insurance",e.target.value.toUpperCase())} placeholder="QQ123456C" style={inputStyle}/></div>
+      </div>}
+      
+      {/* EMPLOYMENT */}
+      {section==="employment" && <div style={{display:"grid",gap:11}}>
+        <div><label style={labelStyle}>POSITION *</label>
+          <select value={form.position} onChange={e=>setField("position",e.target.value)} style={inputStyle}>
+            <option value="manager">Manager</option>
+            <option value="waiter">Waiter / Server</option>
+            <option value="chef">Chef / Head Chef</option>
+            <option value="kitchen">Kitchen Staff</option>
+            <option value="driver">Delivery Driver</option>
+            <option value="bar">Bartender</option>
+            <option value="cleaner">Cleaner</option>
+          </select>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>EMPLOYEE ID</label><input value={form.employee_id} onChange={e=>setField("employee_id",e.target.value)} placeholder="Auto" style={inputStyle}/></div>
+          <div><label style={labelStyle}>4-DIGIT PIN</label><input value={form.pin} onChange={e=>setField("pin",e.target.value.replace(/\D/g,"").slice(0,4))} placeholder="Auto" maxLength="4" style={inputStyle}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>START DATE</label><input type="date" value={form.start_date} onChange={e=>setField("start_date",e.target.value)} style={inputStyle}/></div>
+          <div><label style={labelStyle}>STATUS</label>
+            <select value={form.status} onChange={e=>setField("status",e.target.value)} style={inputStyle}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="on_leave">On Leave</option>
+              <option value="terminated">Terminated</option>
+            </select>
+          </div>
+        </div>
+        <div><label style={labelStyle}>NOTES</label><textarea value={form.notes} onChange={e=>setField("notes",e.target.value)} style={{...inputStyle,minHeight:60,resize:"vertical"}} placeholder="Any notes about this employee..."/></div>
+      </div>}
+      
+      {/* COMPENSATION */}
+      {section==="compensation" && <div style={{display:"grid",gap:11}}>
+        <div><label style={labelStyle}>PAYMENT TYPE</label>
+          <select value={form.payment_type} onChange={e=>setField("payment_type",e.target.value)} style={inputStyle}>
+            <option value="hourly">Hourly</option>
+            <option value="salary">Monthly Salary</option>
+            <option value="commission">Commission</option>
+          </select>
+        </div>
+        {form.payment_type==="hourly" && <div><label style={labelStyle}>HOURLY RATE ({"\u00A3"})</label><input type="number" step="0.50" value={form.hourly_rate} onChange={e=>setField("hourly_rate",e.target.value)} placeholder="11.50" style={inputStyle}/></div>}
+        {form.payment_type==="salary" && <div><label style={labelStyle}>MONTHLY SALARY ({"\u00A3"})</label><input type="number" value={form.monthly_salary} onChange={e=>setField("monthly_salary",e.target.value)} placeholder="2500" style={inputStyle}/></div>}
+        <div><label style={labelStyle}>PAYMENT METHOD</label>
+          <select value={form.payment_method} onChange={e=>setField("payment_method",e.target.value)} style={inputStyle}>
+            <option value="bank">Bank Transfer</option>
+            <option value="cash">Cash</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+        {form.payment_method==="bank" && <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+            <div><label style={labelStyle}>SORT CODE</label><input value={form.bank_sort_code} onChange={e=>setField("bank_sort_code",e.target.value)} placeholder="00-00-00" style={inputStyle}/></div>
+            <div><label style={labelStyle}>ACCOUNT (last 4)</label><input value={form.bank_account} onChange={e=>setField("bank_account",e.target.value)} placeholder="****1234" style={inputStyle}/></div>
+          </div>
+        </>}
+      </div>}
+      
+      {/* DRIVER */}
+      {section==="driver" && form.position==="driver" && <div style={{display:"grid",gap:11}}>
+        <div><label style={labelStyle}>DRIVING LICENSE NUMBER</label><input value={form.driver_license_number} onChange={e=>setField("driver_license_number",e.target.value.toUpperCase())} style={inputStyle}/></div>
+        <div><label style={labelStyle}>LICENSE EXPIRY</label><input type="date" value={form.driver_license_expiry} onChange={e=>setField("driver_license_expiry",e.target.value)} style={inputStyle}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>VEHICLE MAKE</label><input value={form.vehicle_make} onChange={e=>setField("vehicle_make",e.target.value)} placeholder="Honda" style={inputStyle}/></div>
+          <div><label style={labelStyle}>VEHICLE MODEL</label><input value={form.vehicle_model} onChange={e=>setField("vehicle_model",e.target.value)} placeholder="PCX 125" style={inputStyle}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div><label style={labelStyle}>REGISTRATION</label><input value={form.vehicle_registration} onChange={e=>setField("vehicle_registration",e.target.value.toUpperCase())} placeholder="LX22 ABC" style={inputStyle}/></div>
+          <div><label style={labelStyle}>COLOR</label><input value={form.vehicle_color} onChange={e=>setField("vehicle_color",e.target.value)} placeholder="Red" style={inputStyle}/></div>
+        </div>
+        <div><label style={labelStyle}>INSURANCE PROVIDER</label><input value={form.insurance_provider} onChange={e=>setField("insurance_provider",e.target.value)} style={inputStyle}/></div>
+        <div><label style={labelStyle}>INSURANCE EXPIRY</label><input type="date" value={form.insurance_expiry} onChange={e=>setField("insurance_expiry",e.target.value)} style={inputStyle}/></div>
+        <div><label style={labelStyle}>DELIVERY ZONE</label><input value={form.delivery_zone} onChange={e=>setField("delivery_zone",e.target.value)} placeholder="E.g. East London" style={inputStyle}/></div>
+        <label style={{display:"flex",alignItems:"center",gap:7,padding:11,background:"#f7f3ee",borderRadius:7,cursor:"pointer"}}>
+          <input type="checkbox" checked={form.is_available_for_delivery} onChange={e=>setField("is_available_for_delivery",e.target.checked)}/>
+          <span>Available for delivery assignments</span>
+        </label>
+      </div>}
+      
+      {/* PERMISSIONS */}
+      {section==="permissions" && <div style={{display:"grid",gap:11}}>
+        <p style={{fontSize:12,color:"#8a8078",padding:9,background:"#fef3c7",borderRadius:7}}>{String.fromCharCode(0xD83D,0xDD11)} Control what this staff member can access</p>
+        {[["take_orders","Take Orders","Place orders for customers"],["view_reports","View Reports","See sales reports & analytics"],["manage_menu","Manage Menu","Add/edit menu items"],["process_refunds","Process Refunds","Issue refunds to customers"],["manage_staff","Manage Staff","Add/edit other staff"],["view_finance","View Finance","See expenses & profit/loss"],["manage_settings","Manage Settings","Change restaurant settings"]].map(p=>
+          <label key={p[0]} style={{display:"flex",alignItems:"center",gap:9,padding:11,background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer"}}>
+            <input type="checkbox" checked={!!form.permissions[p[0]]} onChange={e=>setPerm(p[0],e.target.checked)}/>
+            <div style={{flex:1}}>
+              <p style={{fontSize:13,fontWeight:700}}>{p[1]}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{p[2]}</p>
+            </div>
+          </label>
+        )}
+      </div>}
+      
+      <div style={{display:"flex",gap:7,marginTop:18,paddingTop:14,borderTop:"2px solid #ede8de"}}>
+        <button onClick={onClose} disabled={saving} style={{flex:1,padding:"11px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+        <button onClick={handleSave} disabled={saving} style={{flex:2,padding:"11px",background:saving?"#8a8078":"#22c55e",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:saving?"not-allowed":"pointer"}}>{saving?"Saving...":(staff?"Save Changes":"Add Staff Member")}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// TIME CLOCK VIEW
+function TimeClockView({staff, push}){
+  var [currentlyClocked, setCurrentlyClocked] = useState([]);
+  var [records, setRecords] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [pinInput, setPinInput] = useState("");
+  var [pinError, setPinError] = useState("");
+  
+  var loadData = ()=>{
+    Promise.all([dbFetchCurrentClocked(), dbFetchClock(null, null, null)]).then(([cur, recs])=>{
+      setCurrentlyClocked(cur || []);
+      setRecords(recs || []);
+      setLoading(false);
+    });
+  };
+  
+  useEffect(()=>{loadData();},[]);
+  
+  var handleClockToggle = async ()=>{
+    setPinError("");
+    var member = staff.find(s=>s.pin===pinInput);
+    if(!member){
+      setPinError("Invalid PIN");
+      return;
+    }
+    
+    // Check if already clocked in
+    var alreadyIn = currentlyClocked.find(c=>c.employee_id===member.id);
+    
+    if(alreadyIn){
+      // Clock out
+      var result = await dbStaffClockOut(member.id, 0);
+      if(result.error){
+        push&&push({title:"Error",body:result.error.message});
+        return;
+      }
+      push&&push({title:member.full_name+" clocked out",body:"Hours: "+result.data.total_hours,color:"#dc2626"});
+    } else {
+      // Clock in
+      var result = await dbStaffClockIn(member.id);
+      if(result.error){
+        push&&push({title:"Error",body:result.error.message});
+        return;
+      }
+      push&&push({title:member.full_name+" clocked in",color:"#059669"});
+    }
+    
+    setPinInput("");
+    loadData();
+  };
+  
+  return <div>
+    {/* Clock in/out form */}
+    <div className="card" style={{padding:18,marginBottom:14,background:"linear-gradient(135deg,#22c55e,#16a34a)",color:"#fff"}}>
+      <h3 style={{fontSize:16,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0x23F0)} Clock In / Out</h3>
+      <div style={{display:"flex",gap:9,maxWidth:400}}>
+        <input type="password" value={pinInput} onChange={e=>setPinInput(e.target.value.replace(/\D/g,"").slice(0,4))} onKeyPress={e=>e.key==="Enter"&&handleClockToggle()} placeholder="Enter your 4-digit PIN" maxLength="4" style={{flex:1,padding:"11px",borderRadius:7,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.15)",color:"#fff",fontSize:18,letterSpacing:9,textAlign:"center",fontWeight:700}}/>
+        <button onClick={handleClockToggle} disabled={pinInput.length!==4} style={{padding:"11px 22px",background:"#fff",color:"#22c55e",border:"none",borderRadius:7,fontWeight:700,cursor:pinInput.length===4?"pointer":"not-allowed",opacity:pinInput.length===4?1:.5}}>Clock In/Out</button>
+      </div>
+      {pinError && <p style={{marginTop:7,color:"#fee2e2",fontSize:13}}>{pinError}</p>}
+    </div>
+    
+    {/* Currently clocked in */}
+    <div style={{marginBottom:14}}>
+      <h4 style={{fontSize:14,fontWeight:700,marginBottom:9,color:"#22c55e"}}>{String.fromCharCode(0xD83D,0xDFE2)} Currently Working ({currentlyClocked.length})</h4>
+      {currentlyClocked.length===0 ? <div className="card" style={{padding:14,textAlign:"center",color:"#8a8078",fontSize:12}}>No one is currently clocked in</div> :
+       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:7}}>
+         {currentlyClocked.map(c=>{
+           var hours = ((new Date() - new Date(c.clock_in))/3600000).toFixed(1);
+           return <div key={c.id} className="card" style={{padding:11,borderLeft:"4px solid #22c55e"}}>
+             <p style={{fontSize:13,fontWeight:700}}>{c.employees?.full_name || "Unknown"}</p>
+             <p style={{fontSize:11,color:"#8a8078"}}>{c.employees?.position}</p>
+             <p style={{fontSize:11,color:"#22c55e",marginTop:5}}>In since {new Date(c.clock_in).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} ({hours}h)</p>
+           </div>;
+         })}
+       </div>
+      }
+    </div>
+    
+    {/* Recent records */}
+    <div>
+      <h4 style={{fontSize:14,fontWeight:700,marginBottom:9}}>Recent Clock Records</h4>
+      {records.length===0 ? <div className="card" style={{padding:14,textAlign:"center",color:"#8a8078",fontSize:12}}>No records yet</div> :
+       <div className="card" style={{padding:0,overflow:"hidden"}}>
+         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+           <thead>
+             <tr style={{background:"#f7f3ee"}}>
+               <th style={{padding:9,textAlign:"left"}}>Staff</th>
+               <th style={{padding:9,textAlign:"left"}}>Date</th>
+               <th style={{padding:9,textAlign:"left"}}>In</th>
+               <th style={{padding:9,textAlign:"left"}}>Out</th>
+               <th style={{padding:9,textAlign:"right"}}>Hours</th>
+             </tr>
+           </thead>
+           <tbody>
+             {records.slice(0,20).map(r=><tr key={r.id} style={{borderTop:"1px solid #ede8de"}}>
+               <td style={{padding:9}}>{r.employees?.full_name || "?"}</td>
+               <td style={{padding:9,color:"#8a8078"}}>{new Date(r.clock_in).toLocaleDateString()}</td>
+               <td style={{padding:9}}>{new Date(r.clock_in).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td>
+               <td style={{padding:9}}>{r.clock_out?new Date(r.clock_out).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):<span style={{color:"#22c55e",fontWeight:700}}>Active</span>}</td>
+               <td style={{padding:9,textAlign:"right",fontWeight:700}}>{r.total_hours||"-"}</td>
+             </tr>)}
+           </tbody>
+         </table>
+       </div>
+      }
+    </div>
+  </div>;
+}
+
+// SCHEDULES VIEW (simple version)
+function SchedulesView({staff, push}){
+  var [schedules, setSchedules] = useState([]);
+  var [weekStart, setWeekStart] = useState(()=>{
+    var d = new Date();
+    d.setDate(d.getDate() - d.getDay() + 1); // Monday
+    return d.toISOString().split("T")[0];
+  });
+  var [showModal, setShowModal] = useState(false);
+  var [editingSchedule, setEditingSchedule] = useState(null);
+  
+  var loadSchedules = ()=>{
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    dbFetchSchedules2(weekStart, weekEnd.toISOString().split("T")[0]).then(data=>setSchedules(data||[]));
+  };
+  
+  useEffect(()=>{loadSchedules();}, [weekStart]);
+  
+  var weekDays = [];
+  for(var i=0;i<7;i++){
+    var d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    weekDays.push(d.toISOString().split("T")[0]);
+  }
+  
+  var handleSave = async (data)=>{
+    var result = await dbSaveSchedule2(data);
+    if(result.error){push&&push({title:"Failed",body:result.error.message});return;}
+    push&&push({title:"Schedule saved",color:"#059669"});
+    setShowModal(false);
+    setEditingSchedule(null);
+    loadSchedules();
+  };
+  
+  var handleDelete = async (id)=>{
+    if(!window.confirm("Delete this schedule?")) return;
+    await dbDeleteSchedule2(id);
+    loadSchedules();
+  };
+  
+  return <div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:11,flexWrap:"wrap",gap:9}}>
+      <div style={{display:"flex",gap:7,alignItems:"center"}}>
+        <button onClick={()=>{var d=new Date(weekStart);d.setDate(d.getDate()-7);setWeekStart(d.toISOString().split("T")[0]);}} style={{padding:"7px 14px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0x2190)} Prev</button>
+        <p style={{fontSize:13,fontWeight:700}}>Week of {new Date(weekStart).toLocaleDateString()}</p>
+        <button onClick={()=>{var d=new Date(weekStart);d.setDate(d.getDate()+7);setWeekStart(d.toISOString().split("T")[0]);}} style={{padding:"7px 14px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer",fontWeight:700}}>Next {String.fromCharCode(0x2192)}</button>
+      </div>
+      <button onClick={()=>{setEditingSchedule(null);setShowModal(true);}} style={{padding:"9px 16px",background:"#22c55e",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2795)} Add Shift</button>
+    </div>
+    
+    {/* Week grid */}
+    <div className="card" style={{padding:0,overflow:"auto"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",minWidth:700}}>
+        {weekDays.map((day,i)=>{
+          var daySchedules = schedules.filter(s=>s.schedule_date===day);
+          var dayName = new Date(day).toLocaleDateString([],{weekday:"short"});
+          var dayNum = new Date(day).getDate();
+          return <div key={day} style={{borderRight:i<6?"1px solid #ede8de":"none",minHeight:200}}>
+            <div style={{padding:9,background:"#f7f3ee",textAlign:"center",borderBottom:"2px solid #ede8de"}}>
+              <p style={{fontSize:11,color:"#8a8078",fontWeight:700,textTransform:"uppercase"}}>{dayName}</p>
+              <p style={{fontSize:18,fontWeight:700}}>{dayNum}</p>
+            </div>
+            <div style={{padding:5}}>
+              {daySchedules.length===0 ? <p style={{textAlign:"center",color:"#ccc",fontSize:11,padding:9}}>No shifts</p> :
+               daySchedules.map(s=>
+                 <div key={s.id} onClick={()=>{setEditingSchedule(s);setShowModal(true);}} style={{padding:7,marginBottom:5,background:"#ecfdf5",borderLeft:"3px solid #22c55e",borderRadius:4,cursor:"pointer",fontSize:11}}>
+                   <p style={{fontWeight:700}}>{s.employees?.full_name||"?"}</p>
+                   <p style={{color:"#8a8078"}}>{s.shift_start?.slice(0,5)} - {s.shift_end?.slice(0,5)}</p>
+                 </div>
+               )
+              }
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>
+    
+    {showModal && <ScheduleModal schedule={editingSchedule} staff={staff} onClose={()=>{setShowModal(false);setEditingSchedule(null);}} onSave={handleSave} onDelete={handleDelete}/>}
+  </div>;
+}
+
+// SCHEDULE MODAL
+function ScheduleModal({schedule, staff, onClose, onSave, onDelete}){
+  var [form, setForm] = useState({
+    id: schedule?.id || null,
+    employee_id: schedule?.employee_id || (staff[0]?.id || ""),
+    schedule_date: schedule?.schedule_date || new Date().toISOString().split("T")[0],
+    shift_start: schedule?.shift_start || "09:00",
+    shift_end: schedule?.shift_end || "17:00",
+    break_minutes: schedule?.break_minutes || 30,
+    notes: schedule?.notes || "",
+  });
+  
+  var inputStyle = {width:"100%",padding:"9px 11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13,boxSizing:"border-box"};
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}} onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:440,padding:18}}>
+      <h3 style={{fontSize:17,fontWeight:700,marginBottom:14}}>{schedule?"Edit Shift":"Add Shift"}</h3>
+      
+      <div style={{display:"grid",gap:11}}>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>STAFF MEMBER</label>
+          <select value={form.employee_id} onChange={e=>setForm(f=>({...f,employee_id:e.target.value}))} style={inputStyle}>
+            {staff.map(s=><option key={s.id} value={s.id}>{s.full_name} ({s.position})</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>DATE</label>
+          <input type="date" value={form.schedule_date} onChange={e=>setForm(f=>({...f,schedule_date:e.target.value}))} style={inputStyle}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div>
+            <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>START TIME</label>
+            <input type="time" value={form.shift_start} onChange={e=>setForm(f=>({...f,shift_start:e.target.value}))} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>END TIME</label>
+            <input type="time" value={form.shift_end} onChange={e=>setForm(f=>({...f,shift_end:e.target.value}))} style={inputStyle}/>
+          </div>
+        </div>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>BREAK (minutes)</label>
+          <input type="number" value={form.break_minutes} onChange={e=>setForm(f=>({...f,break_minutes:+e.target.value}))} style={inputStyle}/>
+        </div>
+      </div>
+      
+      <div style={{display:"flex",gap:7,marginTop:14}}>
+        {schedule && <button onClick={()=>{onDelete(schedule.id);onClose();}} style={{padding:"9px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Delete</button>}
+        <button onClick={onClose} style={{flex:1,padding:"9px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+        <button onClick={()=>onSave(form)} style={{flex:2,padding:"9px",background:"#22c55e",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>Save Shift</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// PAYROLL VIEW
+function PayrollView({staff, push}){
+  var [period, setPeriod] = useState({
+    from: new Date(new Date().setDate(1)).toISOString().split("T")[0],
+    to: new Date().toISOString().split("T")[0]
+  });
+  var [calculations, setCalculations] = useState([]);
+  var [loading, setLoading] = useState(false);
+  
+  var calculateAll = async ()=>{
+    setLoading(true);
+    var results = await Promise.all(staff.map(s=>dbCalcPayroll(s.id, period.from, period.to)));
+    setCalculations(results.filter(r=>!r.error));
+    setLoading(false);
+  };
+  
+  return <div>
+    <div className="card" style={{padding:14,marginBottom:11}}>
+      <h3 style={{fontSize:15,fontWeight:700,marginBottom:11}}>Pay Period</h3>
+      <div style={{display:"flex",gap:9,alignItems:"flex-end",flexWrap:"wrap"}}>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>FROM</label>
+          <input type="date" value={period.from} onChange={e=>setPeriod(p=>({...p,from:e.target.value}))} style={{padding:"9px 11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13}}/>
+        </div>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,marginBottom:3,display:"block"}}>TO</label>
+          <input type="date" value={period.to} onChange={e=>setPeriod(p=>({...p,to:e.target.value}))} style={{padding:"9px 11px",border:"2px solid #ede8de",borderRadius:7,fontSize:13}}/>
+        </div>
+        <button onClick={calculateAll} disabled={loading} style={{padding:"9px 18px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,cursor:"pointer"}}>{loading?"Calculating...":"Calculate"}</button>
+      </div>
+    </div>
+    
+    {calculations.length>0 && <div className="card" style={{padding:0,overflow:"hidden"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+        <thead>
+          <tr style={{background:"#f7f3ee"}}>
+            <th style={{padding:11,textAlign:"left"}}>Staff</th>
+            <th style={{padding:11,textAlign:"left"}}>Position</th>
+            <th style={{padding:11,textAlign:"right"}}>Hours</th>
+            <th style={{padding:11,textAlign:"right"}}>Rate</th>
+            <th style={{padding:11,textAlign:"right"}}>Total Pay</th>
+          </tr>
+        </thead>
+        <tbody>
+          {calculations.map(c=><tr key={c.staff.id} style={{borderTop:"1px solid #ede8de"}}>
+            <td style={{padding:11,fontWeight:700}}>{c.staff.full_name}</td>
+            <td style={{padding:11,color:"#8a8078",textTransform:"capitalize"}}>{c.staff.position}</td>
+            <td style={{padding:11,textAlign:"right"}}>{c.totalHours}</td>
+            <td style={{padding:11,textAlign:"right"}}>{c.staff.hourly_rate?"\u00A3"+c.staff.hourly_rate+"/hr":(c.staff.monthly_salary?"\u00A3"+c.staff.monthly_salary+"/mo":"-")}</td>
+            <td style={{padding:11,textAlign:"right",fontWeight:700,color:"#22c55e"}}>{"\u00A3"}{c.basePay}</td>
+          </tr>)}
+        </tbody>
+        <tfoot>
+          <tr style={{background:"#f7f3ee",fontWeight:700}}>
+            <td colSpan="4" style={{padding:11,textAlign:"right"}}>TOTAL:</td>
+            <td style={{padding:11,textAlign:"right",color:"#22c55e",fontSize:16}}>{"\u00A3"}{calculations.reduce((s,c)=>s+parseFloat(c.basePay),0).toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>}
+    
+    {calculations.length===0 && !loading && <div className="card" style={{padding:30,textAlign:"center",color:"#8a8078"}}>
+      <p style={{fontSize:36,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB0)}</p>
+      <p style={{fontSize:13}}>Click Calculate to see payroll for the selected period</p>
+    </div>}
+  </div>;
+}
+
+// ============================================================
+// END STAFF MANAGEMENT MODULE
+// ============================================================
+
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations,user,restaurant,setRestaurant}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
@@ -4112,7 +4815,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   
   // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
   var searchedOrders=(()=>{
@@ -5021,6 +5724,8 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>)}
       </div>}
     </div>}
+
+    {tab==="staff"&&<StaffManagementTab restaurant={restaurant} branch={branch} push={push}/>}
 
     {tab==="stock"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:9}}>{menu.slice().sort((a,b)=>a.stock-b.stock).map(item=>{var cl=item.stock===0?"#dc2626":item.stock<=5?"#d97706":"#059669";return <div key={item.id} className="card" style={{padding:"11px 12px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}><p style={{fontWeight:700,fontSize:12}}>{item.name}</p><span style={{fontWeight:700,fontSize:14,color:cl}}>{item.stock}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden",marginBottom:7}}><div style={{height:"100%",background:cl,width:Math.min(100,Math.round((item.stock/40)*100))+"%",borderRadius:2}}/></div><div style={{display:"flex",gap:4}}><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,m.stock-1)}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#bf4626",border:"none",cursor:"pointer"}}>-</button><input type="number" value={item.stock} onChange={e=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:Math.max(0,+e.target.value)}:m))} style={{flex:1,padding:"3px 5px",border:"2px solid #ede8de",borderRadius:5,fontSize:12,textAlign:"center"}}/><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:m.stock+1}:m))} style={{width:24,height:24,borderRadius:5,background:"#f7f3ee",fontWeight:700,fontSize:14,color:"#059669",border:"none",cursor:"pointer"}}>+</button><button onClick={()=>setMenu(ms=>ms.map(m=>m.id===item.id?{...m,stock:40}:m))} style={{padding:"3px 6px",borderRadius:5,fontSize:10,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",cursor:"pointer"}}>Restock</button></div></div>;})}</div>}
     {tab==="discounts"&&<div><div className="card" style={{marginBottom:12}}><h3 style={{fontSize:14,marginBottom:9}}>Create Code</h3><div className="g2" style={{marginBottom:8}}><div><label className="lbl">Code</label><input className="field" value={nc.code} onChange={e=>setNC(n=>({...n,code:e.target.value.toUpperCase()}))} placeholder="SUMMER20"/></div><div><label className="lbl">Type</label><select className="field" value={nc.type} onChange={e=>setNC(n=>({...n,type:e.target.value}))}><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div><div><label className="lbl">Value</label><input type="number" className="field" value={nc.value} onChange={e=>setNC(n=>({...n,value:e.target.value}))} placeholder="10"/></div><div><label className="lbl">Desc</label><input className="field" value={nc.desc} onChange={e=>setNC(n=>({...n,desc:e.target.value}))} placeholder="Summer deal"/></div></div><button className="btn btn-r" onClick={addCode} style={{padding:"8px 18px"}}>Create</button></div>{discounts.map((d,i)=><div key={i} className="card" style={{marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:7}}><div><span style={{fontWeight:700,fontSize:13,fontFamily:"monospace",background:"#f7f3ee",padding:"2px 8px",borderRadius:5}}>{d.code}</span><span className="bdg" style={{background:d.active?"#d1fae5":"#fee2e2",color:d.active?"#065f46":"#dc2626",marginLeft:7}}>{d.active?"Active":"Off"}</span><p style={{color:"#8a8078",fontSize:11,marginTop:2}}>{d.type==="percent"?d.value+"%":fmt(d.value)} off</p></div><button onClick={()=>setDiscounts(ds=>ds.map((x,j)=>j===i?{...x,active:!x.active}:x))} style={{padding:"4px 11px",borderRadius:7,fontWeight:600,fontSize:11,border:"2px solid #ede8de",background:"#fff",cursor:"pointer"}}>{d.active?"Deactivate":"Activate"}</button></div>)}</div>}

@@ -859,7 +859,7 @@ export async function saveDietaryPrefs(customerId, prefs) {
 
 // ---- STAFF SCHEDULING -------------------------------------------------------
 export async function fetchSchedules(branchId, fromDate, toDate) {
-  let q = supabase.from('staff_schedules').select('*').eq('restaurant_id', _rid());
+  let q = supabase.from('employee_schedules').select('*').eq('restaurant_id', _rid());
   if (branchId) q = q.eq('branch_id', branchId);
   if (fromDate) q = q.gte('shift_date', fromDate);
   if (toDate) q = q.lte('shift_date', toDate);
@@ -881,25 +881,25 @@ export async function saveSchedule(schedule) {
     notes: schedule.notes || null,
   };
   if (schedule.id) {
-    const { error } = await supabase.from('staff_schedules').update(payload).eq('id', schedule.id);
+    const { error } = await supabase.from('employee_schedules').update(payload).eq('id', schedule.id);
     return { error };
   }
-  const { data, error } = await supabase.from('staff_schedules').insert(payload).select().single();
+  const { data, error } = await supabase.from('employee_schedules').insert(payload).select().single();
   return { data, error };
 }
 
 export async function deleteSchedule(id) {
-  const { error } = await supabase.from('staff_schedules').delete().eq('id', id);
+  const { error } = await supabase.from('employee_schedules').delete().eq('id', id);
   return { error };
 }
 
 // ---- STAFF CLOCK IN/OUT -----------------------------------------------------
 export async function clockIn(staffId, staffName, branchId) {
   // Check if already clocked in
-  const { data: open } = await supabase.from('staff_clock_records')
+  const { data: open } = await supabase.from('employee_time_clock')
     .select('*').eq('staff_id', staffId).is('clock_out', null).maybeSingle();
   if (open) return { error: 'Already clocked in', record: open };
-  const { data, error } = await supabase.from('staff_clock_records').insert({
+  const { data, error } = await supabase.from('employee_time_clock').insert({
     restaurant_id: _rid(),
     branch_id: branchId || null,
     staff_id: staffId,
@@ -909,13 +909,13 @@ export async function clockIn(staffId, staffName, branchId) {
 }
 
 export async function clockOut(staffId) {
-  const { data: open } = await supabase.from('staff_clock_records')
+  const { data: open } = await supabase.from('employee_time_clock')
     .select('*').eq('staff_id', staffId).is('clock_out', null)
     .order('clock_in', { ascending: false }).limit(1).maybeSingle();
   if (!open) return { error: 'Not clocked in' };
   const clockOutTime = new Date();
   const minutes = Math.round((clockOutTime - new Date(open.clock_in)) / 60000);
-  const { error } = await supabase.from('staff_clock_records').update({
+  const { error } = await supabase.from('employee_time_clock').update({
     clock_out: clockOutTime.toISOString(),
     total_minutes: minutes,
   }).eq('id', open.id);
@@ -923,7 +923,7 @@ export async function clockOut(staffId) {
 }
 
 export async function fetchClockRecords(staffId, fromDate) {
-  let q = supabase.from('staff_clock_records').select('*').eq('restaurant_id', _rid());
+  let q = supabase.from('employee_time_clock').select('*').eq('restaurant_id', _rid());
   if (staffId) q = q.eq('staff_id', staffId);
   if (fromDate) q = q.gte('clock_in', fromDate);
   const { data, error } = await q.order('clock_in', { ascending: false }).limit(50);
@@ -932,7 +932,7 @@ export async function fetchClockRecords(staffId, fromDate) {
 }
 
 export async function fetchCurrentlyClockedIn(branchId) {
-  let q = supabase.from('staff_clock_records').select('*').is('clock_out', null);
+  let q = supabase.from('employee_time_clock').select('*').is('clock_out', null);
   if (branchId) q = q.eq('branch_id', branchId);
   const { data } = await q;
   return data || [];
@@ -2542,4 +2542,437 @@ export async function adminResetOwnerPassword(restaurantId, newPassword, adminEm
   } catch (e) {
     return { error: e.message, success: false };
   }
+}
+
+// ===========================================================
+// STAFF MANAGEMENT MODULE
+// ===========================================================
+
+// Generate next employee ID (EMP001, EMP002, etc.)
+async function generateEmployeeId(restaurantId) {
+  const { data } = await supabase
+    .from('employees')
+    .select('employee_id')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
+  if (!data || data.length === 0) return 'EMP001';
+  const last = data[0].employee_id || 'EMP000';
+  const num = parseInt(last.replace(/\D/g, '')) || 0;
+  return 'EMP' + String(num + 1).padStart(3, '0');
+}
+
+// Generate unique 4-digit PIN
+async function generateUniquePIN(restaurantId) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const pin = String(Math.floor(1000 + Math.random() * 9000));
+    const { data } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .eq('pin', pin)
+      .maybeSingle();
+    if (!data) return pin;
+  }
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+// FETCH all staff members
+export async function fetchStaffMembers(includeInactive = false) {
+  let q = supabase
+    .from('employees')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('full_name');
+  
+  if (!includeInactive) q = q.eq('status', 'active');
+  
+  const { data, error } = await q;
+  if (error) console.error('fetchStaffMembers:', error);
+  return data || [];
+}
+
+// FETCH single staff member by ID
+export async function fetchStaffMember(staffId) {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('id', staffId)
+    .eq('restaurant_id', _rid())
+    .single();
+  if (error) console.error('fetchStaffMember:', error);
+  return data;
+}
+
+// FETCH drivers only (for delivery assignment)
+export async function fetchDrivers() {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .eq('position', 'driver')
+    .eq('status', 'active')
+    .eq('is_available_for_delivery', true)
+    .order('full_name');
+  if (error) console.error('fetchDrivers:', error);
+  return data || [];
+}
+
+// CREATE staff member
+export async function createStaffMember(staff) {
+  const restaurantId = _rid();
+  
+  // Auto-generate employee ID and PIN if not provided
+  const employeeId = staff.employee_id || await generateEmployeeId(restaurantId);
+  const pin = staff.pin || await generateUniquePIN(restaurantId);
+  
+  const payload = {
+    restaurant_id: restaurantId,
+    branch_id: staff.branch_id || 'main',
+    
+    // Personal
+    full_name: staff.full_name,
+    email: staff.email || null,
+    phone: staff.phone || null,
+    address: staff.address || null,
+    postcode: staff.postcode || null,
+    date_of_birth: staff.date_of_birth || null,
+    emergency_contact_name: staff.emergency_contact_name || null,
+    emergency_contact_phone: staff.emergency_contact_phone || null,
+    national_insurance: staff.national_insurance || null,
+    photo_url: staff.photo_url || null,
+    
+    // Employment
+    position: staff.position || 'waiter',
+    employee_id: employeeId,
+    start_date: staff.start_date || new Date().toISOString().split('T')[0],
+    status: staff.status || 'active',
+    pin: pin,
+    
+    // Compensation
+    payment_type: staff.payment_type || 'hourly',
+    hourly_rate: staff.hourly_rate ? parseFloat(staff.hourly_rate) : null,
+    monthly_salary: staff.monthly_salary ? parseFloat(staff.monthly_salary) : null,
+    commission_rate: staff.commission_rate ? parseFloat(staff.commission_rate) : null,
+    payment_method: staff.payment_method || 'bank',
+    bank_account: staff.bank_account || null,
+    bank_sort_code: staff.bank_sort_code || null,
+    
+    // Permissions
+    permissions: staff.permissions || {
+      take_orders: true,
+      view_reports: false,
+      manage_menu: false,
+      process_refunds: false,
+      manage_staff: false,
+      manage_settings: false,
+      view_finance: false
+    },
+    
+    // Driver fields
+    driver_license_number: staff.driver_license_number || null,
+    driver_license_expiry: staff.driver_license_expiry || null,
+    vehicle_make: staff.vehicle_make || null,
+    vehicle_model: staff.vehicle_model || null,
+    vehicle_registration: staff.vehicle_registration || null,
+    vehicle_color: staff.vehicle_color || null,
+    insurance_provider: staff.insurance_provider || null,
+    insurance_policy_number: staff.insurance_policy_number || null,
+    insurance_expiry: staff.insurance_expiry || null,
+    delivery_zone: staff.delivery_zone || null,
+    is_available_for_delivery: staff.is_available_for_delivery !== false,
+    
+    notes: staff.notes || null,
+  };
+  
+  const { data, error } = await supabase
+    .from('employees')
+    .insert(payload)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('createStaffMember error:', error);
+    return { error };
+  }
+  
+  return { data, success: true };
+}
+
+// UPDATE staff member
+export async function updateStaffMember(staffId, updates) {
+  const payload = { ...updates, updated_at: new Date().toISOString() };
+  
+  // Convert numeric strings
+  if (payload.hourly_rate) payload.hourly_rate = parseFloat(payload.hourly_rate);
+  if (payload.monthly_salary) payload.monthly_salary = parseFloat(payload.monthly_salary);
+  if (payload.commission_rate) payload.commission_rate = parseFloat(payload.commission_rate);
+  
+  const { data, error } = await supabase
+    .from('employees')
+    .update(payload)
+    .eq('id', staffId)
+    .eq('restaurant_id', _rid())
+    .select()
+    .single();
+  
+  if (error) console.error('updateStaffMember error:', error);
+  return { data, error };
+}
+
+// DELETE staff member (soft delete - sets status to terminated)
+export async function deleteStaffMember(staffId, hardDelete = false) {
+  if (hardDelete) {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', staffId)
+      .eq('restaurant_id', _rid());
+    return { error };
+  }
+  
+  // Soft delete - keep records but mark as terminated
+  const { error } = await supabase
+    .from('employees')
+    .update({ status: 'terminated', end_date: new Date().toISOString().split('T')[0] })
+    .eq('id', staffId)
+    .eq('restaurant_id', _rid());
+  return { error };
+}
+
+// CLOCK IN
+export async function clockIn(staffId, branchId = 'main') {
+  // Check if already clocked in
+  const { data: existing } = await supabase
+    .from('employee_time_clock')
+    .select('id, clock_in')
+    .eq('employee_id', staffId)
+    .is('clock_out', null)
+    .maybeSingle();
+  
+  if (existing) {
+    return { error: { message: 'Already clocked in at ' + new Date(existing.clock_in).toLocaleTimeString() } };
+  }
+  
+  const { data, error } = await supabase
+    .from('employee_time_clock')
+    .insert({
+      restaurant_id: _rid(),
+      employee_id: staffId,
+      branch_id: branchId,
+      clock_in: new Date().toISOString(),
+    })
+    .select()
+    .single();
+  
+  return { data, error };
+}
+
+// CLOCK OUT
+export async function clockOut(staffId, breakMinutes = 0) {
+  // Find open clock record
+  const { data: open } = await supabase
+    .from('employee_time_clock')
+    .select('id, clock_in')
+    .eq('employee_id', staffId)
+    .is('clock_out', null)
+    .maybeSingle();
+  
+  if (!open) {
+    return { error: { message: 'Not currently clocked in' } };
+  }
+  
+  // Calculate hours
+  const clockIn = new Date(open.clock_in);
+  const clockOut = new Date();
+  const totalMs = clockOut - clockIn;
+  const totalMinutes = Math.floor(totalMs / 60000) - (breakMinutes || 0);
+  const totalHours = Math.max(0, totalMinutes / 60).toFixed(2);
+  
+  const { data, error } = await supabase
+    .from('employee_time_clock')
+    .update({
+      clock_out: clockOut.toISOString(),
+      break_minutes: breakMinutes || 0,
+      total_hours: parseFloat(totalHours),
+    })
+    .eq('id', open.id)
+    .select()
+    .single();
+  
+  return { data, error };
+}
+
+// FETCH clock records (for time tracking)
+export async function fetchClockRecords(staffId, fromDate, toDate) {
+  let q = supabase
+    .from('employee_time_clock')
+    .select('*, employees(full_name, position)')
+    .eq('restaurant_id', _rid())
+    .order('clock_in', { ascending: false });
+  
+  if (staffId) q = q.eq('employee_id', staffId);
+  if (fromDate) q = q.gte('clock_in', fromDate);
+  if (toDate) q = q.lte('clock_in', toDate);
+  
+  const { data, error } = await q;
+  if (error) console.error('fetchClockRecords:', error);
+  return data || [];
+}
+
+// FETCH currently clocked in staff
+export async function fetchCurrentlyClocked() {
+  const { data, error } = await supabase
+    .from('employee_time_clock')
+    .select('*, employees(full_name, position, photo_url)')
+    .eq('restaurant_id', _rid())
+    .is('clock_out', null);
+  if (error) console.error('fetchCurrentlyClocked:', error);
+  return data || [];
+}
+
+// FETCH schedules
+export async function fetchStaffSchedules(fromDate, toDate, staffId) {
+  let q = supabase
+    .from('employee_schedules')
+    .select('*, employees(full_name, position)')
+    .eq('restaurant_id', _rid())
+    .order('schedule_date');
+  
+  if (fromDate) q = q.gte('schedule_date', fromDate);
+  if (toDate) q = q.lte('schedule_date', toDate);
+  if (staffId) q = q.eq('employee_id', staffId);
+  
+  const { data } = await q;
+  return data || [];
+}
+
+// SAVE schedule
+export async function saveStaffSchedule(schedule) {
+  const payload = {
+    restaurant_id: _rid(),
+    employee_id: schedule.employee_id,
+    branch_id: schedule.branch_id || 'main',
+    schedule_date: schedule.schedule_date,
+    shift_start: schedule.shift_start,
+    shift_end: schedule.shift_end,
+    break_minutes: schedule.break_minutes || 30,
+    position: schedule.position || null,
+    notes: schedule.notes || null,
+    status: schedule.status || 'scheduled',
+  };
+  
+  if (schedule.id) {
+    const { data, error } = await supabase
+      .from('employee_schedules')
+      .update(payload)
+      .eq('id', schedule.id)
+      .select()
+      .single();
+    return { data, error };
+  }
+  
+  const { data, error } = await supabase
+    .from('employee_schedules')
+    .insert(payload)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// DELETE schedule
+export async function deleteStaffSchedule(scheduleId) {
+  const { error } = await supabase
+    .from('employee_schedules')
+    .delete()
+    .eq('id', scheduleId)
+    .eq('restaurant_id', _rid());
+  return { error };
+}
+
+// CALCULATE PAYROLL for a period
+export async function calculatePayroll(staffId, fromDate, toDate) {
+  // Get staff member
+  const staff = await fetchStaffMember(staffId);
+  if (!staff) return { error: 'Staff not found' };
+  
+  // Get clock records for period
+  const records = await fetchClockRecords(staffId, fromDate, toDate);
+  
+  // Sum hours
+  const totalHours = records.reduce((sum, r) => sum + (parseFloat(r.total_hours) || 0), 0);
+  
+  let basePay = 0;
+  if (staff.payment_type === 'hourly' && staff.hourly_rate) {
+    basePay = totalHours * parseFloat(staff.hourly_rate);
+  } else if (staff.payment_type === 'salary' && staff.monthly_salary) {
+    // Pro-rata for the period
+    const days = (new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24);
+    basePay = (parseFloat(staff.monthly_salary) / 30) * days;
+  }
+  
+  return {
+    staff,
+    totalHours: totalHours.toFixed(2),
+    basePay: basePay.toFixed(2),
+    records: records.length,
+    period: { from: fromDate, to: toDate }
+  };
+}
+
+// SAVE payroll record
+export async function saveStaffPayroll(payroll) {
+  const payload = {
+    restaurant_id: _rid(),
+    employee_id: payroll.employee_id,
+    pay_period_start: payroll.pay_period_start,
+    pay_period_end: payroll.pay_period_end,
+    hours_worked: payroll.hours_worked || 0,
+    hourly_rate: payroll.hourly_rate || null,
+    base_salary: payroll.base_salary || 0,
+    commission: payroll.commission || 0,
+    bonus: payroll.bonus || 0,
+    deductions: payroll.deductions || 0,
+    net_pay: payroll.net_pay,
+    payment_date: payroll.payment_date || null,
+    payment_method: payroll.payment_method || 'bank',
+    payment_reference: payroll.payment_reference || null,
+    status: payroll.status || 'pending',
+    notes: payroll.notes || null,
+    paid_by: payroll.paid_by || null,
+  };
+  
+  if (payroll.id) {
+    const { data, error } = await supabase
+      .from('employee_payroll')
+      .update(payload)
+      .eq('id', payroll.id)
+      .select()
+      .single();
+    return { data, error };
+  }
+  
+  const { data, error } = await supabase
+    .from('employee_payroll')
+    .insert(payload)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// FETCH payroll history
+export async function fetchPayrollHistory(staffId, fromDate, toDate) {
+  let q = supabase
+    .from('employee_payroll')
+    .select('*, employees(full_name, position)')
+    .eq('restaurant_id', _rid())
+    .order('pay_period_end', { ascending: false });
+  
+  if (staffId) q = q.eq('employee_id', staffId);
+  if (fromDate) q = q.gte('pay_period_start', fromDate);
+  if (toDate) q = q.lte('pay_period_end', toDate);
+  
+  const { data } = await q;
+  return data || [];
 }
