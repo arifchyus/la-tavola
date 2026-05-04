@@ -3810,13 +3810,6 @@ function ActiveStaffBanner({activeStaff, onSwitchUser, onLogout}){
   </div>;
 }
 
-// Helper: Check if any staff has permission for an action
-function hasPermission(activeStaff, permName){
-  // No active staff = restaurant owner = full access
-  if(!activeStaff) return true;
-  if(!activeStaff.permissions) return false;
-  return activeStaff.permissions[permName] === true;
-}
 
 function StaffManagementTab({restaurant, branch, push}){
   var [view, setView] = useState("list"); // "list", "schedule", "timeclock", "payroll"
