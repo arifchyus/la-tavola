@@ -2936,8 +2936,8 @@ function TableEditor({table,onSave,onClose,existingTables}){
   var [form,setForm]=useState({
     id:table.id||1,
     seats:table.seats||4,
-    x:table.x||20,
-    y:table.y||20,
+    x:table.x||60,
+    y:table.y||60,
     dbId:table.dbId,
     branchId:table.branchId,
     status:table.status||"free",
@@ -2949,8 +2949,17 @@ function TableEditor({table,onSave,onClose,existingTables}){
     if(form.seats<1||form.seats>20){alert("Seats must be between 1 and 20");return;}
     onSave(form);
   };
+  
+  // Visual position picker - click to place
+  var handlePickerClick=(e)=>{
+    var rect=e.currentTarget.getBoundingClientRect();
+    var clickX=Math.round((e.clientX-rect.left)/rect.width*400);
+    var clickY=Math.round((e.clientY-rect.top)/rect.height*250);
+    setForm(f=>({...f,x:Math.max(20,Math.min(380,clickX)),y:Math.max(20,Math.min(230,clickY))}));
+  };
+  
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:420,padding:22}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:480,padding:22,maxHeight:"90vh",overflow:"auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <h2 style={{fontSize:20}}>{isNew?"Add Table":"Edit Table "+table.id}</h2>
         <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
@@ -2967,8 +2976,41 @@ function TableEditor({table,onSave,onClose,existingTables}){
         </div>
         <input type="number" className="field" value={form.seats} onChange={e=>setForm(f=>({...f,seats:Math.max(1,+e.target.value)}))} min="1" max="20" style={{marginTop:6}} placeholder="Or enter custom seats"/>
       </div>
+      
+      {/* POSITION CONTROLS */}
+      <div style={{marginBottom:12}}>
+        <label className="lbl">Position on Floor Plan</label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:7}}>
+          <div>
+            <p style={{fontSize:10,color:"#8a8078",marginBottom:3}}>X (horizontal)</p>
+            <input type="number" className="field" value={form.x} onChange={e=>setForm(f=>({...f,x:+e.target.value}))} min="0" max="500" style={{padding:7,fontSize:12}}/>
+          </div>
+          <div>
+            <p style={{fontSize:10,color:"#8a8078",marginBottom:3}}>Y (vertical)</p>
+            <input type="number" className="field" value={form.y} onChange={e=>setForm(f=>({...f,y:+e.target.value}))} min="0" max="300" style={{padding:7,fontSize:12}}/>
+          </div>
+        </div>
+        
+        {/* VISUAL POSITION PICKER */}
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:5}}>Or click on the floor plan below to place:</p>
+        <div onClick={handlePickerClick} style={{position:"relative",width:"100%",height:160,background:"repeating-linear-gradient(45deg,#f7f3ee,#f7f3ee 8px,#ede8de 8px,#ede8de 10px)",border:"2px dashed #8a8078",borderRadius:8,cursor:"crosshair"}}>
+          <p style={{position:"absolute",top:5,left:8,fontSize:9,color:"#8a8078",letterSpacing:1,fontWeight:700}}>MAIN DINING</p>
+          <p style={{position:"absolute",bottom:5,right:8,fontSize:9,color:"#8a8078",letterSpacing:1,fontWeight:700}}>KITCHEN</p>
+          {/* Show the table at its current position */}
+          <div style={{position:"absolute",left:(form.x/400)*100+"%",top:(form.y/250)*100+"%",transform:"translate(-50%,-50%)",width:40,height:40,background:"#bf4626",color:"#fff",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:11,pointerEvents:"none",boxShadow:"0 2px 6px rgba(0,0,0,.2)"}}>
+            T{form.id}
+          </div>
+          {/* Show other tables for reference */}
+          {existingTables&&existingTables.filter(t=>t.dbId!==form.dbId).map(t=>
+            <div key={t.dbId||t.id} style={{position:"absolute",left:((t.x||60)/400)*100+"%",top:((t.y||60)/250)*100+"%",transform:"translate(-50%,-50%)",width:30,height:30,background:"rgba(34,197,94,.4)",color:"#0a4922",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:9,pointerEvents:"none",border:"1px solid #16a34a"}}>
+              T{t.id}
+            </div>
+          )}
+        </div>
+      </div>
+      
       <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:8,marginBottom:12,fontSize:11,color:"#92400e"}}>
-        <strong>Tip:</strong> You can drag tables on the Tables view to reposition them later.
+        <strong>{String.fromCharCode(0xD83D,0xDCA1)} Tip:</strong> Click on the floor plan to place the table. Other tables (green) are shown for reference.
       </div>
       <div style={{display:"flex",gap:7}}>
         <button className="btn btn-o" onClick={onClose} style={{flex:1,padding:"11px"}}>Cancel</button>
