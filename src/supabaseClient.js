@@ -2348,20 +2348,30 @@ export async function adminCreateRestaurant(formData, adminEmail) {
         await supabase.from('menu_items').insert(menuItems);
       }
       
-      // Tables
+      // Tables - using actual column names from your DB
       const tables = [];
       for (let i = 1; i <= 6; i++) {
+        const xPos = 100 + ((i - 1) % 3) * 150;  // 100, 250, 400, 100, 250, 400
+        const yPos = 100 + Math.floor((i - 1) / 3) * 150;  // 100, 100, 100, 250, 250, 250
         tables.push({
           restaurant_id: restaurant.id,
           branch_id: 'main',
-          table_number: 'T' + i,
+          number: 'T' + i,
+          table_number: i,
           capacity: 4,
+          seats: 4,
           status: 'available',
-          x_position: 50 + (i % 3) * 100,
-          y_position: 50 + Math.floor((i - 1) / 3) * 100,
+          position_x: xPos,
+          position_y: yPos,
+          x_pos: xPos,
+          y_pos: yPos,
         });
       }
-      await supabase.from('restaurant_tables').insert(tables);
+      try {
+        await supabase.from('restaurant_tables').insert(tables);
+      } catch (e) {
+        console.warn('Failed to create tables:', e);
+      }
       
       // Manager PIN
       await supabase.from('manager_pins').insert({
@@ -2443,27 +2453,64 @@ export async function adminUpdateRestaurant(restaurantId, updates, adminEmail) {
 // DELETE: Permanently remove restaurant and all its data
 export async function adminDeleteRestaurant(restaurantId, restaurantName, adminEmail) {
   try {
+    console.log('=== DELETE START ===');
+    console.log('Restaurant ID:', restaurantId);
+    console.log('Restaurant Name:', restaurantName);
+    
     // Log first (before deletion)
     await logPlatformActivity(adminEmail, 'restaurant_deleted_by_admin', null, restaurantName, {
       deleted_restaurant_id: restaurantId,
     });
+    console.log('Activity logged');
     
-    // With CASCADE on all foreign keys, just delete the restaurant
-    // Database auto-deletes all related records
-    const { error, data } = await supabase
+    // Verify the restaurant exists before delete
+    const { data: existsBefore } = await supabase
       .from('restaurants')
-      .delete()
+      .select('id, name')
       .eq('id', restaurantId)
-      .select();
+      .maybeSingle();
+    console.log('Before delete - exists:', existsBefore);
     
-    if (error) {
-      console.error('Delete error:', error);
-      throw error;
+    if (!existsBefore) {
+      console.log('Restaurant does not exist - already deleted?');
+      return { success: true };
     }
     
-    // Note: Some Supabase configurations don't return data for DELETE
-    // We trust the response and don't re-verify
-    return { success: true, deletedRestaurant: data };
+    // Try the delete
+    const result = await supabase
+      .from('restaurants')
+      .delete()
+      .eq('id', restaurantId);
+    
+    console.log('Delete result:', result);
+    console.log('Delete error:', result.error);
+    console.log('Delete status:', result.status);
+    console.log('Delete count:', result.count);
+    
+    if (result.error) {
+      console.error('Delete failed with error:', result.error);
+      throw result.error;
+    }
+    
+    // Wait a moment for DB to propagate
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Check if it actually got deleted
+    const { data: existsAfter } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    
+    console.log('After delete - exists:', existsAfter);
+    console.log('=== DELETE END ===');
+    
+    if (existsAfter) {
+      // Still exists - something is preventing the delete
+      throw new Error('Delete returned success but restaurant still exists. This usually means RLS policies are blocking the delete. Check Supabase RLS policies on the restaurants table.');
+    }
+    
+    return { success: true };
   } catch (e) {
     console.error('adminDeleteRestaurant error:', e);
     return { error: e.message || 'Unknown error', success: false };
