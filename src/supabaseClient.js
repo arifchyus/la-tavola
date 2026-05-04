@@ -1147,7 +1147,7 @@ export async function recordDrawerEvent(event) {
 
 // Categories
 export async function fetchExpenseCategories(branchId) {
-  let q = supabase.from('expense_categories').select('*').eq('active', true).order('display_order');
+  let q = supabase.from('expense_categories').select('*').eq('restaurant_id', _rid()).eq('active', true).order('display_order');
   // Get global (branch_id IS NULL) and branch-specific
   const { data, error } = await q;
   if (error) console.error('fetchExpenseCategories:', error);
@@ -1156,6 +1156,7 @@ export async function fetchExpenseCategories(branchId) {
 
 export async function saveExpenseCategory(category) {
   const payload = {
+    restaurant_id: _rid(),
     branch_id: category.branchId || null,
     name: category.name,
     icon: category.icon || null,
@@ -1182,7 +1183,7 @@ export async function deleteExpenseCategory(id) {
 
 // Expenses
 export async function fetchExpenses(branchId, fromDate, toDate) {
-  let q = supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+  let q = supabase.from('expenses').select('*').eq('restaurant_id', _rid()).order('expense_date', { ascending: false });
   if (branchId) q = q.eq('branch_id', branchId);
   if (fromDate) q = q.gte('expense_date', fromDate);
   if (toDate) q = q.lte('expense_date', toDate);
@@ -1193,6 +1194,7 @@ export async function fetchExpenses(branchId, fromDate, toDate) {
 
 export async function saveExpense(expense) {
   const payload = {
+    restaurant_id: _rid(),
     branch_id: expense.branchId,
     category_id: expense.categoryId || null,
     category_name: expense.categoryName,
@@ -1224,7 +1226,7 @@ export async function deleteExpense(id) {
 
 // Recurring expenses
 export async function fetchRecurringExpenses(branchId) {
-  let q = supabase.from('recurring_expenses').select('*').order('created_at');
+  let q = supabase.from('recurring_expenses').select('*').eq('restaurant_id', _rid()).order('created_at');
   if (branchId) q = q.eq('branch_id', branchId);
   const { data } = await q;
   return data || [];
@@ -1232,6 +1234,7 @@ export async function fetchRecurringExpenses(branchId) {
 
 export async function saveRecurringExpense(rec) {
   const payload = {
+    restaurant_id: _rid(),
     branch_id: rec.branchId,
     category_id: rec.categoryId || null,
     category_name: rec.categoryName,
