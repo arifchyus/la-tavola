@@ -2262,23 +2262,52 @@ export async function adminCreateRestaurant(formData, adminEmail) {
     
     if (restError) throw restError;
     
-    // 2. Create owner account
-    const { data: owner, error: ownerError } = await supabase
+    // 2. Create owner account (matches working signupRestaurant format)
+    const ownerData = {
+      restaurant_id: restaurant.id,
+      email: formData.owner_email.toLowerCase().trim(),
+      password_hash: password, // Matches existing schema
+      full_name: formData.owner_name,
+      phone: formData.phone || null,
+      email_verified: true, // Skip verification - admin created
+      active: true,
+      is_owner: true,
+    };
+    
+    // Try with optional super-admin fields
+    try {
+      ownerData.is_super_admin = false;
+    } catch (e) {}
+    try {
+      ownerData.onboarding_completed = formData.skip_onboarding !== false;
+    } catch (e) {}
+    
+    let { data: owner, error: ownerError } = await supabase
       .from('restaurant_owners')
-      .insert({
-        restaurant_id: restaurant.id,
-        email: formData.owner_email,
-        password: password,
-        full_name: formData.owner_name,
-        phone: formData.phone || '',
-        email_verified: true, // Skip verification - admin created
-        is_super_admin: false,
-        onboarding_completed: formData.skip_onboarding !== false,
-      })
+      .insert(ownerData)
       .select()
       .single();
     
-    if (ownerError) throw ownerError;
+    // Retry without optional columns if they don't exist
+    if (ownerError && ownerError.message) {
+      const msg = ownerError.message;
+      if (msg.includes('onboarding_completed')) delete ownerData.onboarding_completed;
+      if (msg.includes('is_super_admin')) delete ownerData.is_super_admin;
+      
+      const retry = await supabase
+        .from('restaurant_owners')
+        .insert(ownerData)
+        .select()
+        .single();
+      owner = retry.data;
+      ownerError = retry.error;
+    }
+    
+    if (ownerError) {
+      // Rollback - delete the restaurant we just created
+      await supabase.from('restaurants').delete().eq('id', restaurant.id);
+      throw ownerError;
+    }
     
     // 3. Auto-setup: Create default categories, menu, tables
     if (formData.auto_setup !== false) {
@@ -2456,7 +2485,7 @@ export async function adminResetOwnerPassword(restaurantId, newPassword, adminEm
     
     const { data, error } = await supabase
       .from('restaurant_owners')
-      .update({ password: password })
+      .update({ password_hash: password })
       .eq('restaurant_id', restaurantId)
       .select()
       .single();
