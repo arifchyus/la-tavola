@@ -2976,3 +2976,69 @@ export async function fetchPayrollHistory(staffId, fromDate, toDate) {
   const { data } = await q;
   return data || [];
 }
+
+// ===========================================================
+// STAFF PIN LOGIN SYSTEM
+// ===========================================================
+
+// Verify PIN and get staff member
+export async function verifyStaffPIN(pin) {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .eq('pin', pin)
+    .eq('status', 'active')
+    .maybeSingle();
+  
+  if (error) {
+    console.error('verifyStaffPIN error:', error);
+    return { error: 'PIN check failed' };
+  }
+  
+  if (!data) {
+    return { error: 'Invalid PIN' };
+  }
+  
+  return { staff: data };
+}
+
+// Save active staff to localStorage
+export function setActiveStaff(staff) {
+  if (staff) {
+    localStorage.setItem('latavola_active_staff', JSON.stringify({
+      id: staff.id,
+      full_name: staff.full_name,
+      position: staff.position,
+      permissions: staff.permissions,
+      pin: staff.pin,
+      employee_id: staff.employee_id,
+    }));
+  } else {
+    localStorage.removeItem('latavola_active_staff');
+  }
+}
+
+// Get currently active staff
+export function getActiveStaff() {
+  try {
+    const data = localStorage.getItem('latavola_active_staff');
+    return data ? JSON.parse(data) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Clear active staff (sign them out)
+export function clearActiveStaff() {
+  localStorage.removeItem('latavola_active_staff');
+}
+
+// Check if current staff has a permission
+export function staffHasPermission(permName) {
+  const staff = getActiveStaff();
+  if (!staff) return true; // No staff logged in = restaurant owner = full access
+  if (!staff.permissions) return false;
+  return staff.permissions[permName] === true;
+}
+

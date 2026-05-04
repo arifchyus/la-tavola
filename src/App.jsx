@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -3701,6 +3701,123 @@ function PLStatement({orders,expenses,fromDate,toDate,branch,onClose}){
 // STAFF MANAGEMENT MODULE
 // ============================================================
 
+// ============================================================
+// STAFF PIN LOGIN MODAL
+// ============================================================
+function StaffPINLoginModal({onSuccess, onCancel, allowSkip}){
+  var [pin, setPin] = useState("");
+  var [error, setError] = useState("");
+  var [verifying, setVerifying] = useState(false);
+  
+  var handleNumber = (n)=>{
+    setError("");
+    if(pin.length<4){
+      var newPin = pin+n;
+      setPin(newPin);
+      if(newPin.length===4){
+        setTimeout(()=>verifyPin(newPin), 100);
+      }
+    }
+  };
+  
+  var handleBackspace = ()=>{
+    setError("");
+    setPin(pin.slice(0,-1));
+  };
+  
+  var handleClear = ()=>{
+    setError("");
+    setPin("");
+  };
+  
+  var verifyPin = async (pinToCheck)=>{
+    setVerifying(true);
+    var result = await dbVerifyStaffPIN(pinToCheck);
+    setVerifying(false);
+    
+    if(result.error){
+      setError(result.error);
+      setPin("");
+      return;
+    }
+    
+    if(result.staff){
+      dbSetActiveStaff(result.staff);
+      onSuccess&&onSuccess(result.staff);
+    }
+  };
+  
+  var btnStyle = {
+    padding:"18px 0",
+    fontSize:24,
+    fontWeight:700,
+    background:"#fff",
+    border:"2px solid #ede8de",
+    borderRadius:11,
+    cursor:"pointer",
+    color:"#1a1208",
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+    <div className="card" style={{width:"100%",maxWidth:380,padding:22}}>
+      <h2 style={{fontSize:22,fontWeight:700,textAlign:"center",marginBottom:7}}>{String.fromCharCode(0xD83D,0xDD10)} Staff Login</h2>
+      <p style={{fontSize:13,color:"#8a8078",textAlign:"center",marginBottom:18}}>Enter your 4-digit PIN</p>
+      
+      {/* PIN Display */}
+      <div style={{display:"flex",justifyContent:"center",gap:9,marginBottom:18}}>
+        {[0,1,2,3].map(i=><div key={i} style={{width:50,height:60,background:pin.length>i?"#bf4626":"#f7f3ee",border:"2px solid "+(pin.length>i?"#bf4626":"#ede8de"),borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,color:"#fff"}}>{pin.length>i?String.fromCharCode(0x25CF):""}</div>)}
+      </div>
+      
+      {error && <p style={{textAlign:"center",color:"#dc2626",fontSize:13,fontWeight:700,marginBottom:11,padding:7,background:"#fee2e2",borderRadius:7}}>{String.fromCharCode(0x274C)} {error}</p>}
+      {verifying && <p style={{textAlign:"center",color:"#22c55e",fontSize:13,fontWeight:700,marginBottom:11}}>Verifying...</p>}
+      
+      {/* Number Pad */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:9,marginBottom:11}}>
+        {[1,2,3,4,5,6,7,8,9].map(n=><button key={n} onClick={()=>handleNumber(String(n))} disabled={verifying} style={btnStyle}>{n}</button>)}
+        <button onClick={handleClear} disabled={verifying} style={{...btnStyle,fontSize:14,color:"#8a8078"}}>C</button>
+        <button onClick={()=>handleNumber("0")} disabled={verifying} style={btnStyle}>0</button>
+        <button onClick={handleBackspace} disabled={verifying} style={{...btnStyle,fontSize:18}}>{String.fromCharCode(0x232B)}</button>
+      </div>
+      
+      {/* Skip option (for restaurant owner) */}
+      {allowSkip && <button onClick={onCancel} style={{width:"100%",padding:"11px",background:"#fff",border:"2px solid #ede8de",borderRadius:7,fontWeight:700,cursor:"pointer",color:"#8a8078",fontSize:12}}>Continue as Owner (no PIN)</button>}
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ACTIVE STAFF BANNER (shows who is logged in)
+// ============================================================
+function ActiveStaffBanner({activeStaff, onSwitchUser, onLogout}){
+  if(!activeStaff) return null;
+  
+  var posColor = {manager:"#7c3aed",waiter:"#0891b2",chef:"#d97706",driver:"#059669",kitchen:"#dc2626",bar:"#ec4899",cleaner:"#6b7280"}[activeStaff.position] || "#1a1208";
+  
+  return <div style={{background:posColor,color:"#fff",padding:"7px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,fontWeight:700,flexWrap:"wrap",gap:7}}>
+    <div style={{display:"flex",alignItems:"center",gap:9}}>
+      <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>
+        {activeStaff.full_name.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <p>{activeStaff.full_name}</p>
+        <p style={{fontSize:10,opacity:.85,textTransform:"capitalize"}}>{activeStaff.position}</p>
+      </div>
+    </div>
+    <div style={{display:"flex",gap:5}}>
+      <button onClick={onSwitchUser} style={{padding:"5px 11px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD04)} Switch</button>
+      <button onClick={onLogout} style={{padding:"5px 11px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer"}}>Logout</button>
+    </div>
+  </div>;
+}
+
+// Helper: Check if any staff has permission for an action
+function hasPermission(activeStaff, permName){
+  // No active staff = restaurant owner = full access
+  if(!activeStaff) return true;
+  if(!activeStaff.permissions) return false;
+  return activeStaff.permissions[permName] === true;
+}
+
 function StaffManagementTab({restaurant, branch, push}){
   var [view, setView] = useState("list"); // "list", "schedule", "timeclock", "payroll"
   var [staff, setStaff] = useState([]);
@@ -4814,7 +4931,29 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS_ALL=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  
+  // STAFF PIN: Filter tabs based on permissions
+  var activeStaff = (typeof window!=="undefined")?dbGetActiveStaff():null;
+  var TABS = TABS_ALL.filter(t=>{
+    // No active staff = restaurant owner = full access
+    if(!activeStaff) return true;
+    var perms = activeStaff.permissions || {};
+    
+    // Map tabs to required permissions
+    if(t[0]==="orders") return perms.take_orders!==false;
+    if(t[0]==="analytics") return perms.view_reports===true;
+    if(t[0]==="finance") return perms.view_finance===true;
+    if(t[0]==="settings") return perms.manage_settings===true;
+    if(t[0]==="menu") return perms.manage_menu===true;
+    if(t[0]==="categories") return perms.manage_menu===true;
+    if(t[0]==="combos") return perms.manage_menu===true;
+    if(t[0]==="staff") return perms.manage_staff===true;
+    if(t[0]==="hours") return perms.manage_settings===true;
+    if(t[0]==="discounts"||t[0]==="codes"||t[0]==="autodisc") return perms.manage_menu===true;
+    // Default: allow tables, stations, delivery, cash, shifts, stock for all
+    return true;
+  });
   
   // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
   var searchedOrders=(()=>{
@@ -11743,6 +11882,9 @@ export default function App(){
   var [categories,setCategories]=useState([]);
   var [customers,setCustomers]=useState([]);
   var [stations,setStations]=useState([]);
+  // STAFF PIN LOGIN
+  var [activeStaff,setActiveStaffState]=useState(()=>{try{return dbGetActiveStaff();}catch(e){return null;}});
+  var [showStaffPinModal,setShowStaffPinModal]=useState(false);
   // SAAS: Current restaurant (tenant) info
   var [restaurant,setRestaurant]=useState(null);
   // SAAS: Current restaurant's branches (auto-branch using their info)
@@ -12280,9 +12422,37 @@ export default function App(){
         window.location.href="/?admin=lt-secret-2026";
       }} style={{padding:"5px 11px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x21A9,0xFE0F)} Exit Impersonation</button>
     </div>}
+    
+    {/* STAFF PIN: Active staff banner */}
+    <ActiveStaffBanner activeStaff={activeStaff} onSwitchUser={()=>{
+      dbClearActiveStaff();
+      setActiveStaffState(null);
+      setShowStaffPinModal(true);
+    }} onLogout={()=>{
+      if(window.confirm("Sign out "+activeStaff.full_name+"?")){
+        dbClearActiveStaff();
+        setActiveStaffState(null);
+      }
+    }}/>
+    
+    {/* STAFF PIN: Login modal */}
+    {showStaffPinModal && <StaffPINLoginModal 
+      onSuccess={(staff)=>{
+        setActiveStaffState(staff);
+        setShowStaffPinModal(false);
+        push&&push({title:"Welcome, "+staff.full_name+"!",color:"#22c55e"});
+      }}
+      onCancel={()=>{
+        setShowStaffPinModal(false);
+      }}
+      allowSkip={true}
+    />}
+    
     <nav className="nav">
       <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
       {restaurant&&saasOwner&&<button onClick={()=>setShowQRGenerator(true)} title="Get QR code & link" style={{background:"rgba(34,197,94,.2)",color:"#22c55e",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(34,197,94,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDCF1)} QR</button>}
+      {/* STAFF PIN: Login button (only show if logged in as restaurant owner) */}
+      {restaurant&&saasOwner&&!activeStaff&&<button onClick={()=>setShowStaffPinModal(true)} title="Switch to staff member" style={{background:"rgba(8,145,178,.2)",color:"#0891b2",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(8,145,178,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDD10)} STAFF</button>}
       {/* SUPER ADMIN: Show admin button only to admins */}
       {isAdmin&&!impersonating&&<button onClick={()=>{setShowSuperAdmin(true);window.history.replaceState({},"","/?admin=lt-secret-2026");}} title="Super Admin Panel" style={{background:"rgba(251,191,36,.2)",color:"#fbbf24",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(251,191,36,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDC51)} ADMIN</button>}
       {restaurant&&saasOwner&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
