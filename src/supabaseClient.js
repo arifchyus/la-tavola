@@ -2450,7 +2450,7 @@ export async function adminDeleteRestaurant(restaurantId, restaurantName, adminE
     
     // With CASCADE on all foreign keys, just delete the restaurant
     // Database auto-deletes all related records
-    const { error, data, count } = await supabase
+    const { error, data } = await supabase
       .from('restaurants')
       .delete()
       .eq('id', restaurantId)
