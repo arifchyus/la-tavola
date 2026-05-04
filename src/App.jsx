@@ -10083,7 +10083,7 @@ function SuperAdminPanel({onExit,saasOwner}){
       </div>
       <div style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:11,padding:14}}>
         <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:5}}>MRR</p>
-        <p style={{fontSize:30,fontWeight:700,color:"#22c55e",lineHeight:1}}>\u00A3{stats.mrr||0}</p>
+        <p style={{fontSize:30,fontWeight:700,color:"#22c55e",lineHeight:1}}>{"\u00A3"}{stats.mrr||0}</p>
         <p style={{fontSize:10,color:"#6b5d3f",marginTop:5}}>recurring revenue</p>
       </div>
       <div style={{background:"#1a1208",border:"1px solid "+(stats.trials_expiring_soon>0?"#dc2626":"#5d3a1f"),borderRadius:11,padding:14}}>
@@ -10135,7 +10135,7 @@ function SuperAdminPanel({onExit,saasOwner}){
                       <span>{r.stats?.menu_count||0} menu</span>
                       <span>{r.stats?.table_count||0} tables</span>
                       <span>{r.stats?.orders_total||0} orders</span>
-                      <span style={{color:"#22c55e"}}>\u00A3{(r.stats?.revenue||0).toFixed(2)} revenue</span>
+                      <span style={{color:"#22c55e"}}>{"\u00A3"}{(r.stats?.revenue||0).toFixed(2)} revenue</span>
                     </div>
                   </div>
                   

@@ -2448,33 +2448,59 @@ export async function adminDeleteRestaurant(restaurantId, restaurantName, adminE
       deleted_restaurant_id: restaurantId,
     });
     
-    // Delete in order to respect foreign keys
-    // Most have ON DELETE CASCADE so should clean up automatically
+    // Delete child tables first (best-effort, ignore individual failures)
+    const childTables = [
+      'orders', 'menu_items', 'categories', 'restaurant_tables',
+      'customers', 'expenses', 'expense_categories', 'manager_pins',
+      'delivery_settings', 'reservations', 'reviews', 'discounts',
+      'auto_discounts', 'loyalty_points', 'staff_shifts', 'staff_users',
+      'reward_offers', 'recurring_expenses', 'order_items',
+      'kitchen_stations', 'email_verifications'
+    ];
     
-    // Delete all data
-    await supabase.from('orders').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('menu_items').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('categories').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('restaurant_tables').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('customers').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('expenses').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('expense_categories').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('manager_pins').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('delivery_settings').delete().eq('restaurant_id', restaurantId);
-    await supabase.from('restaurant_owners').delete().eq('restaurant_id', restaurantId);
+    for (const table of childTables) {
+      try {
+        await supabase.from(table).delete().eq('restaurant_id', restaurantId);
+      } catch (e) {
+        // Table might not exist or might not have restaurant_id - keep going
+        console.log(`Skipped ${table}: ${e.message}`);
+      }
+    }
     
-    // Finally, delete the restaurant
-    const { error } = await supabase
+    // Delete owner separately (might fail if FK exists)
+    try {
+      await supabase.from('restaurant_owners').delete().eq('restaurant_id', restaurantId);
+    } catch (e) {
+      console.warn('Could not delete owner:', e.message);
+    }
+    
+    // Finally, delete the restaurant itself
+    const { error, data } = await supabase
       .from('restaurants')
       .delete()
-      .eq('id', restaurantId);
+      .eq('id', restaurantId)
+      .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Restaurant delete failed:', error);
+      throw error;
+    }
     
-    return { success: true };
+    // Verify deletion actually happened
+    const { data: stillExists } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    
+    if (stillExists) {
+      throw new Error('Delete reported success but restaurant still exists. Foreign key constraint may be blocking deletion.');
+    }
+    
+    return { success: true, deletedRestaurant: data };
   } catch (e) {
     console.error('adminDeleteRestaurant error:', e);
-    return { error: e.message, success: false };
+    return { error: e.message || 'Unknown error', success: false };
   }
 }
 
