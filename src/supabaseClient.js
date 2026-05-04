@@ -2742,7 +2742,7 @@ export async function deleteStaffMember(staffId, hardDelete = false) {
 }
 
 // CLOCK IN
-export async function clockIn(staffId, branchId = 'main') {
+export async function employeeClockIn(staffId, branchId = 'main') {
   // Check if already clocked in
   const { data: existing } = await supabase
     .from('employee_time_clock')
@@ -2770,7 +2770,7 @@ export async function clockIn(staffId, branchId = 'main') {
 }
 
 // CLOCK OUT
-export async function clockOut(staffId, breakMinutes = 0) {
+export async function employeeClockOut(staffId, breakMinutes = 0) {
   // Find open clock record
   const { data: open } = await supabase
     .from('employee_time_clock')
@@ -2805,7 +2805,7 @@ export async function clockOut(staffId, breakMinutes = 0) {
 }
 
 // FETCH clock records (for time tracking)
-export async function fetchClockRecords(staffId, fromDate, toDate) {
+export async function fetchEmployeeClockRecords(staffId, fromDate, toDate) {
   let q = supabase
     .from('employee_time_clock')
     .select('*, employees(full_name, position)')
