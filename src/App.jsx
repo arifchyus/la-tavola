@@ -3719,7 +3719,7 @@ function StaffManagementTab({restaurant, branch, push}){
     });
   };
   
-  useEffect(()=>{loadStaff();}, [showInactive]);
+  useEffect(()=>{loadStaff();}, [showInactive]); // eslint-disable-line react-hooks/exhaustive-deps
   
   var handleSave = async (data)=>{
     var result;
@@ -4086,7 +4086,6 @@ function StaffFormModal({staff, onClose, onSave}){
 function TimeClockView({staff, push}){
   var [currentlyClocked, setCurrentlyClocked] = useState([]);
   var [records, setRecords] = useState([]);
-  var [loading, setLoading] = useState(true);
   var [pinInput, setPinInput] = useState("");
   var [pinError, setPinError] = useState("");
   
@@ -4094,11 +4093,10 @@ function TimeClockView({staff, push}){
     Promise.all([dbFetchCurrentClocked(), dbFetchClock(null, null, null)]).then(([cur, recs])=>{
       setCurrentlyClocked(cur || []);
       setRecords(recs || []);
-      setLoading(false);
     });
   };
   
-  useEffect(()=>{loadData();},[]);
+  useEffect(()=>{loadData();},[]); // eslint-disable-line react-hooks/exhaustive-deps
   
   var handleClockToggle = async ()=>{
     setPinError("");
@@ -4111,9 +4109,10 @@ function TimeClockView({staff, push}){
     // Check if already clocked in
     var alreadyIn = currentlyClocked.find(c=>c.employee_id===member.id);
     
+    var result;
     if(alreadyIn){
       // Clock out
-      var result = await dbStaffClockOut(member.id, 0);
+      result = await dbStaffClockOut(member.id, 0);
       if(result.error){
         push&&push({title:"Error",body:result.error.message});
         return;
@@ -4121,7 +4120,7 @@ function TimeClockView({staff, push}){
       push&&push({title:member.full_name+" clocked out",body:"Hours: "+result.data.total_hours,color:"#dc2626"});
     } else {
       // Clock in
-      var result = await dbStaffClockIn(member.id);
+      result = await dbStaffClockIn(member.id);
       if(result.error){
         push&&push({title:"Error",body:result.error.message});
         return;
@@ -4209,7 +4208,7 @@ function SchedulesView({staff, push}){
     dbFetchSchedules2(weekStart, weekEnd.toISOString().split("T")[0]).then(data=>setSchedules(data||[]));
   };
   
-  useEffect(()=>{loadSchedules();}, [weekStart]);
+  useEffect(()=>{loadSchedules();}, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
   
   var weekDays = [];
   for(var i=0;i<7;i++){
