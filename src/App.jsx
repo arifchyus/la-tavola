@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -9988,6 +9988,11 @@ function SuperAdminPanel({onExit,saasOwner}){
   var [loading,setLoading]=useState(true);
   var [search,setSearch]=useState("");
   var [activeTab,setActiveTab]=useState("overview");
+  // CRUD states
+  var [showCreateModal,setShowCreateModal]=useState(false);
+  var [showEditModal,setShowEditModal]=useState(null);
+  var [showDeleteModal,setShowDeleteModal]=useState(null);
+  var [createResult,setCreateResult]=useState(null);
   
   var loadData=()=>{
     setLoading(true);
@@ -10100,7 +10105,11 @@ function SuperAdminPanel({onExit,saasOwner}){
       
       {activeTab==="overview"&&<>
         {/* Search */}
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search restaurants by name, slug, or owner email..." style={{width:"100%",padding:"11px 14px",background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:9,color:"#fff",fontSize:13,marginBottom:14,boxSizing:"border-box"}}/>
+        {/* Search + Create */}
+        <div style={{display:"flex",gap:9,marginBottom:14,flexWrap:"wrap"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search restaurants by name, slug, or owner email..." style={{flex:1,minWidth:200,padding:"11px 14px",background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:9,color:"#fff",fontSize:13,boxSizing:"border-box"}}/>
+          <button onClick={()=>setShowCreateModal(true)} style={{padding:"11px 18px",background:"linear-gradient(135deg,#22c55e,#16a34a)",color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0x2795)} Create Restaurant</button>
+        </div>
         
         {/* Restaurants */}
         {loading?<p style={{textAlign:"center",color:"#a8956a",padding:50}}>Loading...</p>:
@@ -10133,8 +10142,10 @@ function SuperAdminPanel({onExit,saasOwner}){
                   {/* Actions */}
                   <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                     <button onClick={()=>doImpersonate(r)} title="Login as this restaurant" style={{padding:"6px 11px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD11)} Login As</button>
+                    <button onClick={()=>setShowEditModal(r)} title="Edit details" style={{padding:"6px 11px",background:"#0891b2",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x270F,0xFE0F)} Edit</button>
                     <button onClick={()=>doChangePlan(r)} title="Change plan" style={{padding:"6px 11px",background:"#1e40af",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCB3)} Plan</button>
                     <button onClick={()=>doToggleActive(r)} title={r.active===false?"Activate":"Suspend"} style={{padding:"6px 11px",background:r.active===false?"#059669":"#dc2626",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{r.active===false?String.fromCharCode(0x2713)+" Activate":String.fromCharCode(0x26D4)+" Suspend"}</button>
+                    <button onClick={()=>setShowDeleteModal(r)} title="Delete restaurant" style={{padding:"6px 11px",background:"#7f1d1d",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDD1,0xFE0F)} Del</button>
                   </div>
                 </div>
               </div>;
@@ -10165,6 +10176,398 @@ function SuperAdminPanel({onExit,saasOwner}){
         }
       </>}
       
+    </div>
+    
+    {/* CREATE RESTAURANT MODAL */}
+    {showCreateModal&&<CreateRestaurantModal saasOwner={saasOwner} onClose={()=>setShowCreateModal(false)} onSuccess={(result)=>{
+      setShowCreateModal(false);
+      setCreateResult(result);
+      loadData();
+    }}/>}
+    
+    {/* SUCCESS MODAL after creating */}
+    {createResult&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}} onClick={()=>setCreateResult(null)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#1a1208",border:"2px solid #22c55e",borderRadius:18,padding:30,maxWidth:540,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
+        <div style={{textAlign:"center",marginBottom:18}}>
+          <div style={{fontSize:60,marginBottom:9}}>{String.fromCharCode(0xD83C,0xDF89)}</div>
+          <h2 style={{color:"#22c55e",fontSize:22,fontWeight:700,marginBottom:5}}>Restaurant Created!</h2>
+          <p style={{color:"#a8956a",fontSize:13}}>Send these details to the restaurant owner</p>
+        </div>
+        
+        <div style={{background:"#0f0a05",border:"1px solid #5d3a1f",borderRadius:11,padding:18,marginBottom:14}}>
+          <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:9}}>LOGIN CREDENTIALS</p>
+          <div style={{display:"grid",gap:9}}>
+            <div>
+              <p style={{fontSize:10,color:"#6b5d3f",marginBottom:3}}>EMAIL:</p>
+              <p style={{fontFamily:"monospace",color:"#fff",fontSize:14,wordBreak:"break-all"}}>{createResult.owner?.email}</p>
+            </div>
+            <div>
+              <p style={{fontSize:10,color:"#6b5d3f",marginBottom:3}}>PASSWORD:</p>
+              <p style={{fontFamily:"monospace",color:"#fbbf24",fontSize:18,fontWeight:700,letterSpacing:2}}>{createResult.password}</p>
+            </div>
+            <div>
+              <p style={{fontSize:10,color:"#6b5d3f",marginBottom:3}}>CUSTOMER URL:</p>
+              <p style={{fontFamily:"monospace",color:"#22c55e",fontSize:13,wordBreak:"break-all"}}>{(typeof window!=="undefined"?window.location.origin:"")}/?r={createResult.slug}</p>
+            </div>
+            <div>
+              <p style={{fontSize:10,color:"#6b5d3f",marginBottom:3}}>OWNER LOGIN URL:</p>
+              <p style={{fontFamily:"monospace",color:"#22c55e",fontSize:13,wordBreak:"break-all"}}>{(typeof window!=="undefined"?window.location.origin:"")}/?login=1</p>
+            </div>
+          </div>
+        </div>
+        
+        <button onClick={()=>{
+          var text="Welcome to La Tavola!\n\nLogin URL: "+window.location.origin+"/?login=1\nEmail: "+createResult.owner?.email+"\nPassword: "+createResult.password+"\n\nYour customer ordering page:\n"+window.location.origin+"/?r="+createResult.slug+"\n\nFeel free to login and explore!";
+          if(navigator.clipboard)navigator.clipboard.writeText(text);
+          alert("Copied to clipboard - paste into WhatsApp/Email!");
+        }} style={{width:"100%",padding:"11px 18px",background:"#22c55e",color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCCB)} Copy All Details</button>
+        
+        <button onClick={()=>setCreateResult(null)} style={{width:"100%",padding:"11px 18px",background:"#1a1208",color:"#fff",border:"1px solid #5d3a1f",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}}>Close</button>
+      </div>
+    </div>}
+    
+    {/* EDIT RESTAURANT MODAL */}
+    {showEditModal&&<EditRestaurantModal restaurant={showEditModal} saasOwner={saasOwner} onClose={()=>setShowEditModal(null)} onSuccess={()=>{
+      setShowEditModal(null);
+      loadData();
+    }}/>}
+    
+    {/* DELETE CONFIRMATION MODAL */}
+    {showDeleteModal&&<DeleteRestaurantModal restaurant={showDeleteModal} saasOwner={saasOwner} onClose={()=>setShowDeleteModal(null)} onSuccess={()=>{
+      setShowDeleteModal(null);
+      loadData();
+    }}/>}
+  </div>;
+}
+
+// ============================================================
+// CREATE RESTAURANT MODAL (Super Admin)
+// ============================================================
+
+function CreateRestaurantModal({saasOwner,onClose,onSuccess}){
+  var [name,setName]=useState("");
+  var [cuisine,setCuisine]=useState("italian");
+  var [color,setColor]=useState("#bf4626");
+  var [ownerName,setOwnerName]=useState("");
+  var [ownerEmail,setOwnerEmail]=useState("");
+  var [phone,setPhone]=useState("");
+  var [address,setAddress]=useState("");
+  var [postcode,setPostcode]=useState("");
+  var [plan,setPlan]=useState("trial");
+  var [trialDays,setTrialDays]=useState("30");
+  var [autoSetup,setAutoSetup]=useState(true);
+  var [creating,setCreating]=useState(false);
+  
+  var handleCreate=async()=>{
+    if(!name.trim()){alert("Restaurant name required");return;}
+    if(!ownerName.trim()){alert("Owner name required");return;}
+    if(!ownerEmail.trim()||!ownerEmail.includes("@")){alert("Valid email required");return;}
+    
+    setCreating(true);
+    var result=await dbAdminCreate({
+      name:name.trim(),
+      cuisine_type:cuisine,
+      brand_color:color,
+      owner_name:ownerName.trim(),
+      owner_email:ownerEmail.trim().toLowerCase(),
+      phone:phone.trim(),
+      address:address.trim(),
+      postcode:postcode.trim().toUpperCase(),
+      plan:plan,
+      trial_days:trialDays,
+      auto_setup:autoSetup,
+    },saasOwner.email);
+    setCreating(false);
+    
+    if(result.success){
+      onSuccess(result);
+    }else{
+      alert("Failed: "+(result.error||"Unknown error"));
+    }
+  };
+  
+  var inputStyle={width:"100%",padding:"9px 11px",background:"#0f0a05",border:"1px solid #5d3a1f",borderRadius:7,color:"#fff",fontSize:13,boxSizing:"border-box"};
+  var labelStyle={fontSize:11,color:"#a8956a",letterSpacing:1,fontWeight:700,marginBottom:5,display:"block"};
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}} onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:18,padding:24,maxWidth:540,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <h2 style={{color:"#fbbf24",fontSize:20,fontWeight:700,fontFamily:"Georgia,serif"}}>{String.fromCharCode(0x2795)} New Restaurant</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#a8956a",fontSize:22,cursor:"pointer"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      <div style={{display:"grid",gap:11}}>
+        {/* Restaurant Info */}
+        <div>
+          <p style={{fontSize:11,color:"#fbbf24",letterSpacing:2,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"1px solid #3d2e22"}}>RESTAURANT INFO</p>
+          <div style={{display:"grid",gap:9}}>
+            <div>
+              <label style={labelStyle}>NAME *</label>
+              <input value={name} onChange={e=>setName(e.target.value)} placeholder="Mario's Pizza" style={inputStyle}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              <div>
+                <label style={labelStyle}>CUISINE</label>
+                <select value={cuisine} onChange={e=>setCuisine(e.target.value)} style={inputStyle}>
+                  <option value="italian">Italian</option>
+                  <option value="indian">Indian</option>
+                  <option value="chinese">Chinese</option>
+                  <option value="mexican">Mexican</option>
+                  <option value="american">American</option>
+                  <option value="thai">Thai</option>
+                  <option value="japanese">Japanese</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>BRAND COLOR</label>
+                <input type="color" value={color} onChange={e=>setColor(e.target.value)} style={{...inputStyle,padding:5,height:38}}/>
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>ADDRESS</label>
+              <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="123 High Street, London" style={inputStyle}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              <div>
+                <label style={labelStyle}>POSTCODE</label>
+                <input value={postcode} onChange={e=>setPostcode(e.target.value)} placeholder="E14 7QH" style={inputStyle}/>
+              </div>
+              <div>
+                <label style={labelStyle}>PHONE</label>
+                <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="020 1234 5678" style={inputStyle}/>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Owner Info */}
+        <div>
+          <p style={{fontSize:11,color:"#fbbf24",letterSpacing:2,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"1px solid #3d2e22",marginTop:9}}>OWNER ACCOUNT</p>
+          <div style={{display:"grid",gap:9}}>
+            <div>
+              <label style={labelStyle}>OWNER NAME *</label>
+              <input value={ownerName} onChange={e=>setOwnerName(e.target.value)} placeholder="Mario Rossi" style={inputStyle}/>
+            </div>
+            <div>
+              <label style={labelStyle}>EMAIL *</label>
+              <input value={ownerEmail} onChange={e=>setOwnerEmail(e.target.value)} placeholder="mario@example.com" type="email" style={inputStyle}/>
+            </div>
+            <p style={{fontSize:10,color:"#6b5d3f",fontStyle:"italic"}}>{String.fromCharCode(0xD83D,0xDD11)} Password will be auto-generated and shown after creation</p>
+          </div>
+        </div>
+        
+        {/* Plan */}
+        <div>
+          <p style={{fontSize:11,color:"#fbbf24",letterSpacing:2,fontWeight:700,marginBottom:9,paddingBottom:5,borderBottom:"1px solid #3d2e22",marginTop:9}}>PLAN & SETUP</p>
+          <div style={{display:"grid",gap:9}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              <div>
+                <label style={labelStyle}>PLAN</label>
+                <select value={plan} onChange={e=>setPlan(e.target.value)} style={inputStyle}>
+                  <option value="trial">Trial</option>
+                  <option value="starter">Starter (\u00a329/mo)</option>
+                  <option value="pro">Pro (\u00a369/mo)</option>
+                  <option value="enterprise">Enterprise (\u00a3149/mo)</option>
+                </select>
+              </div>
+              {plan==="trial"&&<div>
+                <label style={labelStyle}>TRIAL DAYS</label>
+                <input type="number" value={trialDays} onChange={e=>setTrialDays(e.target.value)} style={inputStyle}/>
+              </div>}
+            </div>
+            <label style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer",padding:9,background:"#0f0a05",borderRadius:7,border:"1px solid #3d2e22"}}>
+              <input type="checkbox" checked={autoSetup} onChange={e=>setAutoSetup(e.target.checked)}/>
+              <div>
+                <p style={{fontSize:13,color:"#fff",fontWeight:700,marginBottom:3}}>Auto-setup defaults</p>
+                <p style={{fontSize:10,color:"#a8956a"}}>Creates: 4 categories, 5 sample menu items, 6 tables, manager PIN, delivery settings</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div style={{display:"flex",gap:9,marginTop:18}}>
+        <button onClick={onClose} disabled={creating} style={{flex:1,padding:"11px 18px",background:"#0f0a05",color:"#a8956a",border:"1px solid #5d3a1f",borderRadius:9,fontWeight:700,cursor:creating?"not-allowed":"pointer"}}>Cancel</button>
+        <button onClick={handleCreate} disabled={creating} style={{flex:2,padding:"11px 18px",background:creating?"#3d2e22":"linear-gradient(135deg,#22c55e,#16a34a)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:creating?"not-allowed":"pointer"}}>{creating?"Creating...":String.fromCharCode(0x2795)+" Create Restaurant"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// EDIT RESTAURANT MODAL
+// ============================================================
+
+function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
+  var [name,setName]=useState(restaurant.name||"");
+  var [cuisine,setCuisine]=useState(restaurant.cuisine_type||"general");
+  var [color,setColor]=useState(restaurant.brand_color||"#bf4626");
+  var [phone,setPhone]=useState(restaurant.phone||"");
+  var [address,setAddress]=useState(restaurant.address||"");
+  var [postcode,setPostcode]=useState(restaurant.postcode||"");
+  var [lat,setLat]=useState(restaurant.lat||"");
+  var [lng,setLng]=useState(restaurant.lng||"");
+  var [updating,setUpdating]=useState(false);
+  
+  var handleSave=async()=>{
+    if(!name.trim()){alert("Name required");return;}
+    setUpdating(true);
+    var result=await dbAdminUpdate(restaurant.id,{
+      name:name.trim(),
+      cuisine_type:cuisine,
+      brand_color:color,
+      phone:phone.trim(),
+      address:address.trim(),
+      postcode:postcode.trim().toUpperCase(),
+      lat:lat||null,
+      lng:lng||null,
+    },saasOwner.email);
+    setUpdating(false);
+    if(result.success){
+      onSuccess();
+    }else{
+      alert("Failed: "+(result.error||"Unknown"));
+    }
+  };
+  
+  var handleResetPassword=async()=>{
+    if(!window.confirm("Generate new password for this restaurant?\n\nOld password will stop working immediately.")) return;
+    var result=await dbAdminResetPwd(restaurant.id,null,saasOwner.email);
+    if(result.success){
+      alert("New password: "+result.password+"\n\n(Send this to the restaurant owner!)");
+    }else{
+      alert("Failed: "+(result.error||"Unknown"));
+    }
+  };
+  
+  var inputStyle={width:"100%",padding:"9px 11px",background:"#0f0a05",border:"1px solid #5d3a1f",borderRadius:7,color:"#fff",fontSize:13,boxSizing:"border-box"};
+  var labelStyle={fontSize:11,color:"#a8956a",letterSpacing:1,fontWeight:700,marginBottom:5,display:"block"};
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}} onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#1a1208",border:"1px solid #5d3a1f",borderRadius:18,padding:24,maxWidth:540,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <h2 style={{color:"#fbbf24",fontSize:20,fontWeight:700,fontFamily:"Georgia,serif"}}>{String.fromCharCode(0x270F,0xFE0F)} Edit {restaurant.name}</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#a8956a",fontSize:22,cursor:"pointer"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      <div style={{display:"grid",gap:11}}>
+        <div>
+          <label style={labelStyle}>NAME</label>
+          <input value={name} onChange={e=>setName(e.target.value)} style={inputStyle}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div>
+            <label style={labelStyle}>CUISINE</label>
+            <select value={cuisine} onChange={e=>setCuisine(e.target.value)} style={inputStyle}>
+              <option value="italian">Italian</option>
+              <option value="indian">Indian</option>
+              <option value="chinese">Chinese</option>
+              <option value="mexican">Mexican</option>
+              <option value="american">American</option>
+              <option value="thai">Thai</option>
+              <option value="japanese">Japanese</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>BRAND COLOR</label>
+            <input type="color" value={color} onChange={e=>setColor(e.target.value)} style={{...inputStyle,padding:5,height:38}}/>
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>ADDRESS</label>
+          <input value={address} onChange={e=>setAddress(e.target.value)} style={inputStyle}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div>
+            <label style={labelStyle}>POSTCODE</label>
+            <input value={postcode} onChange={e=>setPostcode(e.target.value)} style={inputStyle}/>
+          </div>
+          <div>
+            <label style={labelStyle}>PHONE</label>
+            <input value={phone} onChange={e=>setPhone(e.target.value)} style={inputStyle}/>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          <div>
+            <label style={labelStyle}>LATITUDE</label>
+            <input value={lat} onChange={e=>setLat(e.target.value)} placeholder="51.5074" style={inputStyle}/>
+          </div>
+          <div>
+            <label style={labelStyle}>LONGITUDE</label>
+            <input value={lng} onChange={e=>setLng(e.target.value)} placeholder="-0.1278" style={inputStyle}/>
+          </div>
+        </div>
+        <p style={{fontSize:10,color:"#6b5d3f",fontStyle:"italic",marginTop:-3}}>{String.fromCharCode(0xD83D,0xDCA1)} Get coordinates: Google Maps {String.fromCharCode(0x2192)} right-click address {String.fromCharCode(0x2192)} click coordinates</p>
+        
+        <button onClick={handleResetPassword} style={{padding:"9px 14px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",marginTop:11}}>{String.fromCharCode(0xD83D,0xDD11)} Reset Owner Password</button>
+      </div>
+      
+      <div style={{display:"flex",gap:9,marginTop:18}}>
+        <button onClick={onClose} disabled={updating} style={{flex:1,padding:"11px 18px",background:"#0f0a05",color:"#a8956a",border:"1px solid #5d3a1f",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+        <button onClick={handleSave} disabled={updating} style={{flex:2,padding:"11px 18px",background:updating?"#3d2e22":"#0891b2",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:"pointer"}}>{updating?"Saving...":String.fromCharCode(0xD83D,0xDCBE)+" Save Changes"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// DELETE RESTAURANT MODAL (with double confirmation)
+// ============================================================
+
+function DeleteRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
+  var [confirmText,setConfirmText]=useState("");
+  var [deleting,setDeleting]=useState(false);
+  var requiredText="DELETE "+restaurant.name;
+  
+  var handleDelete=async()=>{
+    if(confirmText.trim()!==requiredText){
+      alert('Type exactly: '+requiredText);
+      return;
+    }
+    setDeleting(true);
+    var result=await dbAdminDelete(restaurant.id,restaurant.name,saasOwner.email);
+    setDeleting(false);
+    if(result.success){
+      alert(restaurant.name+" deleted permanently.");
+      onSuccess();
+    }else{
+      alert("Failed: "+(result.error||"Unknown"));
+    }
+  };
+  
+  return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}} onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#1a1208",border:"2px solid #dc2626",borderRadius:18,padding:24,maxWidth:480,width:"100%"}}>
+      <div style={{textAlign:"center",marginBottom:18}}>
+        <div style={{fontSize:50,marginBottom:9}}>{String.fromCharCode(0x26A0,0xFE0F)}</div>
+        <h2 style={{color:"#dc2626",fontSize:20,fontWeight:700,marginBottom:5}}>Delete Restaurant?</h2>
+        <p style={{color:"#a8956a",fontSize:13}}>This will <b style={{color:"#dc2626"}}>PERMANENTLY DELETE</b> all data:</p>
+      </div>
+      
+      <div style={{background:"#0f0a05",border:"1px solid #5d3a1f",borderRadius:9,padding:14,marginBottom:14}}>
+        <p style={{fontSize:12,color:"#fff",fontWeight:700,marginBottom:9}}>{restaurant.name}</p>
+        <ul style={{fontSize:11,color:"#a8956a",paddingLeft:18,lineHeight:1.6}}>
+          <li>{restaurant.stats?.menu_count||0} menu items</li>
+          <li>{restaurant.stats?.table_count||0} tables</li>
+          <li>{restaurant.stats?.orders_total||0} orders ({"\u00a3"}{(restaurant.stats?.revenue||0).toFixed(2)} revenue history)</li>
+          <li>All customer data</li>
+          <li>All settings, expenses, reservations</li>
+          <li>Owner login account</li>
+        </ul>
+        <p style={{fontSize:11,color:"#dc2626",fontWeight:700,marginTop:9}}>{String.fromCharCode(0x26A0,0xFE0F)} This cannot be undone!</p>
+      </div>
+      
+      <div style={{marginBottom:14}}>
+        <p style={{fontSize:11,color:"#a8956a",marginBottom:5}}>Type to confirm:</p>
+        <p style={{fontSize:13,color:"#fbbf24",fontFamily:"monospace",fontWeight:700,marginBottom:9}}>{requiredText}</p>
+        <input value={confirmText} onChange={e=>setConfirmText(e.target.value)} placeholder={requiredText} style={{width:"100%",padding:"9px 11px",background:"#0f0a05",border:"1px solid #5d3a1f",borderRadius:7,color:"#fff",fontSize:13,boxSizing:"border-box",fontFamily:"monospace"}}/>
+      </div>
+      
+      <div style={{display:"flex",gap:9}}>
+        <button onClick={onClose} disabled={deleting} style={{flex:1,padding:"11px 18px",background:"#0f0a05",color:"#fff",border:"1px solid #5d3a1f",borderRadius:9,fontWeight:700,cursor:"pointer"}}>Cancel</button>
+        <button onClick={handleDelete} disabled={deleting||confirmText.trim()!==requiredText} style={{flex:1,padding:"11px 18px",background:confirmText.trim()===requiredText?"#dc2626":"#3d2e22",color:"#fff",border:"none",borderRadius:9,fontWeight:700,cursor:confirmText.trim()===requiredText?"pointer":"not-allowed",opacity:confirmText.trim()===requiredText?1:0.5}}>{deleting?"Deleting...":String.fromCharCode(0xD83D,0xDDD1,0xFE0F)+" DELETE"}</button>
+      </div>
     </div>
   </div>;
 }

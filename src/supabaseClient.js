@@ -2182,3 +2182,293 @@ export function isImpersonating() {
     return null;
   }
 }
+
+// ===========================================================
+// SUPER ADMIN: RESTAURANT MANAGEMENT (Create/Edit/Delete)
+// ===========================================================
+
+// Generate random password
+function generateRandomPassword() {
+  const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let pwd = '';
+  for (let i = 0; i < 10; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pwd;
+}
+
+// Generate slug from restaurant name
+function slugifyName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50);
+}
+
+// CREATE: Super admin creates a new restaurant fully set up
+export async function adminCreateRestaurant(formData, adminEmail) {
+  try {
+    // Generate slug if not provided
+    let slug = formData.slug || slugifyName(formData.name);
+    let subdomain = formData.subdomain || slug.replace(/-/g, '');
+    
+    // Check if slug already exists
+    const { data: existing } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
+    
+    if (existing) {
+      // Add suffix to make unique
+      slug = slug + '-' + Date.now().toString().substring(8);
+      subdomain = subdomain + Date.now().toString().substring(10);
+    }
+    
+    // Generate password if not provided
+    const password = formData.password || generateRandomPassword();
+    
+    // Calculate trial end date
+    const trialDays = parseInt(formData.trial_days) || 30;
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + trialDays);
+    
+    // 1. Create restaurant
+    const { data: restaurant, error: restError } = await supabase
+      .from('restaurants')
+      .insert({
+        name: formData.name,
+        slug: slug,
+        subdomain: subdomain,
+        cuisine_type: formData.cuisine_type || 'general',
+        brand_color: formData.brand_color || '#bf4626',
+        address: formData.address || '',
+        postcode: formData.postcode || '',
+        phone: formData.phone || '',
+        lat: formData.lat || null,
+        lng: formData.lng || null,
+        plan: formData.plan || 'trial',
+        active: formData.active !== false,
+        trial_ends_at: formData.plan === 'trial' ? trialEnd.toISOString() : null,
+        enable_online_ordering: true,
+        show_in_directory: true,
+        owner_email: formData.owner_email,
+        owner_name: formData.owner_name,
+      })
+      .select()
+      .single();
+    
+    if (restError) throw restError;
+    
+    // 2. Create owner account
+    const { data: owner, error: ownerError } = await supabase
+      .from('restaurant_owners')
+      .insert({
+        restaurant_id: restaurant.id,
+        email: formData.owner_email,
+        password: password,
+        full_name: formData.owner_name,
+        phone: formData.phone || '',
+        email_verified: true, // Skip verification - admin created
+        is_super_admin: false,
+        onboarding_completed: formData.skip_onboarding !== false,
+      })
+      .select()
+      .single();
+    
+    if (ownerError) throw ownerError;
+    
+    // 3. Auto-setup: Create default categories, menu, tables
+    if (formData.auto_setup !== false) {
+      // Categories
+      const categories = [
+        { restaurant_id: restaurant.id, name: 'Starters', display_order: 1, active: true },
+        { restaurant_id: restaurant.id, name: 'Main Course', display_order: 2, active: true },
+        { restaurant_id: restaurant.id, name: 'Desserts', display_order: 3, active: true },
+        { restaurant_id: restaurant.id, name: 'Drinks', display_order: 4, active: true },
+      ];
+      const { data: createdCats } = await supabase
+        .from('categories')
+        .insert(categories)
+        .select();
+      
+      // Menu items - sample
+      if (createdCats && createdCats.length > 0) {
+        const sampleMenu = [
+          { name: 'Sample Starter', price: 5.95, cat: createdCats[0].id },
+          { name: 'Sample Main 1', price: 12.95, cat: createdCats[1].id },
+          { name: 'Sample Main 2', price: 14.95, cat: createdCats[1].id },
+          { name: 'Sample Dessert', price: 5.95, cat: createdCats[2].id },
+          { name: 'Sample Drink', price: 2.95, cat: createdCats[3].id },
+        ];
+        
+        const menuItems = sampleMenu.map((m, i) => ({
+          restaurant_id: restaurant.id,
+          category_id: m.cat,
+          item_name: m.name,
+          description: 'Edit this item or add your own',
+          price_dinein: m.price,
+          price_takeaway: m.price,
+          price_delivery: m.price,
+          active: true,
+          display_order: i + 1,
+        }));
+        
+        await supabase.from('menu_items').insert(menuItems);
+      }
+      
+      // Tables
+      const tables = [];
+      for (let i = 1; i <= 6; i++) {
+        tables.push({
+          restaurant_id: restaurant.id,
+          branch_id: 'main',
+          table_number: 'T' + i,
+          capacity: 4,
+          status: 'available',
+          x_position: 50 + (i % 3) * 100,
+          y_position: 50 + Math.floor((i - 1) / 3) * 100,
+        });
+      }
+      await supabase.from('restaurant_tables').insert(tables);
+      
+      // Manager PIN
+      await supabase.from('manager_pins').insert({
+        restaurant_id: restaurant.id,
+        pin: '1234',
+        manager_name: formData.owner_name,
+        active: true,
+      });
+      
+      // Default delivery settings
+      await supabase.from('delivery_settings').insert({
+        restaurant_id: restaurant.id,
+        branch_id: 'main',
+        method: 'radius',
+        max_radius_miles: 5,
+        flat_fee: 2.50,
+        min_order_amount: 15,
+        free_delivery_above: 25,
+        is_active: true,
+        accept_cash: true,
+      });
+      
+      // Expense categories
+      const expenseCats = [
+        { restaurant_id: restaurant.id, name: 'Ingredients', icon: 'food' },
+        { restaurant_id: restaurant.id, name: 'Utilities', icon: 'lightning' },
+        { restaurant_id: restaurant.id, name: 'Rent', icon: 'home' },
+        { restaurant_id: restaurant.id, name: 'Staff', icon: 'people' },
+        { restaurant_id: restaurant.id, name: 'Other', icon: 'misc' },
+      ];
+      await supabase.from('expense_categories').insert(expenseCats);
+    }
+    
+    // Log activity
+    await logPlatformActivity(adminEmail, 'restaurant_created_by_admin', restaurant.id, restaurant.name, {
+      plan: formData.plan,
+      auto_setup: formData.auto_setup !== false,
+    });
+    
+    return {
+      restaurant,
+      owner,
+      password,
+      slug,
+      subdomain,
+      success: true,
+    };
+  } catch (e) {
+    console.error('adminCreateRestaurant error:', e);
+    return { error: e.message || 'Failed to create restaurant', success: false };
+  }
+}
+
+// EDIT: Update restaurant fields
+export async function adminUpdateRestaurant(restaurantId, updates, adminEmail) {
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', restaurantId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    await logPlatformActivity(adminEmail, 'restaurant_edited_by_admin', restaurantId, data.name, {
+      changed_fields: Object.keys(updates),
+    });
+    
+    return { data, success: true };
+  } catch (e) {
+    return { error: e.message, success: false };
+  }
+}
+
+// DELETE: Permanently remove restaurant and all its data
+export async function adminDeleteRestaurant(restaurantId, restaurantName, adminEmail) {
+  try {
+    // First, log the deletion (before we delete it!)
+    await logPlatformActivity(adminEmail, 'restaurant_deleted_by_admin', null, restaurantName, {
+      deleted_restaurant_id: restaurantId,
+    });
+    
+    // Delete in order to respect foreign keys
+    // Most have ON DELETE CASCADE so should clean up automatically
+    
+    // Delete all data
+    await supabase.from('orders').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('menu_items').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('categories').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('restaurant_tables').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('customers').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('expenses').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('expense_categories').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('manager_pins').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('delivery_settings').delete().eq('restaurant_id', restaurantId);
+    await supabase.from('restaurant_owners').delete().eq('restaurant_id', restaurantId);
+    
+    // Finally, delete the restaurant
+    const { error } = await supabase
+      .from('restaurants')
+      .delete()
+      .eq('id', restaurantId);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (e) {
+    console.error('adminDeleteRestaurant error:', e);
+    return { error: e.message, success: false };
+  }
+}
+
+// Reset restaurant owner password (for support)
+export async function adminResetOwnerPassword(restaurantId, newPassword, adminEmail) {
+  try {
+    const password = newPassword || generateRandomPassword();
+    
+    const { data, error } = await supabase
+      .from('restaurant_owners')
+      .update({ password: password })
+      .eq('restaurant_id', restaurantId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    await logPlatformActivity(adminEmail, 'password_reset_by_admin', restaurantId, null, {
+      owner_email: data.email,
+    });
+    
+    return { data, password, success: true };
+  } catch (e) {
+    return { error: e.message, success: false };
+  }
+}
