@@ -3840,7 +3840,8 @@ function StaffManagementTab({restaurant, branch, push}){
     }
     
     if(result.error){
-      push&&push({title:"Failed", body:result.error.message||"Unknown error"});
+      console.error("Staff save error:", result.error);
+      push&&push({title:"Failed", body:(result.error.message||result.error.details||"Check console for details")});
       return;
     }
     
