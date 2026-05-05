@@ -1774,24 +1774,75 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
     <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:14}}><button className="btn btn-r" onClick={()=>{setStep("menu");setSlot(null);setDisc(null);setCode("");}}>Order Again</button><button className="btn btn-o" onClick={()=>printR(last,branch)}>Receipt</button></div>
   </div>;
 
-  if(step==="done") return <div className="page fadeup" style={{maxWidth:430,textAlign:"center"}}>
-    <p style={{fontSize:48,marginBottom:10}}>{EM.party}</p>
-    <h2 style={{fontSize:24,marginBottom:4}}>Order Confirmed!</h2>
-    <p style={{color:"#8a8078",marginBottom:4}}>ID: <strong>{last?.id}</strong></p>
-    {last?.deliveryCode&&<div style={{background:"linear-gradient(135deg,#1e40af,#2563eb)",color:"#fff",borderRadius:14,padding:"18px 16px",margin:"14px auto",maxWidth:300}}>
-      <p style={{fontSize:11,letterSpacing:2,fontWeight:700,marginBottom:6,opacity:.85}}>DELIVERY CODE</p>
-      <p style={{fontSize:42,fontWeight:700,letterSpacing:8,fontFamily:"'Courier New',monospace",marginBottom:6}}>{last.deliveryCode}</p>
-      <p style={{fontSize:11,opacity:.85}}>Show this code to driver on arrival</p>
+  if(step==="done") return <div className="page fadeup" style={{maxWidth:480,textAlign:"center"}}>
+    {/* Success animation */}
+    <div style={{display:"inline-block",padding:"24px",background:"linear-gradient(135deg,#22c55e,#16a34a)",borderRadius:"50%",marginBottom:14,boxShadow:"0 8px 24px rgba(34,197,94,.3)"}}>
+      <p style={{fontSize:48,color:"#fff",margin:0,lineHeight:1}}>{String.fromCharCode(0x2713)}</p>
+    </div>
+    <h2 style={{fontSize:26,marginBottom:5,fontWeight:700}}>Order Confirmed!</h2>
+    <p style={{color:"#8a8078",marginBottom:14,fontSize:14}}>Thank you, {last?.customer}!</p>
+    
+    {/* Order ID + Time */}
+    <div style={{display:"flex",justifyContent:"center",gap:14,marginBottom:14,fontSize:12,color:"#8a8078"}}>
+      <span>{String.fromCharCode(0xD83D,0xDCCB)} <strong style={{color:"#1a1208"}}>{last?.id}</strong></span>
+      <span>{String.fromCharCode(0x23F0)} <strong style={{color:"#1a1208"}}>{last?.time}</strong></span>
+    </div>
+    
+    {/* Estimated time */}
+    <div style={{padding:"14px 18px",background:"#fef3c7",borderRadius:11,marginBottom:14,border:"1px solid #fde68a"}}>
+      <p style={{fontSize:11,letterSpacing:2,color:"#92400e",fontWeight:700,marginBottom:5}}>{String.fromCharCode(0x23F1,0xFE0F)} ESTIMATED {last?.type==="delivery"?"DELIVERY":"COLLECTION"}</p>
+      <p style={{fontSize:24,color:"#1a1208",fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{last?.type==="delivery"?"30-45 min":"15-20 min"}</p>
+    </div>
+    
+    {/* Delivery Code (if delivery) */}
+    {last?.deliveryCode&&<div style={{background:"linear-gradient(135deg,#1e40af,#2563eb)",color:"#fff",borderRadius:14,padding:"20px 16px",margin:"14px auto",maxWidth:320,boxShadow:"0 8px 24px rgba(30,64,175,.3)"}}>
+      <p style={{fontSize:11,letterSpacing:2,fontWeight:700,marginBottom:7,opacity:.85}}>{String.fromCharCode(0xD83D,0xDD12)} DELIVERY CODE</p>
+      <p style={{fontSize:44,fontWeight:700,letterSpacing:9,fontFamily:"'Courier New',monospace",marginBottom:7}}>{last.deliveryCode}</p>
+      <p style={{fontSize:11,opacity:.85}}>Show this to driver on arrival</p>
     </div>}
-    {last?.deliveryCode&&last?.codeMethod&&last.codeMethod!=="app"&&<p style={{fontSize:11,color:"#8a8078",marginBottom:8}}>{last.codeMethod==="sms"?"Sent by SMS":last.codeMethod==="email"?"Sent by email":"Sent by SMS and email"} (when available)</p>}
-    <p style={{color:"#8a8078",fontSize:13,marginBottom:20}}>We will have it ready soon.</p>
-    <button className="btn btn-r" onClick={()=>setStep("menu")}>Order Again</button>
+    {last?.deliveryCode&&last?.codeMethod&&last.codeMethod!=="app"&&<p style={{fontSize:11,color:"#8a8078",marginBottom:9,fontStyle:"italic"}}>{String.fromCharCode(0xD83D,0xDCE7)} {last.codeMethod==="sms"?"Sent by SMS":last.codeMethod==="email"?"Sent by email":"Sent by SMS and email"} (when available)</p>}
+    
+    {/* Order summary */}
+    <div style={{padding:"14px",background:"#fafaf5",borderRadius:11,marginBottom:14,textAlign:"left",border:"1px solid #ede8de"}}>
+      <p style={{fontSize:11,letterSpacing:2,color:"#8a8078",fontWeight:700,marginBottom:9}}>YOUR ORDER</p>
+      {last?.items?.map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:5}}>
+        <span>{it.qty}x {it.name}</span>
+        <span style={{color:"#8a8078"}}>{fmt(it.price*it.qty)}</span>
+      </div>)}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:7,paddingTop:7,borderTop:"1px solid #ede8de",fontWeight:700,fontSize:14}}>
+        <span>Total</span>
+        <span style={{color:"#bf4626"}}>{fmt(last?.total||0)}</span>
+      </div>
+      <div style={{marginTop:7,padding:"7px 9px",background:last?.paid?"#d1fae5":"#fef3c7",borderRadius:7,fontSize:12,fontWeight:700,color:last?.paid?"#065f46":"#92400e",textAlign:"center"}}>
+        {last?.paid?String.fromCharCode(0x2713)+" Paid Online":(last?.payMethod==="cod"?String.fromCharCode(0xD83D,0xDCB5)+" Cash on Delivery":String.fromCharCode(0xD83D,0xDCB5)+" Pay on Collection")}
+      </div>
+    </div>
+    
+    {/* Actions */}
+    <div style={{display:"flex",gap:9,justifyContent:"center",flexWrap:"wrap"}}>
+      <button className="btn btn-r" onClick={()=>setStep("menu")} style={{padding:"11px 22px"}}>{String.fromCharCode(0xD83D,0xDD04)} Order Again</button>
+      <button className="btn btn-o" onClick={()=>printR(last,branch)} style={{padding:"11px 22px"}}>{String.fromCharCode(0xD83D,0xDDB0,0xFE0F)} Receipt</button>
+    </div>
+    
+    <p style={{fontSize:11,color:"#8a8078",marginTop:18,fontStyle:"italic"}}>{String.fromCharCode(0xD83D,0xDCA1)} Save this page or take a screenshot for reference</p>
   </div>;
 
   if(step==="checkout") return <>
     {showPay&&<Pay amount={total} onSuccess={()=>{setPay(false);finalize(true);}} onClose={()=>setPay(false)}/>}
     <div className="page fadeup" style={{maxWidth:500}}>
-      <button className="btn btn-g" onClick={()=>setStep("menu")} style={{marginBottom:10,fontSize:13}}>Back to menu</button>
+      <button className="btn btn-g" onClick={()=>setStep("menu")} style={{marginBottom:10,fontSize:13}}>{String.fromCharCode(0x2190)} Back to menu</button>
+      
+      {/* Progress steps */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 14px",background:"#fff",borderRadius:9,border:"1px solid #ede8de"}}>
+        {[["1","Cart","#22c55e"],["2","Details",type==="delivery"&&postcodeData&&postcodeData.valid?"#22c55e":(cname?"#bf4626":"#ccc")],["3","Pay","#ccc"]].map((s,i,arr)=><React.Fragment key={i}>
+          <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
+            <div style={{width:24,height:24,borderRadius:"50%",background:s[2],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>{s[0]}</div>
+            <span style={{fontSize:11,fontWeight:700,color:s[2]==="#ccc"?"#8a8078":"#1a1208"}}>{s[1]}</span>
+          </div>
+          {i<arr.length-1 && <div style={{height:2,flex:1,background:"#ede8de",marginRight:5}}/>}
+        </React.Fragment>)}
+      </div>
+      
       <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
       <div className="card" style={{marginBottom:10}}>
         <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>How would you like your order?</p>
@@ -1810,9 +1861,10 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
           <div style={{marginBottom:9}}><label className="lbl">Delivery Address</label><input className="field" value={addr.line1} onChange={e=>setAddr({...addr,line1:e.target.value})} placeholder="123 Brick Lane"/></div>
           <div style={{marginBottom:9}}><label className="lbl">Postcode</label>
             <div style={{display:"flex",gap:6}}>
-              <input className="field" value={addr.postcode} onChange={e=>setAddr({...addr,postcode:e.target.value.toUpperCase()})} placeholder="E1 6QL" style={{flex:1}}/>
+              <input className="field" value={addr.postcode} onChange={e=>{setAddr({...addr,postcode:e.target.value.toUpperCase()});setPostcodeData(null);}} onBlur={()=>{if(addr.postcode&&addr.postcode.length>=5)checkPostcode(addr.postcode);}} placeholder="E1 6QL" style={{flex:1}}/>
               <button onClick={()=>checkPostcode(addr.postcode)} disabled={!addr.postcode||checkingPc} style={{padding:"9px 14px",fontSize:12,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer"}}>{checkingPc?"Checking...":"Check"}</button>
             </div>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>{String.fromCharCode(0xD83D,0xDCA1)} Postcode will be checked automatically</p>
           </div>
           <div style={{marginBottom:9}}><label className="lbl">Delivery notes (optional)</label><input className="field" value={addr.notes} onChange={e=>setAddr({...addr,notes:e.target.value})} placeholder="Ring bell, flat 2..."/></div>
           {postcodeData&&postcodeData.valid&&<div style={{padding:"10px 12px",background:"#d1fae5",borderRadius:7,fontSize:12,color:"#065f46",marginBottom:9}}>
