@@ -2105,7 +2105,7 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
     var todayHours=hours.find(h=>h.day_of_week===dow);
     
     // FALLBACK: If no hours configured, use default 12:00-22:00
-    var openTime, closeTime, isClosed=false;
+    var openTime, closeTime;
     if(todayHours){
       if(todayHours.is_closed){
         setAvailSlots([]);
