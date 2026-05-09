@@ -2103,18 +2103,43 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
     var d=new Date(form.date+"T00:00:00");
     var dow=d.getDay();
     var todayHours=hours.find(h=>h.day_of_week===dow);
-    if(!todayHours||todayHours.is_closed){setAvailSlots([]);setSlotsLoading(false);return;}
+    
+    // FALLBACK: If no hours configured, use default 12:00-22:00
+    var openTime, closeTime, isClosed=false;
+    if(todayHours){
+      if(todayHours.is_closed){
+        setAvailSlots([]);
+        setSlotsLoading(false);
+        return;
+      }
+      openTime=todayHours.open_time;
+      closeTime=todayHours.close_time;
+    } else {
+      // Default hours if none set (12:00 - 22:00)
+      openTime="12:00:00";
+      closeTime="22:00:00";
+    }
+    
     // Generate 30-min slots from open to close-90min
     var toMin=t=>{var p=t.split(":");return +p[0]*60+(+p[1]);};
     var toStr=m=>{var h=Math.floor(m/60),mm=m%60;return(h<10?"0":"")+h+":"+(mm<10?"0":"")+mm;};
-    var openM=toMin(todayHours.open_time);
-    var closeM=toMin(todayHours.close_time);
+    var openM=toMin(openTime);
+    var closeM=toMin(closeTime);
     if(closeM<openM)closeM+=24*60; // past midnight
     // Last booking 90min before close
     for(var m=openM;m<=closeM-90;m+=30){slots.push(toStr(m%(24*60)));}
+    
     // Fetch existing bookings for that date and filter out full slots
     dbFetchReservations(form.branchId,form.date,form.date).then(existingRes=>{
       var party=parseInt(form.guests)||2;
+      
+      // FALLBACK: If no tables configured, allow all slots (restaurant manages manually)
+      if(!branchTables||branchTables.length===0){
+        setAvailSlots(slots);
+        setSlotsLoading(false);
+        return;
+      }
+      
       // For each slot, check if there are enough tables that fit party
       var validSlots=slots.filter(slot=>{
         // Count tables that fit party size
