@@ -2077,12 +2077,15 @@ function TrackV({orders,branches,user}){
 
 function BookV({reservations,setReservations,user,onAuth,branches,push}){
   var [step,setStep]=useState("form");
-  var [form,setF]=useState({name:user?.name||"",email:user?.email||"",phone:"",date:"",time:"",guests:"2",branchId:"b1",notes:""});
+  var defaultBranch=branches&&branches[0]?branches[0].id:"main";
+  var [form,setF]=useState({name:user?.name||"",email:user?.email||"",phone:"",date:"",time:"",guests:"2",branchId:defaultBranch,notes:""});
   var [conf,setConf]=useState(null);
   var [hours,setHours]=useState([]);
   var [branchTables,setBranchTables]=useState([]);
   var [slotsLoading,setSlotsLoading]=useState(false);
   var [availSlots,setAvailSlots]=useState([]);
+  var [submitting,setSubmitting]=useState(false);
+  var [errors,setErrors]=useState({});
   var today=new Date().toISOString().split("T")[0];
 
   // Load hours + tables when branch changes
@@ -2132,25 +2135,54 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
     });
   },[form.date,form.branchId,form.guests,hours,branchTables]);
 
-  var submit=()=>{
-    if(!form.name||!form.email||!form.date||!form.time)return;
+  var validate=()=>{
+    var errs={};
+    if(!form.name||form.name.trim().length<2)errs.name="Please enter your name";
+    if(!form.email)errs.email="Email is required";
+    else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))errs.email="Invalid email format";
+    if(!form.phone||form.phone.replace(/\D/g,"").length<7)errs.phone="Phone number is required";
+    if(!form.date)errs.date="Please select a date";
+    if(!form.time)errs.time="Please select a time";
+    if(!form.branchId)errs.branchId="Please select a branch";
+    return errs;
+  };
+
+  var submit=async ()=>{
+    var errs=validate();
+    setErrors(errs);
+    if(Object.keys(errs).length>0){
+      var msgs=Object.values(errs).join(", ");
+      push&&push({title:"Please complete the form",body:msgs,color:"#dc2626"});
+      // Scroll to first error if possible
+      return;
+    }
+    
+    setSubmitting(true);
     var r={...form,id:rid(),guests:+form.guests,status:"confirmed",userId:user?.id||null};
-    setReservations(rs=>[r,...rs]);
-    setConf(r);
-    setStep("done");
-    // Save to database with detailed error handling
-    dbSaveReservation(r).then(result=>{
+    
+    try {
+      var result = await dbSaveReservation(r);
       if(result.error){
         console.error("RESERVATION SAVE ERROR:",result.error);
-        push&&push({title:"DB error: "+result.error.message,body:"Check console for details",color:"#dc2626"});
-      }else if(result.data){
-        console.log("RESERVATION SAVED:",result.data);
-        push&&push({title:"Saved to database",body:"ID: "+result.data.id,color:"#059669"});
+        push&&push({title:"Booking failed",body:result.error.message||"Please try again",color:"#dc2626"});
+        setSubmitting(false);
+        return;
       }
-    }).catch(err=>{
+      
+      // Success!
+      if(result.data){
+        console.log("RESERVATION SAVED:",result.data);
+        r.dbId = result.data.id;
+      }
+      setReservations(rs=>[r,...rs]);
+      setConf(r);
+      setStep("done");
+      push&&push({title:"Booking confirmed!",body:form.date+" at "+form.time,color:"#059669"});
+    } catch(err) {
       console.error("RESERVATION EXCEPTION:",err);
-      push&&push({title:"Exception: "+err.message,body:"Check console",color:"#dc2626"});
-    });
+      push&&push({title:"Booking failed",body:err.message||"Please try again",color:"#dc2626"});
+    }
+    setSubmitting(false);
   };
 
   var dayHours=form.date?hours.find(h=>h.day_of_week===new Date(form.date+"T00:00:00").getDay()):null;
@@ -2185,12 +2217,13 @@ function BookV({reservations,setReservations,user,onAuth,branches,push}){
           {availSlots.map(tm=><button key={tm} onClick={()=>setF(f=>({...f,time:tm}))} style={{padding:"9px 4px",borderRadius:7,fontWeight:700,fontSize:12,border:"2px solid "+(form.time===tm?"#bf4626":"#ede8de"),background:form.time===tm?"#fff5f3":"#fff",color:form.time===tm?"#bf4626":"#1a1208",cursor:"pointer"}}>{tm}</button>)}
         </div>
       </>}
-      <div style={{marginBottom:7}}><label className="lbl">Name</label><input className="field" value={form.name} onChange={e=>setF(f=>({...f,name:e.target.value}))} placeholder="Alex Johnson"/></div>
-      <div style={{marginBottom:7}}><label className="lbl">Email</label><input className="field" type="email" value={form.email} onChange={e=>setF(f=>({...f,email:e.target.value}))} placeholder="alex@example.com"/></div>
-      <div style={{marginBottom:7}}><label className="lbl">Phone</label><input className="field" type="tel" value={form.phone} onChange={e=>setF(f=>({...f,phone:e.target.value}))} placeholder="07700 900000"/></div>
+      <div style={{marginBottom:7}}><label className="lbl">Name <span style={{color:"#dc2626"}}>*</span></label><input className="field" value={form.name} onChange={e=>{setF(f=>({...f,name:e.target.value}));setErrors(er=>({...er,name:null}));}} placeholder="Alex Johnson" style={errors.name?{borderColor:"#dc2626"}:{}}/>{errors.name&&<p style={{fontSize:11,color:"#dc2626",marginTop:3}}>{errors.name}</p>}</div>
+      <div style={{marginBottom:7}}><label className="lbl">Email <span style={{color:"#dc2626"}}>*</span></label><input className="field" type="email" value={form.email} onChange={e=>{setF(f=>({...f,email:e.target.value}));setErrors(er=>({...er,email:null}));}} placeholder="alex@example.com" style={errors.email?{borderColor:"#dc2626"}:{}}/>{errors.email&&<p style={{fontSize:11,color:"#dc2626",marginTop:3}}>{errors.email}</p>}</div>
+      <div style={{marginBottom:7}}><label className="lbl">Phone <span style={{color:"#dc2626"}}>*</span></label><input className="field" type="tel" value={form.phone} onChange={e=>{setF(f=>({...f,phone:e.target.value}));setErrors(er=>({...er,phone:null}));}} placeholder="07700 900000" style={errors.phone?{borderColor:"#dc2626"}:{}}/>{errors.phone&&<p style={{fontSize:11,color:"#dc2626",marginTop:3}}>{errors.phone}</p>}</div>
       <div><label className="lbl">Special Requests</label><textarea className="field" value={form.notes} onChange={e=>setF(f=>({...f,notes:e.target.value}))} rows={2} style={{resize:"vertical"}} placeholder="Window table, birthday..."/></div>
     </div>
-    <button className="btn btn-r" disabled={!form.name||!form.email||!form.date||!form.time} onClick={submit} style={{width:"100%",padding:"12px"}}>Confirm Reservation</button>
+    {Object.keys(errors).length>0&&<div style={{padding:"10px 14px",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,marginBottom:9,fontSize:12,color:"#991b1b"}}><strong>Please complete:</strong> {Object.values(errors).join(", ")}</div>}
+    <button className="btn btn-r" disabled={submitting} onClick={submit} style={{width:"100%",padding:"14px",fontSize:14,fontWeight:700,opacity:submitting?.5:1,cursor:submitting?"not-allowed":"pointer"}}>{submitting?"Booking...":"Confirm Reservation"}</button>
   </div>;
 }
 
