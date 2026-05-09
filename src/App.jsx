@@ -1834,13 +1834,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
       
       {/* Progress steps */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"10px 14px",background:"#fff",borderRadius:9,border:"1px solid #ede8de"}}>
-        {[["1","Cart","#22c55e"],["2","Details",type==="delivery"&&postcodeData&&postcodeData.valid?"#22c55e":(cname?"#bf4626":"#ccc")],["3","Pay","#ccc"]].map((s,i,arr)=><React.Fragment key={i}>
+        {[["1","Cart","#22c55e"],["2","Details",type==="delivery"&&postcodeData&&postcodeData.valid?"#22c55e":(cname?"#bf4626":"#ccc")],["3","Pay","#ccc"]].map((s,i,arr)=><div key={i} style={{display:"flex",alignItems:"center",flex:1}}>
           <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
             <div style={{width:24,height:24,borderRadius:"50%",background:s[2],color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>{s[0]}</div>
             <span style={{fontSize:11,fontWeight:700,color:s[2]==="#ccc"?"#8a8078":"#1a1208"}}>{s[1]}</span>
           </div>
           {i<arr.length-1 && <div style={{height:2,flex:1,background:"#ede8de",marginRight:5}}/>}
-        </React.Fragment>)}
+        </div>)}
       </div>
       
       <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
