@@ -11488,6 +11488,9 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
   var [postcode,setPostcode]=useState(restaurant.postcode||"");
   var [lat,setLat]=useState(restaurant.lat||"");
   var [lng,setLng]=useState(restaurant.lng||"");
+  var [plan,setPlan]=useState(restaurant.plan||"starter");
+  var [serviceTypes,setServiceTypes]=useState(restaurant.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true});
+  var [addons,setAddons]=useState(restaurant.addon_features||{marketing:false,loyalty:false,multi_branch:false,custom_domain:false});
   var [updating,setUpdating]=useState(false);
   
   var handleSave=async()=>{
@@ -11502,6 +11505,9 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
       postcode:postcode.trim().toUpperCase(),
       lat:lat||null,
       lng:lng||null,
+      plan:plan,
+      service_types:serviceTypes,
+      addon_features:addons,
     },saasOwner.email);
     setUpdating(false);
     if(result.success){
@@ -11580,6 +11586,46 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
           </div>
         </div>
         <p style={{fontSize:10,color:"#6b5d3f",fontStyle:"italic",marginTop:-3}}>{String.fromCharCode(0xD83D,0xDCA1)} Get coordinates: Google Maps {String.fromCharCode(0x2192)} right-click address {String.fromCharCode(0x2192)} click coordinates</p>
+        
+        {/* PLAN SECTION */}
+        <div style={{marginTop:18,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB3)} Subscription Plan</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
+            {[["starter","Starter","\u00A329"],["pro","Pro","\u00A369"],["enterprise","Enterprise","\u00A3149"]].map(p=>
+              <button key={p[0]} onClick={()=>setPlan(p[0])} style={{padding:"11px 5px",background:plan===p[0]?"#0891b2":"#1a1208",color:plan===p[0]?"#fff":"#a8956a",border:"2px solid "+(plan===p[0]?"#0891b2":"#5d3a1f"),borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                <p style={{textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{p[1]}</p>
+                <p style={{fontSize:10,opacity:.85}}>{p[2]}/month</p>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* SERVICE TYPES */}
+        <div style={{marginTop:11,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} Services Offered</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
+            {[["dine_in","Dine-in"],["collection","Collection"],["delivery","Delivery"],["phone_orders","Phone Orders"]].map(s=>
+              <label key={s[0]} style={{display:"flex",alignItems:"center",gap:7,padding:9,background:serviceTypes[s[0]]!==false?"#1a1208":"#000",borderRadius:6,cursor:"pointer",border:"1px solid #5d3a1f"}}>
+                <input type="checkbox" checked={serviceTypes[s[0]]!==false} onChange={e=>setServiceTypes({...serviceTypes,[s[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
+                <span style={{color:serviceTypes[s[0]]!==false?"#fff":"#6b5d3f",fontSize:12,fontWeight:700}}>{s[1]}</span>
+              </label>
+            )}
+          </div>
+        </div>
+
+        {/* ADDON FEATURES */}
+        <div style={{marginTop:11,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0x2728)} Add-on Features (Override)</p>
+          <p style={{color:"#6b5d3f",fontSize:10,marginBottom:9,fontStyle:"italic"}}>Override plan limits for this specific restaurant</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
+            {[["marketing","Marketing"],["loyalty","Loyalty"],["multi_branch","Multi-Branch"],["custom_domain","Custom Domain"]].map(f=>
+              <label key={f[0]} style={{display:"flex",alignItems:"center",gap:7,padding:9,background:addons[f[0]]?"#1a1208":"#000",borderRadius:6,cursor:"pointer",border:"1px solid #5d3a1f"}}>
+                <input type="checkbox" checked={!!addons[f[0]]} onChange={e=>setAddons({...addons,[f[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
+                <span style={{color:addons[f[0]]?"#fff":"#6b5d3f",fontSize:12,fontWeight:700}}>{f[1]}</span>
+              </label>
+            )}
+          </div>
+        </div>
         
         <button onClick={handleResetPassword} style={{padding:"9px 14px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",marginTop:11}}>{String.fromCharCode(0xD83D,0xDD11)} Reset Owner Password</button>
       </div>
@@ -12520,7 +12566,24 @@ export default function App(){
   };
   useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
   var isStaff=user&&user.role!=="customer";
-  var tabs=isStaff?["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  var allTabs=isStaff?["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  
+  // FILTER nav based on restaurant service types
+  var tabs=allTabs.filter(t=>{
+    if(!restaurant)return true;
+    
+    // Customer-facing filters
+    if(t==="book" && !hasService(restaurant,"dine_in"))return false;
+    
+    // Staff-facing filters
+    if(t==="tables" && !hasService(restaurant,"dine_in"))return false;
+    if(t==="bookings" && !hasService(restaurant,"dine_in"))return false;
+    if(t==="driver" && !hasService(restaurant,"delivery"))return false;
+    if(t==="phone" && !hasService(restaurant,"phone_orders"))return false;
+    
+    return true;
+  });
+  
   var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
   var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag",driver:"pin"};
 
