@@ -221,6 +221,7 @@ export async function saveMenuItem(item) {
     avail_dinein: item.availDineIn !== false,
     avail_takeaway: item.availTakeaway !== false,
     avail_delivery: item.availDelivery !== false,
+    image_url: item.image_url || null,
   };
   
   // If item has a UUID id (from database), update. Otherwise insert.
@@ -3273,4 +3274,80 @@ export function checkSubscriptionStatus(restaurant) {
   
   // No expiry set = lifetime access (for friends/admin override)
   return { valid: true, status: 'active', daysLeft: null };
+}
+
+// ===========================================================
+// IMAGE UPLOAD - For menu items
+// ===========================================================
+
+// Upload an image file to Supabase Storage
+// Returns { url, error }
+export async function uploadMenuImage(file, restaurantId) {
+  if (!file) return { error: { message: 'No file provided' } };
+  
+  // Validate file type
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    return { error: { message: 'Invalid file type. Please use JPG, PNG, WebP, or GIF.' } };
+  }
+  
+  // Validate file size (5MB max)
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: { message: 'File too large. Maximum 5MB.' } };
+  }
+  
+  // Generate unique filename
+  const ext = file.name.split('.').pop().toLowerCase();
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const filename = `${restaurantId || 'shared'}/${timestamp}-${random}.${ext}`;
+  
+  try {
+    const { data, error } = await supabase.storage
+      .from('menu-images')
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('Upload error:', error);
+      return { error };
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('menu-images')
+      .getPublicUrl(filename);
+    
+    return { url: urlData.publicUrl, path: filename };
+  } catch (err) {
+    console.error('Upload exception:', err);
+    return { error: { message: err.message } };
+  }
+}
+
+// Delete a menu image
+export async function deleteMenuImage(imageUrl) {
+  if (!imageUrl) return { success: true };
+  
+  try {
+    // Extract path from URL
+    const match = imageUrl.match(/menu-images\/(.+)$/);
+    if (!match) return { success: false, error: { message: 'Invalid image URL' } };
+    
+    const path = match[1];
+    const { error } = await supabase.storage
+      .from('menu-images')
+      .remove([path]);
+    
+    if (error) {
+      console.error('Delete image error:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: { message: err.message } };
+  }
 }

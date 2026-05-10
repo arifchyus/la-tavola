@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1987,16 +1987,26 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
       {cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{whiteSpace:"nowrap",padding:"7px 14px",borderRadius:50,fontWeight:600,fontSize:12,border:"2px solid "+(cat===c?"#bf4626":"#ede8de"),background:cat===c?"#bf4626":"#fff",color:cat===c?"#fff":"#1a1208",flexShrink:0,cursor:"pointer",transition:"all .18s"}}>{c}</button>)}
     </div>
     <div className="ag" style={{marginBottom:88}}>
-      {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{var key=(i.name||"").toLowerCase().trim()+"|"+(i.cat||"");if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.dbId||item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      {(()=>{var seen=new Set();return menu.filter(i=>i.cat===cat&&i.avail&&isItemAvailable(i,type)).filter(i=>{var key=(i.name||"").toLowerCase().trim()+"|"+(i.cat||"");if(seen.has(key))return false;seen.add(key);return true;}).map(item=>{var displayPrice=getItemPrice(item,type);return <div key={item.dbId||item.id} className="card" style={{display:"flex",flexDirection:"column",gap:7,opacity:item.stock===0?.5:1,overflow:"hidden",padding:item.image_url?0:14}}>
+        {/* Image (if available) */}
+        {item.image_url && <div style={{width:"100%",height:140,position:"relative",overflow:"hidden",background:"#f7f3ee"}}>
+          <img src={item.image_url} alt={item.name} style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>{e.target.style.display="none";}}/>
+          <div style={{position:"absolute",top:7,right:7}}>
+            {item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}
+            {item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}
+          </div>
+        </div>}
+        <div style={{padding:item.image_url?14:0,display:"flex",flexDirection:"column",gap:7,flex:1}}>
+        {!item.image_url && <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <span style={{fontSize:32,lineHeight:1}}>{EM[item.icon]||""}</span>
           <div>{item.stock>0&&item.stock<=5&&<span className="bdg" style={{background:"#fef3c7",color:"#d97706",fontSize:10}}>Low stock</span>}{item.stock===0&&<span className="bdg" style={{background:"#fee2e2",color:"#dc2626",fontSize:10}}>Sold out</span>}</div>
-        </div>
+        </div>}
         <h3 style={{fontSize:14,fontFamily:"'Inter',sans-serif",fontWeight:700}}>{item.name}</h3>
         <p style={{fontSize:12,color:"#8a8078",lineHeight:1.5,flex:1}}>{item.desc}</p>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:15,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</span>
           {item.stock>0&&(cart[item.id]?<div style={{display:"flex",alignItems:"center",gap:8,background:"#f7f3ee",borderRadius:50,padding:"3px 12px",border:"1px solid #ede8de"}}><button onClick={()=>rem(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>-</button><span style={{fontWeight:700,minWidth:14,textAlign:"center"}}>{cart[item.id]}</span><button onClick={()=>add(item.id)} style={{fontWeight:700,fontSize:20,color:"#bf4626",lineHeight:1,border:"none",background:"none",cursor:"pointer"}}>+</button></div>:<button onClick={()=>add(item.id)} style={{background:"#1a1208",color:"#fff",borderRadius:"50%",width:32,height:32,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",border:"none",cursor:"pointer",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background="#bf4626"} onMouseLeave={e=>e.currentTarget.style.background="#1a1208"}>+</button>)}
+        </div>
         </div>
       </div>;});})()}
     </div>
@@ -2624,10 +2634,43 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
     sizes:item?.sizes||[],
     extras:item?.extras||[],
     cookingOpts:item?.cookingOpts||[],
+    image_url:item?.image_url||"",
   });
   var [confirmDel,setConfirmDel]=useState(false);
+  var [uploading,setUploading]=useState(false);
+  var [imageMode,setImageMode]=useState(item?.image_url?"current":"none"); // "current","upload","url","none"
+  var [urlInput,setUrlInput]=useState("");
   var update=(k,v)=>setF(x=>({...x,[k]:v}));
   var toggleArr=(k,id)=>setF(x=>({...x,[k]:x[k].includes(id)?x[k].filter(i=>i!==id):[...x[k],id]}));
+  
+  var handleFileUpload=async(e)=>{
+    var file=e.target.files?.[0];
+    if(!file)return;
+    setUploading(true);
+    var rid=window.__currentRestaurant?.id||"shared";
+    var result=await dbUploadMenuImage(file,rid);
+    setUploading(false);
+    if(result.error){
+      alert("Upload failed: "+(result.error.message||"Unknown error"));
+      return;
+    }
+    update("image_url",result.url);
+    setImageMode("current");
+  };
+  
+  var handleUrlSubmit=()=>{
+    if(!urlInput.trim()){alert("Please paste a URL");return;}
+    if(!urlInput.startsWith("http")){alert("URL must start with http:// or https://");return;}
+    update("image_url",urlInput.trim());
+    setImageMode("current");
+    setUrlInput("");
+  };
+  
+  var removeImage=()=>{
+    update("image_url","");
+    setImageMode("none");
+  };
+  
   var save=()=>{
     if(!f.name.trim()){alert("Name is required");return;}
     if(!f.price||f.price<=0){alert("Valid price is required");return;}
@@ -2640,6 +2683,45 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <h2 style={{fontSize:22}}>{isNew?"Add Menu Item":"Edit Item"}</h2>
         <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
+      </div>
+
+      {/* IMAGE UPLOAD/URL */}
+      <div style={{marginBottom:14,padding:14,background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"2px solid #fde68a",borderRadius:9}}>
+        <label className="lbl" style={{marginBottom:7,display:"block"}}>{String.fromCharCode(0xD83D,0xDCF7)} Food Photo (Optional)</label>
+        
+        {/* Current image preview */}
+        {f.image_url && imageMode==="current" && <div style={{marginBottom:9}}>
+          <div style={{position:"relative",display:"inline-block",borderRadius:9,overflow:"hidden",border:"2px solid #ede8de"}}>
+            <img src={f.image_url} alt="Menu" style={{width:200,height:150,objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none";alert("Image failed to load. URL might be invalid.");}}/>
+            <button onClick={removeImage} style={{position:"absolute",top:5,right:5,width:28,height:28,borderRadius:"50%",background:"rgba(220,38,38,.9)",color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:14}}>{String.fromCharCode(0x00D7)}</button>
+          </div>
+        </div>}
+        
+        {/* Mode selector */}
+        {(!f.image_url||imageMode!=="current") && <>
+          <div style={{display:"flex",gap:5,marginBottom:9}}>
+            <button onClick={()=>setImageMode("upload")} style={{flex:1,padding:"8px 10px",background:imageMode==="upload"?"#bf4626":"#fff",color:imageMode==="upload"?"#fff":"#1a1208",border:"2px solid "+(imageMode==="upload"?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:11}}>{String.fromCharCode(0xD83D,0xDCC1)} Upload File</button>
+            <button onClick={()=>setImageMode("url")} style={{flex:1,padding:"8px 10px",background:imageMode==="url"?"#bf4626":"#fff",color:imageMode==="url"?"#fff":"#1a1208",border:"2px solid "+(imageMode==="url"?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:11}}>{String.fromCharCode(0xD83C,0xDF10)} Paste URL</button>
+            <button onClick={()=>setImageMode("none")} style={{flex:1,padding:"8px 10px",background:imageMode==="none"?"#1a1208":"#fff",color:imageMode==="none"?"#fff":"#1a1208",border:"2px solid "+(imageMode==="none"?"#1a1208":"#ede8de"),borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:11}}>{String.fromCharCode(0xD83D,0xDE00)} Use Icon</button>
+          </div>
+          
+          {imageMode==="upload" && <div style={{padding:14,background:"#fff",borderRadius:7,border:"2px dashed #fde68a",textAlign:"center"}}>
+            <input type="file" accept="image/*" onChange={handleFileUpload} disabled={uploading} style={{display:"none"}} id="menu-img-upload"/>
+            <label htmlFor="menu-img-upload" style={{cursor:uploading?"wait":"pointer",display:"block"}}>
+              <p style={{fontSize:36,marginBottom:5}}>{uploading?String.fromCharCode(0x23F3):String.fromCharCode(0xD83D,0xDCF7)}</p>
+              <p style={{fontSize:13,fontWeight:700,marginBottom:3}}>{uploading?"Uploading...":"Click to choose photo"}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>JPG, PNG, WebP - Max 5MB</p>
+            </label>
+          </div>}
+          
+          {imageMode==="url" && <div>
+            <input value={urlInput} onChange={e=>setUrlInput(e.target.value)} placeholder="https://example.com/photo.jpg" style={{width:"100%",padding:"10px",border:"2px solid #ede8de",borderRadius:7,fontSize:12,marginBottom:7,boxSizing:"border-box"}}/>
+            <button onClick={handleUrlSubmit} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>Use This URL</button>
+            <p style={{fontSize:10,color:"#92400e",marginTop:5}}>{String.fromCharCode(0xD83D,0xDCA1)} Tip: Use Google Image Search, Unsplash, or your phone photos uploaded to Imgur</p>
+          </div>}
+          
+          {imageMode==="none" && <p style={{fontSize:11,color:"#92400e",fontStyle:"italic"}}>{String.fromCharCode(0x2139,0xFE0F)} Customers will see the icon (chosen below) instead of a photo</p>}
+        </>}
       </div>
 
       {/* Icon picker */}
@@ -12544,6 +12626,7 @@ export default function App(){
           availDineIn:m.avail_dinein!==false,
           availTakeaway:m.avail_takeaway!==false,
           availDelivery:m.avail_delivery!==false,
+          image_url:m.image_url||null,
         }));
         setMenu(formatted);
       }
