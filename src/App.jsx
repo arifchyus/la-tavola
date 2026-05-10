@@ -6049,10 +6049,15 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       };
       
       return <div>
-        {/* Header banner */}
+        {/* Header banner with explanation */}
         <div className="card" style={{padding:14,marginBottom:11,background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff"}}>
-          <h3 style={{fontSize:17,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB0)} Finance & Profit/Loss</h3>
-          <p style={{fontSize:12,opacity:.85}}>Track expenses, view P&L, and analyze profit margins for any date range.</p>
+          <h3 style={{fontSize:17,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB0)} Finance & Profit Tracking</h3>
+          <p style={{fontSize:12,opacity:.85,marginBottom:9}}>See if your restaurant is profitable. Track every penny in (sales) and out (expenses) for any date range.</p>
+          <div style={{display:"flex",gap:11,fontSize:11,opacity:.8,flexWrap:"wrap"}}>
+            <span>{String.fromCharCode(0x2705)} Income from orders auto-tracked</span>
+            <span>{String.fromCharCode(0x2705)} Add your expenses manually</span>
+            <span>{String.fromCharCode(0x2705)} Get profit/loss instantly</span>
+          </div>
         </div>
         
         {/* Date Range Picker */}
@@ -6091,12 +6096,30 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           </div>
         </div>
         
-        {/* Action Buttons */}
-        <div style={{display:"flex",gap:7,marginBottom:11,flexWrap:"wrap"}}>
-          <button onClick={()=>setShowAddExpense(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0x2B)} Add Expense</button>
-          <button onClick={()=>setShowCategoryManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCC1)} Categories ({expenseCategories.filter(c=>c.active).length})</button>
-          <button onClick={()=>setShowRecurringManager(true)} style={{padding:"10px 16px",background:"#fff",color:"#7c3aed",border:"2px solid #7c3aed",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD04)} Recurring ({recurringExpenses.filter(r=>r.active).length})</button>
-          <button onClick={()=>setShowPLStatement(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCCA)} View P&L Statement</button>
+        {/* Action Buttons - With clear descriptions */}
+        <div style={{marginBottom:14}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:7,textTransform:"uppercase"}}>{String.fromCharCode(0xD83D,0xDCB8)} Track Your Expenses</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:7}}>
+            <button onClick={()=>setShowAddExpense(true)} style={{padding:"14px 16px",background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",border:"none",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0x2B)} Add Expense</div>
+              <div style={{fontSize:10,opacity:.85}}>Record a new expense (rent, utilities, food, etc.)</div>
+            </button>
+            <button onClick={()=>setShowCategoryManager(true)} style={{padding:"14px 16px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDCC1)} Categories</div>
+              <div style={{fontSize:10,color:"#8a8078"}}>Organise expenses by type ({expenseCategories.filter(c=>c.active).length} types)</div>
+            </button>
+            <button onClick={()=>setShowRecurringManager(true)} style={{padding:"14px 16px",background:"#fff",color:"#7c3aed",border:"2px solid #7c3aed",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDD04)} Recurring Bills</div>
+              <div style={{fontSize:10,color:"#7c3aed",opacity:.85}}>Auto-track monthly bills like rent ({recurringExpenses.filter(r=>r.active).length} active)</div>
+            </button>
+            <button onClick={()=>setShowPLStatement(true)} style={{padding:"14px 16px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",border:"none",borderRadius:9,cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:3}}>{String.fromCharCode(0xD83D,0xDCCA)} P&L Statement</div>
+              <div style={{fontSize:10,opacity:.85}}>View profit/loss summary report</div>
+            </button>
+          </div>
+          <div style={{marginTop:9,padding:"9px 12px",background:"#fef3c7",borderRadius:7,fontSize:11,color:"#92400e",lineHeight:1.5}}>
+            <strong>{String.fromCharCode(0xD83D,0xDCA1)} How it works:</strong> Track everything you spend (rent, utilities, food, salaries) so you can see your true profit. Categories organise expenses. Recurring bills (like rent) get added automatically each month so you don't have to type them every time.
+          </div>
         </div>
         
         {/* Income breakdown */}
