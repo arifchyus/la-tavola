@@ -6996,7 +6996,7 @@ var CUSTOMERS0=[
 ];
 
 // -- PHONE ORDER VIEW ---------------------------------------------------------
-function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,orders}){
+function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,orders,restaurant}){
   var [phone,setPhone]=useState("");
   var [found,setFound]=useState(null);
   // eslint-disable-next-line no-unused-vars
@@ -7230,7 +7230,12 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
           {(found.totalOrders>0||found.totalSpent>0)&&<p style={{fontSize:11,color:"#d4952a",fontWeight:700,marginTop:4}}>{found.totalOrders||0} previous orders - {fmt(found.totalSpent||0)} total spent</p>}
         </div>
         <div style={{display:"flex",gap:5}}>
-          {[["delivery","Delivery"],["collection","Collection"]].map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"9px 16px",borderRadius:8,fontWeight:700,fontSize:12,background:orderType===t?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"2px solid "+(orderType===t?"#bf4626":"rgba(255,255,255,.2)"),cursor:"pointer"}}>{l}</button>)}
+          {[["delivery","Delivery"],["collection","Collection"]].filter(([t])=>{
+            if(!restaurant)return true;
+            if(t==="delivery"&&!hasService(restaurant,"delivery"))return false;
+            if(t==="collection"&&!hasService(restaurant,"collection"))return false;
+            return true;
+          }).map(([t,l])=><button key={t} onClick={()=>setOrderType(t)} style={{padding:"9px 16px",borderRadius:8,fontWeight:700,fontSize:12,background:orderType===t?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"2px solid "+(orderType===t?"#bf4626":"rgba(255,255,255,.2)"),cursor:"pointer"}}>{l}</button>)}
         </div>
       </div>
 
@@ -9953,13 +9958,14 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
 
 // CLASSIC UI - POSCUBE-style with category buttons on left, items in middle, bill on right
 // CLASSIC POSCUBE-style POS - traditional EPOS layout with categories on left, items in middle, bill on right
-function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers,restaurant}){
   var [phoneCust,setPhoneCust]=useState(null);
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var cats=[...new Set(menu.filter(i=>i.avail).map(i=>i.cat))];
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
   var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
+  useEffect(()=>{if(restaurant&&!hasService(restaurant,"dine_in")&&type==="dine-in")setType("takeaway");},[restaurant,type]);
   var [tbl,setTbl]=useState("");
   var [guests,setGuests]=useState("1");
   var [discPct,setDiscPct]=useState(0);
@@ -10104,7 +10110,12 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
         <p style={{fontSize:14,fontWeight:700,color:"#d4952a"}}>{branch?.name} - {user?.name}</p>
       </div>
       <div style={{display:"flex",gap:4,background:"rgba(0,0,0,.3)",borderRadius:7,padding:3}}>
-        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"6px 14px",borderRadius:5,fontSize:12,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+        {[["dine-in","Dine In"],["takeaway","Takeaway"]].filter(([tp])=>{
+          if(!restaurant)return true;
+          if(tp==="dine-in"&&!hasService(restaurant,"dine_in"))return false;
+          if(tp==="takeaway"&&!hasService(restaurant,"collection")&&!hasService(restaurant,"delivery"))return false;
+          return true;
+        }).map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"6px 14px",borderRadius:5,fontSize:12,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
       {type==="dine-in"&&<>
         <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"6px 8px",borderRadius:6,border:"2px solid "+(!tbl?"#fbbf24":"#d4952a"),background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208",fontWeight:700,textAlign:"center",fontSize:13}}/>
@@ -10250,7 +10261,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     })()}
   </div>;
 }
-function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers,restaurant}){
   var [phoneCust,setPhoneCust]=useState(null);
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
   var [showPayment,setShowPayment]=useState(false);
@@ -10258,6 +10269,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [cat,setCat]=useState(cats[0]||"");
   var [cart,setCart]=useState([]);
   var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
+  useEffect(()=>{if(restaurant&&!hasService(restaurant,"dine_in")&&type==="dine-in")setType("takeaway");},[restaurant,type]);
   var [tbl,setTbl]=useState("");
   var [showCart,setShowCart]=useState(false);
   var [search,setSearch]=useState("");
@@ -10387,7 +10399,12 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
         <p style={{fontSize:11,color:"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{branch?.name}</p>
       </div>
       <div style={{display:"flex",gap:3,background:"rgba(0,0,0,.3)",borderRadius:6,padding:2}}>
-        {[["dine-in","Dine"],["takeaway","Take"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"5px 10px",borderRadius:4,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+        {[["dine-in","Dine"],["takeaway","Take"]].filter(([tp])=>{
+          if(!restaurant)return true;
+          if(tp==="dine-in"&&!hasService(restaurant,"dine_in"))return false;
+          if(tp==="takeaway"&&!hasService(restaurant,"collection")&&!hasService(restaurant,"delivery"))return false;
+          return true;
+        }).map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));return{...it,price:m?getItemPrice(m,tp):it.price};}));}} style={{padding:"5px 10px",borderRadius:4,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"transparent",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
       {type==="dine-in"&&<input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="T#" style={{width:42,padding:"5px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,textAlign:"center",background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208"}}/>}
     </div>
@@ -10474,7 +10491,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
 }
 
 // MODERN UI - the current existing UI (renamed from PosV)
-function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers}){
+function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBackToDash,customers,setCustomers,restaurant}){
   var [phoneCust,setPhoneCust]=useState(null); // when set, this is a delivery/collection order
   var [showCodePopup,setShowCodePopup]=useState(null); // {code, customer, type, total} when set
   var [showPhonePopup,setShowPhonePopup]=useState(()=>{try{if(window.__posOpenPhonePopup){window.__posOpenPhonePopup=false;return true;}}catch(e){}return false;});
@@ -10487,6 +10504,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
     }
     return "";
   }),[type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
+  useEffect(()=>{if(restaurant&&!hasService(restaurant,"dine_in")&&type==="dine-in")setType("takeaway");},[restaurant,type]);
   var [payStep,setPayStep]=useState(null),[cashGiven,setCashGiven]=useState("");
   var [showPayment,setShowPayment]=useState(false);
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
@@ -10725,7 +10743,12 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
       <p style={{color:"#d4952a",fontWeight:700,fontSize:14}}>POS</p>
       <button onClick={()=>setShowPhonePopup(true)} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>{EM.phone} Phone Order</button>
       <div style={{display:"flex",gap:4}}>
-        {[["dine-in","Dine In"],["takeaway","Takeaway"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));var newPrice=m?getItemPrice(m,tp):it.price;return{...it,price:newPrice};}));}} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
+        {[["dine-in","Dine In"],["takeaway","Takeaway"]].filter(([tp])=>{
+          if(!restaurant)return true;
+          if(tp==="dine-in"&&!hasService(restaurant,"dine_in"))return false;
+          if(tp==="takeaway"&&!hasService(restaurant,"collection")&&!hasService(restaurant,"delivery"))return false;
+          return true;
+        }).map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setCart(c=>c.map(it=>{var m=menu.find(x=>String(x.id)===String(it.id));var newPrice=m?getItemPrice(m,tp):it.price;return{...it,price:newPrice};}));}} style={{padding:"5px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:type===tp?"#bf4626":"rgba(255,255,255,.1)",color:"#fff",border:"none",cursor:"pointer"}}>{lb}</button>)}
       </div>
       {type==="dine-in"&&<>
         <input value={tbl} onChange={e=>setTbl(e.target.value)} placeholder="Table #" style={{width:70,padding:"5px 8px",border:"none",borderRadius:6,fontSize:13,fontWeight:700,textAlign:"center",background:!tbl?"#fef3c7":"#fff",color:!tbl?"#92400e":"#1a1208"}}/>
@@ -12775,8 +12798,8 @@ export default function App(){
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
     <main style={{paddingBottom:20}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs} restaurant={restaurant}/>}
-      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser}/>}
-      {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders}/>}
+      {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser} restaurant={restaurant}/>}
+      {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders} restaurant={restaurant}/>}
       {view==="tables"  &&<TablesV  tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{
         // Store preselected table so POS can pick it up
         window.__preselectedTable=String(tableId);
