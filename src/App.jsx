@@ -1,4 +1,5 @@
 import{useState,useEffect,useRef,useCallback}from"react";
+import{t,LANGUAGES,TRANSLATIONS,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
 import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,PLAN_FEATURES}from"./supabaseClient";
 
@@ -1846,7 +1847,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
       <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
       <div className="card" style={{marginBottom:10}}>
         <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>How would you like your order?</p>
-        <div className="g3" style={{marginBottom:12}}>{[["delivery","Delivery"],["collection","Collection"],["eatin","Eat In"]].filter(([tp])=>{
+        <div className="g3" style={{marginBottom:12}}>{[["delivery",t("delivery")],["collection",t("collection")],["eatin",t("eatIn")]].filter(([tp])=>{
           // Filter based on restaurant service types
           if(!restaurant)return true;
           if(tp==="delivery"&&!hasService(restaurant,"delivery"))return false;
@@ -1968,8 +1969,13 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
     <div style={{background:"linear-gradient(135deg,#1a1208,#2e1f10)",borderRadius:16,padding:"22px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 80% 50%,rgba(212,149,42,.12),transparent 70%)"}}/>
       <div style={{position:"relative",zIndex:1}}>
-        <p style={{color:"#d4952a",fontSize:10,letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>Welcome to</p>
-        <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>{restaurant?.name||"La Tavola"}</h1>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+          <div>
+            <p style={{color:"#d4952a",fontSize:10,letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>Welcome to</p>
+            <h1 style={{color:"#fff",fontSize:30,marginBottom:4}}>{restaurant?.name||"La Tavola"}</h1>
+          </div>
+          <LanguagePicker compact={true}/>
+        </div>
         {branch&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:6,flexWrap:"wrap"}}>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{EM.pin} {branch.addr}</p>
           <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))window.location.href="/";}} style={{padding:"5px 11px",fontSize:11,background:"rgba(212,149,42,.2)",color:"#d4952a",border:"1px solid rgba(212,149,42,.4)",borderRadius:6,cursor:"pointer",fontWeight:700}}>Change Branch</button>
@@ -1997,7 +2003,7 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
     {count>0&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:300}}>
       <button className="btn btn-d" onClick={()=>setStep("checkout")} style={{padding:"12px 24px",borderRadius:50,fontSize:13,boxShadow:"0 8px 28px rgba(0,0,0,.3)",gap:8,minWidth:190}}>
         <span style={{background:"#bf4626",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{count}</span>
-        <span style={{flex:1,textAlign:"center"}}>View Cart</span>
+        <span style={{flex:1,textAlign:"center"}}>{t("viewCart")}</span>
         <span style={{color:"#d4952a",fontWeight:700}}>{fmt(total)}</span>
       </button>
     </div>}
@@ -3821,6 +3827,55 @@ function PLStatement({orders,expenses,fromDate,toDate,branch,onClose}){
 // ============================================================
 // STAFF PIN LOGIN MODAL
 // ============================================================
+// ============================================================
+// LANGUAGE PICKER
+// ============================================================
+function LanguagePicker({compact}){
+  var [open,setOpen]=useState(false);
+  var [currentLang,setCurrentLang]=useState(getCurrentLanguage());
+  var ref=useRef();
+  
+  useEffect(()=>{
+    var handler=(e)=>{
+      if(ref.current&&!ref.current.contains(e.target))setOpen(false);
+    };
+    document.addEventListener("mousedown",handler);
+    return ()=>document.removeEventListener("mousedown",handler);
+  },[]);
+  
+  var pickLang=(code)=>{
+    setLanguage(code);
+    setCurrentLang(code);
+    setOpen(false);
+    // Force re-render of whole app
+    window.dispatchEvent(new Event("languagechange-custom"));
+  };
+  
+  var info=LANGUAGES[currentLang]||LANGUAGES.en;
+  
+  return <div ref={ref} style={{position:"relative",display:"inline-block"}}>
+    <button onClick={()=>setOpen(!open)} style={{padding:compact?"5px 9px":"7px 12px",background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",borderRadius:7,fontSize:compact?11:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+      <span style={{fontSize:compact?13:15}}>{info.flag}</span>
+      <span>{info.native}</span>
+      <span style={{fontSize:9,opacity:.7}}>{open?String.fromCharCode(0x25B2):String.fromCharCode(0x25BC)}</span>
+    </button>
+    {open && <div style={{position:"absolute",top:"100%",right:0,marginTop:5,background:"#fff",border:"2px solid #ede8de",borderRadius:9,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:9999,minWidth:170,overflow:"hidden"}}>
+      {Object.keys(LANGUAGES).map(code=>{
+        var lang=LANGUAGES[code];
+        var isCurrent=code===currentLang;
+        return <button key={code} onClick={()=>pickLang(code)} style={{width:"100%",padding:"10px 14px",background:isCurrent?"#fef3c7":"#fff",color:isCurrent?"#92400e":"#1a1208",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:9,fontSize:13,textAlign:"left",borderBottom:"1px solid #ede8de"}} onMouseOver={e=>{if(!isCurrent)e.target.style.background="#f7f3ee";}} onMouseOut={e=>{if(!isCurrent)e.target.style.background="#fff";}}>
+          <span style={{fontSize:18}}>{lang.flag}</span>
+          <div style={{flex:1}}>
+            <p style={{fontWeight:700,fontSize:13}}>{lang.native}</p>
+            <p style={{fontSize:10,color:"#8a8078"}}>{lang.name}</p>
+          </div>
+          {isCurrent && <span style={{color:"#22c55e",fontSize:14,fontWeight:700}}>{String.fromCharCode(0x2713)}</span>}
+        </button>;
+      })}
+    </div>}
+  </div>;
+}
+
 function StaffPINLoginModal({onSuccess, onCancel, allowSkip}){
   var [pin, setPin] = useState("");
   var [error, setError] = useState("");
@@ -12195,6 +12250,13 @@ function RestaurantSwitcher({currentRestaurant,onSwitch,onClose}){
 export default function App(){
   var [view,setView]=useState("menu"),[orders,setOrders]=useState([]),[menu,setMenu]=useState([]);
   var [discs,setDiscs]=useState([]),[users,setUsers]=useState(USERS);
+  // LANGUAGE: re-render when language changes
+  var [currentLang,setCurrentLang]=useState(getCurrentLanguage());
+  useEffect(()=>{
+    var handler=()=>setCurrentLang(getCurrentLanguage());
+    window.addEventListener("languagechange-custom",handler);
+    return ()=>window.removeEventListener("languagechange-custom",handler);
+  },[]);
   var [reviews,setReviews]=useState([]);
   var [reservations,setRes]=useState([]);
   var [messages,setMessages]=useState([]);
@@ -12675,7 +12737,7 @@ export default function App(){
     return true;
   });
   
-  var tl={menu:"Order",track:"Track",book:"Book",reviews:"Reviews",account:"Me",chat:"Chat",kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
+  var tl={menu:t("order"),track:t("track"),book:t("book"),reviews:t("reviews"),account:t("account"),chat:t("chat"),kitchen:"Kitchen",admin:"Admin",report:"Reports",pos:"POS",tables:"Tables",phone:"Phone",bookings:"Bookings",incoming:"Incoming",driver:"Driver"};
   var ti={menu:"cart",track:"pin",book:"cal",reviews:"star",account:"person",chat:"chat",kitchen:"cook",admin:"gear",report:"chart",pos:"cart",tables:"pin",phone:"phone",bookings:"cal",incoming:"bag",driver:"pin"};
 
   // PHASE A: Don't show anything until URL is checked
