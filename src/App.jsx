@@ -12282,6 +12282,17 @@ export default function App(){
       // Only use saved restaurant if user is actually a SaaS owner
       setRestaurant(savedRest);
       try{window.__currentRestaurant=savedRest;console.log("SaaS Restaurant loaded:",savedRest.name);}catch(e){}
+      
+      // CRITICAL: Refresh restaurant data from DB to get latest plan/locks/features
+      dbFetchRestaurant(savedRest.id).then(freshData=>{
+        if(freshData){
+          setRestaurant(freshData);
+          dbSaveOwner(saasOwner,freshData);
+          try{window.__currentRestaurant=freshData;}catch(e){}
+          console.log("Restaurant data refreshed from DB:",freshData.name,"locks:",freshData.feature_locks);
+        }
+      });
+      
       // Show onboarding if not complete
       if(!savedRest.onboarding_complete){
         setShowOnboarding(true);
