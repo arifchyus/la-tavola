@@ -9773,7 +9773,7 @@ function PosV(props){
 }
 
 // POS DASHBOARD - POSCUBE-style home screen with action tiles
-function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,menu,customers,setView,onOpenPos,setUser,push}){
+function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,menu,customers,setView,onOpenPos,setUser,push,restaurant}){
   var [modalView,setModalView]=useState(null);
   var [currentShift,setCurrentShift]=useState(null);
   var [showShiftOpen,setShowShiftOpen]=useState(false);
@@ -9846,16 +9846,16 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
     // ROW 1: TAKE NEW ORDERS (4 tiles)
-    {icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}},
-    {icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}},
-    {icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>{try{window.__posOpenPhonePopup=true;}catch(e){}onOpenPos();}},
+    ...(hasService(restaurant,"dine_in")?[{icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}}]:[]),
+    ...(hasService(restaurant,"collection")||hasService(restaurant,"delivery")?[{icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}}]:[]),
+    ...(hasService(restaurant,"phone_orders")?[{icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>{try{window.__posOpenPhonePopup=true;}catch(e){}onOpenPos();}}]:[]),
     {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setModalView("incoming"),pulse:pendingIncoming>0},
 
     // ROW 2: MANAGE ACTIVE ORDERS (4 tiles)
     {icon:EM.cook,label:"Kitchen",color:"#059669",bgGradient:"linear-gradient(135deg,#059669,#10b981)",badge:null,sublabel:"What to cook",onClick:()=>setModalView("kitchen")},
-    {icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,sublabel:"Floor view",onClick:()=>setModalView("tables")},
-    {icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,sublabel:"Deliveries",onClick:()=>setModalView("driver")},
-    {icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,sublabel:"Reservations",onClick:()=>setModalView("bookings")},
+    ...(hasService(restaurant,"dine_in")?[{icon:EM.pin,label:"Tables",color:"#0891b2",bgGradient:"linear-gradient(135deg,#0891b2,#06b6d4)",badge:occupiedTables>0?occupiedTables+"/"+totalTables:null,sublabel:"Floor view",onClick:()=>setModalView("tables")}]:[]),
+    ...(hasService(restaurant,"delivery")?[{icon:EM.bag,label:"Driver",color:"#ea580c",bgGradient:"linear-gradient(135deg,#ea580c,#f97316)",badge:driverActive>0?driverActive:null,sublabel:"Deliveries",onClick:()=>setModalView("driver")}]:[]),
+    ...(hasService(restaurant,"dine_in")?[{icon:EM.cal,label:"Bookings",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#a855f7)",badge:null,sublabel:"Reservations",onClick:()=>setModalView("bookings")}]:[]),
 
     // ROW 3: MANAGEMENT (3 tiles)
     {icon:EM.chart,label:"Reports",color:"#0d9488",bgGradient:"linear-gradient(135deg,#0d9488,#14b8a6)",badge:null,sublabel:"Sales & analytics",onClick:()=>setModalView("report")},
