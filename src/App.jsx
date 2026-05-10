@@ -5083,7 +5083,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       })));
     });
   },[]);
-  var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"||o.status==="served"||o.status==="completed"||o.status==="paid"),rev=fil.filter(o=>o.status!=="cancelled"&&o.status!=="refunded").reduce((s,o)=>s+parseFloat(o.total||0),0);
+  var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),rev=fil.filter(o=>o.status!=="cancelled"&&o.status!=="refunded").reduce((s,o)=>s+parseFloat(o.total||0),0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{
     setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
