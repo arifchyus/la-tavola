@@ -2659,9 +2659,28 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
   };
   
   var handleUrlSubmit=()=>{
-    if(!urlInput.trim()){alert("Please paste a URL");return;}
-    if(!urlInput.startsWith("http")){alert("URL must start with http:// or https://");return;}
-    update("image_url",urlInput.trim());
+    var url=urlInput.trim();
+    if(!url){alert("Please paste a URL");return;}
+    if(!url.startsWith("http")){alert("URL must start with http:// or https://");return;}
+    
+    // Common URL conversions
+    // Unsplash: https://unsplash.com/photos/xyz → suggest direct URL
+    if(url.includes("unsplash.com/photos/")){
+      alert("This is the Unsplash webpage URL, not the image URL.\n\nTo get the image URL:\n1. Click 'Download' on the photo\n2. Right-click the downloaded image\n3. Open it in a new tab\n4. Copy THAT URL (will start with 'images.unsplash.com')\n\nOr use Pexels.com / Pixabay.com instead - just right-click any image and 'Copy Image Address'.");
+      return;
+    }
+    
+    // Validate it looks like an image URL
+    var imageExtensions=[".jpg",".jpeg",".png",".webp",".gif"];
+    var hasImageExt=imageExtensions.some(ext=>url.toLowerCase().includes(ext));
+    var isImageHost=url.includes("images.unsplash.com")||url.includes("imgur.com")||url.includes("googleusercontent.com")||url.includes("pexels.com/photos/")||url.includes("pixabay.com")||url.includes("supabase.co/storage");
+    
+    if(!hasImageExt && !isImageHost){
+      var proceed=window.confirm("This URL doesn't look like a direct image link.\n\nIt should end with .jpg, .png, .webp, or .gif\n\nDo you want to try it anyway?");
+      if(!proceed)return;
+    }
+    
+    update("image_url",url);
     setImageMode("current");
     setUrlInput("");
   };
@@ -2716,8 +2735,17 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
           
           {imageMode==="url" && <div>
             <input value={urlInput} onChange={e=>setUrlInput(e.target.value)} placeholder="https://example.com/photo.jpg" style={{width:"100%",padding:"10px",border:"2px solid #ede8de",borderRadius:7,fontSize:12,marginBottom:7,boxSizing:"border-box"}}/>
-            <button onClick={handleUrlSubmit} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>Use This URL</button>
-            <p style={{fontSize:10,color:"#92400e",marginTop:5}}>{String.fromCharCode(0xD83D,0xDCA1)} Tip: Use Google Image Search, Unsplash, or your phone photos uploaded to Imgur</p>
+            <button onClick={handleUrlSubmit} style={{width:"100%",padding:"10px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer",marginBottom:9}}>Use This URL</button>
+            <div style={{padding:9,background:"#fff",borderRadius:7,fontSize:11,color:"#92400e",border:"1px solid #fde68a"}}>
+              <p style={{fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCA1)} How to get a working image URL:</p>
+              <p style={{marginBottom:5}}><strong>Easy way:</strong> Visit <strong>pexels.com</strong> or <strong>pixabay.com</strong></p>
+              <p style={{marginBottom:5}}>1. Search for food photos</p>
+              <p style={{marginBottom:5}}>2. <strong>Right-click</strong> any image</p>
+              <p style={{marginBottom:5}}>3. Click <strong>"Copy Image Address"</strong></p>
+              <p style={{marginBottom:9}}>4. Paste here</p>
+              <p style={{marginBottom:5,paddingTop:5,borderTop:"1px solid #fde68a"}}><strong>{String.fromCharCode(0x26A0,0xFE0F)} Don't paste:</strong> Webpage URLs (like unsplash.com/photos/xxx)</p>
+              <p><strong>{String.fromCharCode(0x2705)} Paste:</strong> Direct image URLs (ending in .jpg, .png, .webp)</p>
+            </div>
           </div>}
           
           {imageMode==="none" && <p style={{fontSize:11,color:"#92400e",fontStyle:"italic"}}>{String.fromCharCode(0x2139,0xFE0F)} Customers will see the icon (chosen below) instead of a photo</p>}
@@ -5055,7 +5083,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       })));
     });
   },[]);
-  var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"),rev=del.reduce((s,o)=>s+o.total,0);
+  var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),del=fil.filter(o=>o.status==="delivered"||o.status==="collected"||o.status==="served"||o.status==="completed"||o.status==="paid"),rev=fil.filter(o=>o.status!=="cancelled"&&o.status!=="refunded").reduce((s,o)=>s+parseFloat(o.total||0),0);
   var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
   var upSt=(id,st)=>{
     setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
@@ -5501,7 +5529,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>;
       })}
     </div>}
-    {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(del.length?rev/del.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
+    {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(fil.length?rev/fil.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
     {tab==="menu"&&(()=>{
       // Apply filters
       var q=menuSearch.trim().toLowerCase();
