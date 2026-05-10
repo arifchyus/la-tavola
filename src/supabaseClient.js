@@ -3303,7 +3303,7 @@ export async function uploadMenuImage(file, restaurantId) {
   const filename = `${restaurantId || 'shared'}/${timestamp}-${random}.${ext}`;
   
   try {
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('menu-images')
       .upload(filename, file, {
         cacheControl: '3600',
