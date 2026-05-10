@@ -3859,20 +3859,27 @@ function LanguagePicker({compact}){
       <span>{info.native}</span>
       <span style={{fontSize:9,opacity:.7}}>{open?String.fromCharCode(0x25B2):String.fromCharCode(0x25BC)}</span>
     </button>
-    {open && <div style={{position:"absolute",top:"100%",right:0,marginTop:5,background:"#fff",border:"2px solid #ede8de",borderRadius:9,boxShadow:"0 8px 24px rgba(0,0,0,.15)",zIndex:9999,minWidth:170,overflow:"hidden"}}>
+    {open && <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"#fff",border:"2px solid #ede8de",borderRadius:14,boxShadow:"0 20px 60px rgba(0,0,0,.4)",zIndex:99999,width:300,maxWidth:"90vw",maxHeight:"80vh",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"14px 16px",background:"linear-gradient(135deg,#1a1208,#3d2e22)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <p style={{fontSize:14,fontWeight:700}}>{String.fromCharCode(0xD83C,0xDF10)} Choose Language</p>
+        <button onClick={()=>setOpen(false)} style={{background:"rgba(255,255,255,.15)",border:"none",color:"#fff",width:28,height:28,borderRadius:"50%",cursor:"pointer",fontSize:14,fontWeight:700}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      <div style={{overflowY:"auto",flex:1}}>
       {Object.keys(LANGUAGES).map(code=>{
         var lang=LANGUAGES[code];
         var isCurrent=code===currentLang;
-        return <button key={code} onClick={()=>pickLang(code)} style={{width:"100%",padding:"10px 14px",background:isCurrent?"#fef3c7":"#fff",color:isCurrent?"#92400e":"#1a1208",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:9,fontSize:13,textAlign:"left",borderBottom:"1px solid #ede8de"}} onMouseOver={e=>{if(!isCurrent)e.target.style.background="#f7f3ee";}} onMouseOut={e=>{if(!isCurrent)e.target.style.background="#fff";}}>
-          <span style={{fontSize:18}}>{lang.flag}</span>
+        return <button key={code} onClick={()=>pickLang(code)} style={{width:"100%",padding:"13px 16px",background:isCurrent?"#fef3c7":"#fff",color:isCurrent?"#92400e":"#1a1208",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:11,fontSize:14,textAlign:"left",borderBottom:"1px solid #ede8de"}} onMouseOver={e=>{if(!isCurrent)e.currentTarget.style.background="#f7f3ee";}} onMouseOut={e=>{if(!isCurrent)e.currentTarget.style.background="#fff";}}>
+          <span style={{fontSize:22}}>{lang.flag}</span>
           <div style={{flex:1}}>
-            <p style={{fontWeight:700,fontSize:13}}>{lang.native}</p>
-            <p style={{fontSize:10,color:"#8a8078"}}>{lang.name}</p>
+            <p style={{fontWeight:700,fontSize:14}}>{lang.native}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{lang.name}</p>
           </div>
-          {isCurrent && <span style={{color:"#22c55e",fontSize:14,fontWeight:700}}>{String.fromCharCode(0x2713)}</span>}
+          {isCurrent && <span style={{color:"#22c55e",fontSize:18,fontWeight:700}}>{String.fromCharCode(0x2713)}</span>}
         </button>;
       })}
+      </div>
     </div>}
+    {open && <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:99998}}/>}
   </div>;
 }
 
