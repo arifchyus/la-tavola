@@ -3051,3 +3051,127 @@ export function staffHasPermission(permName) {
   return staff.permissions[permName] === true;
 }
 
+
+// ===========================================================
+// FEATURE FLAGS & SERVICE TYPES
+// ===========================================================
+
+// Plan-based features definition
+export const PLAN_FEATURES = {
+  starter: {
+    pos: true,
+    menu_management: true,
+    basic_reports: true,
+    receipts: true,
+    stock_tracking: true,
+    branches_limit: 1,
+    staff_limit: 3,
+    online_ordering: false,
+    bookings: false,
+    online_payments: false,
+    promo_codes: false,
+    set_meals: false,
+    auto_offers: false,
+    custom_url: false,
+    advanced_analytics: false,
+    inventory_advanced: false,
+    cross_branch_reports: false,
+    custom_domain: false,
+    priority_support: false,
+  },
+  pro: {
+    pos: true,
+    menu_management: true,
+    basic_reports: true,
+    receipts: true,
+    stock_tracking: true,
+    branches_limit: 2,
+    staff_limit: 10,
+    online_ordering: true,
+    bookings: true,
+    online_payments: true,
+    promo_codes: true,
+    set_meals: true,
+    auto_offers: true,
+    custom_url: true,
+    advanced_analytics: false,
+    inventory_advanced: false,
+    cross_branch_reports: false,
+    custom_domain: false,
+    priority_support: false,
+  },
+  enterprise: {
+    pos: true,
+    menu_management: true,
+    basic_reports: true,
+    receipts: true,
+    stock_tracking: true,
+    branches_limit: 999,
+    staff_limit: 999,
+    online_ordering: true,
+    bookings: true,
+    online_payments: true,
+    promo_codes: true,
+    set_meals: true,
+    auto_offers: true,
+    custom_url: true,
+    advanced_analytics: true,
+    inventory_advanced: true,
+    cross_branch_reports: true,
+    custom_domain: true,
+    priority_support: true,
+  }
+};
+
+// Check if restaurant has a feature (combines plan + addons + service types)
+export function hasFeature(restaurant, feature) {
+  if (!restaurant) return false;
+  
+  // Check addon features first (highest priority)
+  if (restaurant.addon_features?.[feature] === true) return true;
+  
+  // Check plan-based features
+  const planFeatures = PLAN_FEATURES[restaurant.plan || 'starter'] || PLAN_FEATURES.starter;
+  return planFeatures[feature] === true;
+}
+
+// Check if restaurant offers a service type
+export function hasService(restaurant, serviceType) {
+  if (!restaurant) return false;
+  // Default to true if not configured (legacy support)
+  if (!restaurant.service_types) return true;
+  return restaurant.service_types[serviceType] !== false;
+}
+
+// Get the limit for a feature (e.g., branches_limit, staff_limit)
+export function getFeatureLimit(restaurant, feature) {
+  if (!restaurant) return 0;
+  const planFeatures = PLAN_FEATURES[restaurant.plan || 'starter'] || PLAN_FEATURES.starter;
+  return planFeatures[feature] || 0;
+}
+
+// Update service types
+export async function updateServiceTypes(restaurantId, serviceTypes) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ service_types: serviceTypes })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  
+  if (error) console.error('updateServiceTypes:', error);
+  return { data, error };
+}
+
+// Update addon features (super admin only)
+export async function updateAddonFeatures(restaurantId, addonFeatures) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ addon_features: addonFeatures })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  
+  if (error) console.error('updateAddonFeatures:', error);
+  return { data, error };
+}

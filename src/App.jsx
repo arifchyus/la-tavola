@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -1846,7 +1846,14 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
       <h2 style={{fontSize:22,marginBottom:14}}>Checkout</h2>
       <div className="card" style={{marginBottom:10}}>
         <p style={{fontWeight:700,marginBottom:9,fontSize:14}}>How would you like your order?</p>
-        <div className="g3" style={{marginBottom:12}}>{[["delivery","Delivery"],["collection","Collection"],["eatin","Eat In"]].map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setSlot(null);}} style={{padding:"12px 4px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid "+(type===tp?"#bf4626":"#ede8de"),background:type===tp?"#fff5f3":"#fff",color:type===tp?"#bf4626":"#1a1208",cursor:"pointer"}}>{lb}</button>)}</div>
+        <div className="g3" style={{marginBottom:12}}>{[["delivery","Delivery"],["collection","Collection"],["eatin","Eat In"]].filter(([tp])=>{
+          // Filter based on restaurant service types
+          if(!restaurant)return true;
+          if(tp==="delivery"&&!hasService(restaurant,"delivery"))return false;
+          if(tp==="collection"&&!hasService(restaurant,"collection"))return false;
+          if(tp==="eatin"&&!hasService(restaurant,"dine_in"))return false;
+          return true;
+        }).map(([tp,lb])=><button key={tp} onClick={()=>{setType(tp);setSlot(null);}} style={{padding:"12px 4px",borderRadius:9,fontWeight:700,fontSize:12,border:"2px solid "+(type===tp?"#bf4626":"#ede8de"),background:type===tp?"#fff5f3":"#fff",color:type===tp?"#bf4626":"#1a1208",cursor:"pointer"}}>{lb}</button>)}</div>
         {type==="eatin"&&<div style={{padding:"14px 16px",background:"#fffbeb",borderRadius:9,border:"2px solid #fde68a"}}>
           <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:5}}>{EM.cart} At the restaurant?</p>
           <p style={{fontSize:12,color:"#92400e",marginBottom:8}}>Scan the QR code on your table to order. A staff member can also take your order at the table.</p>
@@ -6392,6 +6399,74 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             }
           });
         }} className="btn btn-r" style={{width:"100%",padding:"11px",fontSize:13}}>Save Restaurant Info</button>
+      </div>}
+
+      {/* SERVICE TYPES - What this restaurant offers */}
+      {restaurant&&<div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #7c3aed"}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} Services Offered</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Choose what services you offer. This will hide/show features in your POS and on your customer ordering page.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:9,marginBottom:12}}>
+          {[
+            {id:"dine_in",name:"Dine-in",icon:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),desc:"Tables, bookings, restaurant POS",color:"#7c3aed"},
+            {id:"collection",name:"Collection",icon:String.fromCharCode(0xD83D,0xDED2),desc:"Customer comes to pick up orders",color:"#0891b2"},
+            {id:"delivery",name:"Delivery",icon:String.fromCharCode(0xD83D,0xDEF5),desc:"Delivery service with codes & drivers",color:"#dc2626"},
+            {id:"phone_orders",name:"Phone Orders",icon:String.fromCharCode(0xD83D,0xDCDE),desc:"Take orders by phone via POS",color:"#059669"},
+          ].map(svc=>{
+            var isActive=restaurant?.service_types?.[svc.id]!==false;
+            return <label key={svc.id} style={{display:"flex",alignItems:"flex-start",gap:9,padding:11,background:isActive?"#f7f3ee":"#fafaf5",border:"2px solid "+(isActive?svc.color:"#ede8de"),borderRadius:9,cursor:"pointer",transition:"all .15s"}}>
+              <input type="checkbox" checked={isActive} onChange={async (e)=>{
+                var newSvc={...(restaurant?.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true})};
+                newSvc[svc.id]=e.target.checked;
+                var result=await dbUpdateServiceTypes(restaurant.id,newSvc);
+                if(result.error){
+                  push&&push({title:"Failed",body:result.error.message,color:"#dc2626"});
+                } else {
+                  push&&push({title:svc.name+(e.target.checked?" enabled":" disabled"),color:svc.color});
+                  if(setRestaurant)setRestaurant({...restaurant,service_types:newSvc});
+                }
+              }} style={{marginTop:3,width:18,height:18,cursor:"pointer"}}/>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:700,marginBottom:2,color:isActive?svc.color:"#8a8078"}}>{svc.icon} {svc.name}</p>
+                <p style={{fontSize:11,color:"#8a8078"}}>{svc.desc}</p>
+              </div>
+            </label>;
+          })}
+        </div>
+        <div style={{padding:9,background:"#fef3c7",borderRadius:7,fontSize:11,color:"#92400e"}}>
+          <strong>{String.fromCharCode(0xD83D,0xDCA1)} Tip:</strong> Pure takeaway? Disable Dine-in. Pure restaurant? Disable Delivery. The system will adapt automatically.
+        </div>
+      </div>}
+
+      {/* PLAN INFO */}
+      {restaurant&&<div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #d97706"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9,marginBottom:9}}>
+          <div>
+            <p style={{fontSize:15,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCB3)} Subscription Plan</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Your current plan determines available features</p>
+          </div>
+          <div style={{padding:"7px 14px",background:restaurant.plan==="enterprise"?"#fef3c7":(restaurant.plan==="pro"?"#dbeafe":"#f7f3ee"),color:restaurant.plan==="enterprise"?"#92400e":(restaurant.plan==="pro"?"#1e40af":"#1a1208"),borderRadius:11,fontSize:13,fontWeight:700,textTransform:"capitalize"}}>
+            {restaurant.plan||"starter"}
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:7,fontSize:11}}>
+          {[
+            ["online_ordering","Online Ordering"],
+            ["bookings","Bookings"],
+            ["online_payments","Online Payments"],
+            ["promo_codes","Promo Codes"],
+            ["set_meals","Set Meals"],
+            ["custom_url","Custom URL"],
+            ["advanced_analytics","Advanced Analytics"],
+            ["custom_domain","Custom Domain"],
+          ].map(f=>{
+            var has=hasFeature(restaurant,f[0]);
+            return <div key={f[0]} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",background:has?"#d1fae5":"#fafaf5",borderRadius:5,color:has?"#065f46":"#8a8078"}}>
+              <span style={{fontWeight:700}}>{has?String.fromCharCode(0x2713):String.fromCharCode(0x2715)}</span>
+              <span>{f[1]}</span>
+            </div>;
+          })}
+        </div>
+        <p style={{fontSize:11,color:"#8a8078",marginTop:9}}>{String.fromCharCode(0xD83D,0xDCDE)} Need more features? Contact support to upgrade your plan.</p>
       </div>}
 
       <div className="card" style={{padding:16,marginBottom:12}}>
