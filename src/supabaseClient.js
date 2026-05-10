@@ -1498,6 +1498,27 @@ export async function loginRestaurant(email, password) {
     return { error: { message: 'Email not verified', needsVerification: true, ownerId: owner.id, email: owner.email } };
   }
   
+  // CHECK: Is restaurant suspended?
+  if (owner.restaurants && owner.restaurants.active === false) {
+    return { error: { message: 'Your account has been suspended. Please contact support at support@latavola.app' } };
+  }
+  
+  // CHECK: Is trial expired?
+  if (owner.restaurants && owner.restaurants.plan === 'trial' && owner.restaurants.trial_ends_at) {
+    const trialEnd = new Date(owner.restaurants.trial_ends_at);
+    if (trialEnd < new Date()) {
+      return { error: { message: 'Your free trial has expired. Please upgrade to continue using La Tavola.', subscriptionExpired: true, restaurantName: owner.restaurants.name } };
+    }
+  }
+  
+  // CHECK: Is paid subscription expired?
+  if (owner.restaurants && owner.restaurants.subscription_ends_at) {
+    const subEnd = new Date(owner.restaurants.subscription_ends_at);
+    if (subEnd < new Date()) {
+      return { error: { message: 'Your subscription has expired. Please renew to continue using La Tavola.', subscriptionExpired: true, restaurantName: owner.restaurants.name } };
+    }
+  }
+  
   // Update last login
   await supabase
     .from('restaurant_owners')
@@ -3210,4 +3231,46 @@ export async function updateFeatureLocks(restaurantId, featureLocks) {
   
   if (error) console.error('updateFeatureLocks:', error);
   return { data, error };
+}
+
+// ===========================================================
+// SUBSCRIPTION STATUS CHECK
+// ===========================================================
+
+// Check if a restaurant's subscription is valid
+// Returns: {valid: bool, reason: string|null, daysLeft: number|null, status: 'active'|'trial'|'expired'|'suspended'}
+export function checkSubscriptionStatus(restaurant) {
+  if (!restaurant) return { valid: false, reason: 'No restaurant', status: 'expired' };
+  
+  // Check if suspended
+  if (restaurant.active === false) {
+    return { valid: false, reason: 'Account suspended by admin', status: 'suspended' };
+  }
+  
+  // Check trial expired
+  if (restaurant.plan === 'trial' && restaurant.trial_ends_at) {
+    const trialEnd = new Date(restaurant.trial_ends_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+      return { valid: false, reason: 'Free trial expired', status: 'expired', daysLeft: 0 };
+    }
+    return { valid: true, status: 'trial', daysLeft };
+  }
+  
+  // Check paid subscription expired
+  if (restaurant.subscription_ends_at) {
+    const subEnd = new Date(restaurant.subscription_ends_at);
+    const now = new Date();
+    const daysLeft = Math.ceil((subEnd - now) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+      return { valid: false, reason: 'Subscription expired', status: 'expired', daysLeft: 0 };
+    }
+    return { valid: true, status: 'active', daysLeft };
+  }
+  
+  // No expiry set = lifetime access (for friends/admin override)
+  return { valid: true, status: 'active', daysLeft: null };
 }
