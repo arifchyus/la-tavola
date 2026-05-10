@@ -5047,7 +5047,23 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   // STAFF PIN: Filter tabs based on permissions
   var activeStaff = (typeof window!=="undefined")?dbGetActiveStaff():null;
   var TABS = TABS_ALL.filter(t=>{
-    // No active staff = restaurant owner = full access
+    // PLAN-BASED FILTERING (applies regardless of staff)
+    if(restaurant){
+      // Bookings tab requires bookings feature (Pro+)
+      if(t[0]==="combos" && !hasFeature(restaurant,"set_meals")) return false;
+      // Promo codes require promo_codes feature (Pro+)
+      if(t[0]==="codes" && !hasFeature(restaurant,"promo_codes")) return false;
+      // Auto offers require auto_offers feature (Pro+)
+      if(t[0]==="autodisc" && !hasFeature(restaurant,"auto_offers")) return false;
+      // Advanced analytics for Enterprise only
+      if(t[0]==="analytics" && !hasFeature(restaurant,"basic_reports")) return false;
+      // Hide tables tab if dine-in is disabled
+      if(t[0]==="tables" && !hasService(restaurant,"dine_in")) return false;
+      // Hide delivery tab if delivery service is off
+      if(t[0]==="delivery" && !hasService(restaurant,"delivery")) return false;
+    }
+    
+    // No active staff = restaurant owner = full access (still filtered by plan above)
     if(!activeStaff) return true;
     var perms = activeStaff.permissions || {};
     
