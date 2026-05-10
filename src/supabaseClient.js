@@ -3123,11 +3123,16 @@ export const PLAN_FEATURES = {
   }
 };
 
-// Check if restaurant has a feature (combines plan + addons + service types)
+// Check if restaurant has a feature (combines plan + addons + locks + service types)
 export function hasFeature(restaurant, feature) {
   if (!restaurant) return false;
   
-  // Check addon features first (highest priority)
+  // Check locks first (Super Admin overrides)
+  const locks = restaurant.feature_locks || {};
+  if (locks[feature] === 'lock_off') return false;
+  if (locks[feature] === 'lock_on') return true;
+  
+  // Check addon features (highest priority among allowed)
   if (restaurant.addon_features?.[feature] === true) return true;
   
   // Check plan-based features
@@ -3138,9 +3143,27 @@ export function hasFeature(restaurant, feature) {
 // Check if restaurant offers a service type
 export function hasService(restaurant, serviceType) {
   if (!restaurant) return false;
+  
+  // Check locks first (Super Admin overrides)
+  const locks = restaurant.feature_locks || {};
+  if (locks[serviceType] === 'lock_off') return false;
+  if (locks[serviceType] === 'lock_on') return true;
+  
   // Default to true if not configured (legacy support)
   if (!restaurant.service_types) return true;
   return restaurant.service_types[serviceType] !== false;
+}
+
+// Check if a feature is locked (returns 'lock_on', 'lock_off', or 'allow')
+export function getFeatureLockState(restaurant, feature) {
+  if (!restaurant?.feature_locks) return 'allow';
+  return restaurant.feature_locks[feature] || 'allow';
+}
+
+// Check if owner can toggle this feature
+export function canOwnerToggle(restaurant, feature) {
+  const lockState = getFeatureLockState(restaurant, feature);
+  return lockState === 'allow';
 }
 
 // Get the limit for a feature (e.g., branches_limit, staff_limit)
@@ -3173,5 +3196,18 @@ export async function updateAddonFeatures(restaurantId, addonFeatures) {
     .single();
   
   if (error) console.error('updateAddonFeatures:', error);
+  return { data, error };
+}
+
+// Update feature locks (super admin only)
+export async function updateFeatureLocks(restaurantId, featureLocks) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ feature_locks: featureLocks })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  
+  if (error) console.error('updateFeatureLocks:', error);
   return { data, error };
 }

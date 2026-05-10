@@ -1,6 +1,6 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -6428,9 +6428,18 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             {id:"delivery",name:"Delivery",icon:String.fromCharCode(0xD83D,0xDEF5),desc:"Delivery service with codes & drivers",color:"#dc2626"},
             {id:"phone_orders",name:"Phone Orders",icon:String.fromCharCode(0xD83D,0xDCDE),desc:"Take orders by phone via POS",color:"#059669"},
           ].map(svc=>{
-            var isActive=restaurant?.service_types?.[svc.id]!==false;
-            return <label key={svc.id} style={{display:"flex",alignItems:"flex-start",gap:9,padding:11,background:isActive?"#f7f3ee":"#fafaf5",border:"2px solid "+(isActive?svc.color:"#ede8de"),borderRadius:9,cursor:"pointer",transition:"all .15s"}}>
-              <input type="checkbox" checked={isActive} onChange={async (e)=>{
+            var lockState=getFeatureLockState(restaurant,svc.id);
+            var isLockedOff=lockState==="lock_off";
+            var isLockedOn=lockState==="lock_on";
+            var canToggle=lockState==="allow";
+            var isActive=isLockedOn?true:(isLockedOff?false:(restaurant?.service_types?.[svc.id]!==false));
+            
+            // Hide entirely if locked off (don't show to owner)
+            if(isLockedOff)return null;
+            
+            return <label key={svc.id} style={{display:"flex",alignItems:"flex-start",gap:9,padding:11,background:isActive?"#f7f3ee":"#fafaf5",border:"2px solid "+(isActive?svc.color:"#ede8de"),borderRadius:9,cursor:canToggle?"pointer":"not-allowed",transition:"all .15s",opacity:canToggle?1:.85}}>
+              <input type="checkbox" checked={isActive} disabled={!canToggle} onChange={async (e)=>{
+                if(!canToggle)return;
                 var newSvc={...(restaurant?.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true})};
                 newSvc[svc.id]=e.target.checked;
                 var result=await dbUpdateServiceTypes(restaurant.id,newSvc);
@@ -6440,9 +6449,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
                   push&&push({title:svc.name+(e.target.checked?" enabled":" disabled"),color:svc.color});
                   if(setRestaurant)setRestaurant({...restaurant,service_types:newSvc});
                 }
-              }} style={{marginTop:3,width:18,height:18,cursor:"pointer"}}/>
+              }} style={{marginTop:3,width:18,height:18,cursor:canToggle?"pointer":"not-allowed"}}/>
               <div style={{flex:1}}>
-                <p style={{fontSize:13,fontWeight:700,marginBottom:2,color:isActive?svc.color:"#8a8078"}}>{svc.icon} {svc.name}</p>
+                <p style={{fontSize:13,fontWeight:700,marginBottom:2,color:isActive?svc.color:"#8a8078"}}>{svc.icon} {svc.name} {isLockedOn&&<span style={{fontSize:10,color:"#059669",marginLeft:5}}>{String.fromCharCode(0xD83D,0xDD12)} Always on</span>}</p>
                 <p style={{fontSize:11,color:"#8a8078"}}>{svc.desc}</p>
               </div>
             </label>;
@@ -11491,6 +11500,7 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
   var [plan,setPlan]=useState(restaurant.plan||"starter");
   var [serviceTypes,setServiceTypes]=useState(restaurant.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true});
   var [addons,setAddons]=useState(restaurant.addon_features||{marketing:false,loyalty:false,multi_branch:false,custom_domain:false});
+  var [locks,setLocks]=useState(restaurant.feature_locks||{dine_in:"allow",collection:"allow",delivery:"allow",phone_orders:"allow",online_ordering:"allow",bookings:"allow",marketing:"allow",loyalty:"allow",multi_branch:"allow",custom_domain:"allow"});
   var [updating,setUpdating]=useState(false);
   
   var handleSave=async()=>{
@@ -11508,6 +11518,7 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
       plan:plan,
       service_types:serviceTypes,
       addon_features:addons,
+      feature_locks:locks,
     },saasOwner.email);
     setUpdating(false);
     if(result.success){
@@ -11600,30 +11611,53 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
           </div>
         </div>
 
-        {/* SERVICE TYPES */}
+        {/* SERVICE TYPES & LOCKS */}
         <div style={{marginTop:11,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
-          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} Services Offered</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
-            {[["dine_in","Dine-in"],["collection","Collection"],["delivery","Delivery"],["phone_orders","Phone Orders"]].map(s=>
-              <label key={s[0]} style={{display:"flex",alignItems:"center",gap:7,padding:9,background:serviceTypes[s[0]]!==false?"#1a1208":"#000",borderRadius:6,cursor:"pointer",border:"1px solid #5d3a1f"}}>
-                <input type="checkbox" checked={serviceTypes[s[0]]!==false} onChange={e=>setServiceTypes({...serviceTypes,[s[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
-                <span style={{color:serviceTypes[s[0]]!==false?"#fff":"#6b5d3f",fontSize:12,fontWeight:700}}>{s[1]}</span>
-              </label>
-            )}
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} Services & Lock Controls</p>
+          <p style={{color:"#6b5d3f",fontSize:10,marginBottom:11,fontStyle:"italic"}}>{String.fromCharCode(0xD83D,0xDD13)} Allow = Owner can toggle  |  {String.fromCharCode(0xD83D,0xDD12)} Lock ON = Always enabled  |  {String.fromCharCode(0xD83D,0xDEAB)} Lock OFF = Always disabled</p>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {[["dine_in","Dine-in",String.fromCharCode(0xD83C,0xDF7D,0xFE0F)],["collection","Collection",String.fromCharCode(0xD83D,0xDED2)],["delivery","Delivery",String.fromCharCode(0xD83D,0xDEF5)],["phone_orders","Phone Orders",String.fromCharCode(0xD83D,0xDCDE)]].map(s=>{
+              var lockState=locks[s[0]]||"allow";
+              return <div key={s[0]} style={{padding:9,background:"#1a1208",borderRadius:7,border:"1px solid #5d3a1f"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                  <span style={{color:"#fff",fontSize:12,fontWeight:700}}>{s[2]} {s[1]}</span>
+                  {lockState==="allow"&&<label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#a8956a"}}>
+                    <input type="checkbox" checked={serviceTypes[s[0]]!==false} onChange={e=>setServiceTypes({...serviceTypes,[s[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
+                    <span>Default ON</span>
+                  </label>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5}}>
+                  {[["allow","\uD83D\uDD13 Allow","#0891b2"],["lock_on","\uD83D\uDD12 Lock ON","#059669"],["lock_off","\uD83D\uDEAB Lock OFF","#dc2626"]].map(opt=>
+                    <button key={opt[0]} onClick={()=>setLocks({...locks,[s[0]]:opt[0]})} style={{padding:"6px 4px",background:lockState===opt[0]?opt[2]:"#0f0a05",color:lockState===opt[0]?"#fff":"#6b5d3f",border:"1px solid "+(lockState===opt[0]?opt[2]:"#3d2818"),borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>{opt[1]}</button>
+                  )}
+                </div>
+              </div>;
+            })}
           </div>
         </div>
 
-        {/* ADDON FEATURES */}
+        {/* ADDON FEATURES & LOCKS */}
         <div style={{marginTop:11,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
-          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0x2728)} Add-on Features (Override)</p>
-          <p style={{color:"#6b5d3f",fontSize:10,marginBottom:9,fontStyle:"italic"}}>Override plan limits for this specific restaurant</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7}}>
-            {[["marketing","Marketing"],["loyalty","Loyalty"],["multi_branch","Multi-Branch"],["custom_domain","Custom Domain"]].map(f=>
-              <label key={f[0]} style={{display:"flex",alignItems:"center",gap:7,padding:9,background:addons[f[0]]?"#1a1208":"#000",borderRadius:6,cursor:"pointer",border:"1px solid #5d3a1f"}}>
-                <input type="checkbox" checked={!!addons[f[0]]} onChange={e=>setAddons({...addons,[f[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
-                <span style={{color:addons[f[0]]?"#fff":"#6b5d3f",fontSize:12,fontWeight:700}}>{f[1]}</span>
-              </label>
-            )}
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0x2728)} Add-on Features</p>
+          <p style={{color:"#6b5d3f",fontSize:10,marginBottom:11,fontStyle:"italic"}}>Override plan limits and lock features per restaurant</p>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {[["online_ordering","Online Ordering"],["bookings","Bookings"],["marketing","Marketing"],["loyalty","Loyalty Program"],["multi_branch","Multi-Branch"],["custom_domain","Custom Domain"]].map(f=>{
+              var lockState=locks[f[0]]||"allow";
+              return <div key={f[0]} style={{padding:9,background:"#1a1208",borderRadius:7,border:"1px solid #5d3a1f"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+                  <span style={{color:"#fff",fontSize:12,fontWeight:700}}>{f[1]}</span>
+                  {lockState==="allow"&&<label style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#a8956a"}}>
+                    <input type="checkbox" checked={!!addons[f[0]]} onChange={e=>setAddons({...addons,[f[0]]:e.target.checked})} style={{cursor:"pointer"}}/>
+                    <span>Override ON</span>
+                  </label>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5}}>
+                  {[["allow","\uD83D\uDD13 Allow","#0891b2"],["lock_on","\uD83D\uDD12 Lock ON","#059669"],["lock_off","\uD83D\uDEAB Lock OFF","#dc2626"]].map(opt=>
+                    <button key={opt[0]} onClick={()=>setLocks({...locks,[f[0]]:opt[0]})} style={{padding:"6px 4px",background:lockState===opt[0]?opt[2]:"#0f0a05",color:lockState===opt[0]?"#fff":"#6b5d3f",border:"1px solid "+(lockState===opt[0]?opt[2]:"#3d2818"),borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>{opt[1]}</button>
+                  )}
+                </div>
+              </div>;
+            })}
           </div>
         </div>
         
