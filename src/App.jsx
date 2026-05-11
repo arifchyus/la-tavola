@@ -7306,7 +7306,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
               <span>Discount</span><span>- {fmt(totalDiscount)}</span>
             </div>}
             {serviceChargeT>0&&<div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:12,color:"#7c3aed",fontWeight:700}}>
-              <span>Service ({tablesDeliv.serviceChargePercent}%)</span><span>+ {fmt(serviceChargeT)}</span>
+              <span>Service ({tablesDeliv?.serviceChargePercent||0}%)</span><span>+ {fmt(serviceChargeT)}</span>
             </div>}
             <div style={{display:"flex",justifyContent:"space-between",padding:"2px 0",fontSize:11,color:"#8a8078"}}>
               <span>VAT incl. 20%</span><span>{fmt(vat)}</span>
@@ -13055,6 +13055,7 @@ export default function App(){
           shape:t.shape||"rectangle",
         }));
         setTables(formatted);
+        try{window.__allTables=formatted;}catch(e){}
       }
     }).catch(e=>console.log("Tables load failed:",e));
 
@@ -13179,6 +13180,20 @@ export default function App(){
     // Remove offline flag from synced orders in local state
     if(successIds.length>0){
       setOrders(prev=>prev.map(o=>successIds.includes(o.id)?{...o,offline:false,synced:true}:o));
+      
+      // Also sync table statuses to DB for dine-in orders
+      var dineInOrders=q.filter(o=>successIds.includes(o.id)&&o.type==="dine-in"&&o.tableId);
+      for(var dio of dineInOrders){
+        try{
+          // Find the table in current state
+          var allTablesData=window.__allTables||[];
+          var tbl=allTablesData.find(t=>String(t.id)===String(dio.tableId)&&(!dio.branchId||!t.branchId||t.branchId===dio.branchId));
+          if(tbl&&tbl.dbId){
+            await dbUpdateTableStatus(tbl.dbId,"occupied",{});
+            console.log("Synced table status to DB for table",dio.tableId);
+          }
+        }catch(te){console.log("Failed to sync table status:",te);}
+      }
     }
     
     // Save back the failed ones, clear the successful ones
@@ -13237,6 +13252,14 @@ export default function App(){
       setPendingCount(count);
       push({title:"Saved offline",body:"Will sync when online ("+count+" pending)",color:"#d97706"});
       setOrders(os=>[{...o,offline:true},...os]);
+      
+      // CRITICAL: Update table status locally for dine-in offline orders
+      if(o.type==="dine-in"&&o.tableId){
+        setTables(ts=>ts.map(t=>{
+          var matches=String(t.id)===String(o.tableId)&&(!o.branchId||!t.branchId||t.branchId===o.branchId);
+          return matches?{...t,status:"occupied",since:t.since||new Date().toLocaleTimeString(),guests:t.guests||o.guests||2}:t;
+        }));
+      }
     }else{
       setOrders(os=>[o,...os]);
       // Save to Supabase database
