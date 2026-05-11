@@ -2704,7 +2704,6 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
   },[categories]); // eslint-disable-line react-hooks/exhaustive-deps
   
   var update=(k,v)=>setF(x=>({...x,[k]:v}));
-  var toggleArr=(k,id)=>setF(x=>({...x,[k]:x[k].includes(id)?x[k].filter(i=>i!==id):[...x[k],id]}));
   
   var handleFileUpload=async(e)=>{
     var file=e.target.files?.[0];
