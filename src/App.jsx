@@ -5506,9 +5506,50 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       onClose={()=>setShowPLStatement(false)}
     />}
     
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}><div><h2 style={{fontSize:20,marginBottom:1}}>Admin Panel</h2><p style={{color:"#8a8078",fontSize:12}}>{(window.__currentRestaurant?.name)||"Restaurant"} Operations</p></div><select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"6px 10px",fontSize:12}}><option value="all">All Branches</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:7,marginBottom:12}}>{[["Revenue",fmt(rev),"#4a7155"],["Pending",fil.filter(o=>o.status==="pending").length,"#d97706"],["Preparing",fil.filter(o=>o.status==="preparing").length,"#2563eb"],["Ready",fil.filter(o=>o.status==="ready").length,"#059669"],["Total",fil.length,"#bf4626"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 11px",border:"1px solid #ede8de"}}><div style={{fontSize:17,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
-    <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:2}}>{TABS.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:"5px 11px",borderRadius:7,fontWeight:600,fontSize:11,whiteSpace:"nowrap",border:"2px solid",borderColor:tab===k?"#1a1208":(k==="settings"?"#7c3aed":"#ede8de"),background:tab===k?"#1a1208":(k==="settings"?"#f5f3ff":"#fff"),color:tab===k?"#fff":(k==="settings"?"#7c3aed":"#1a1208"),cursor:"pointer",flexShrink:0}}>{k==="settings"?String.fromCharCode(0x2699,0xFE0F)+" ":""}{l}</button>)}</div>
+    {/* BEAUTIFUL ADMIN HEADER */}
+    <div style={{background:"linear-gradient(135deg,#1a1208 0%,#3d2818 50%,#5d3a1f 100%)",borderRadius:14,padding:"18px 22px",marginBottom:14,color:"#fff",position:"relative",overflow:"hidden",boxShadow:"0 8px 24px rgba(0,0,0,.15)"}}>
+      <div style={{position:"absolute",top:-30,right:-30,width:140,height:140,borderRadius:"50%",background:"radial-gradient(circle,rgba(212,149,42,.3),transparent 70%)"}}></div>
+      <div style={{position:"absolute",bottom:-20,left:-20,width:90,height:90,borderRadius:"50%",background:"radial-gradient(circle,rgba(191,70,38,.2),transparent 70%)"}}></div>
+      <div style={{position:"relative",zIndex:1,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+        <div>
+          <p style={{fontSize:10,color:"#d4952a",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{String.fromCharCode(0x2699,0xFE0F)} Admin Dashboard</p>
+          <h2 style={{fontSize:22,fontWeight:700,marginBottom:3,fontFamily:"Georgia,serif"}}>{(window.__currentRestaurant?.name)||"Restaurant"}</h2>
+          <p style={{color:"rgba(255,255,255,.7)",fontSize:11}}>{branches.length} Branch{branches.length!==1?"es":""} {String.fromCharCode(0x2022)} {fil.length} Order{fil.length!==1?"s":""} Today</p>
+        </div>
+        <select className="field" value={bf} onChange={e=>setBF(e.target.value)} style={{width:"auto",padding:"8px 13px",fontSize:12,background:"rgba(255,255,255,.95)",border:"none",borderRadius:8,fontWeight:600}}>
+          <option value="all">{String.fromCharCode(0xD83C,0xDFEA)} All Branches</option>
+          {branches.map(b=><option key={b.id} value={b.id}>{String.fromCharCode(0xD83D,0xDCCD)} {b.name}</option>)}
+        </select>
+      </div>
+    </div>
+    
+    {/* BEAUTIFUL STAT CARDS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:9,marginBottom:14}}>
+      {[
+        {label:"Revenue",value:fmt(rev),color:"#059669",bg:"linear-gradient(135deg,#d1fae5,#a7f3d0)",icon:String.fromCharCode(0xD83D,0xDCB0),border:"#10b981"},
+        {label:"Pending",value:fil.filter(o=>o.status==="pending").length,color:"#d97706",bg:"linear-gradient(135deg,#fef3c7,#fde68a)",icon:String.fromCharCode(0x23F3),border:"#f59e0b"},
+        {label:"Preparing",value:fil.filter(o=>o.status==="preparing").length,color:"#2563eb",bg:"linear-gradient(135deg,#dbeafe,#bfdbfe)",icon:String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),border:"#3b82f6"},
+        {label:"Ready",value:fil.filter(o=>o.status==="ready").length,color:"#16a34a",bg:"linear-gradient(135deg,#dcfce7,#bbf7d0)",icon:String.fromCharCode(0x2705),border:"#22c55e"},
+        {label:"Total Orders",value:fil.length,color:"#bf4626",bg:"linear-gradient(135deg,#fee2e2,#fecaca)",icon:String.fromCharCode(0xD83D,0xDCE6),border:"#ef4444"},
+      ].map(s=><div key={s.label} style={{background:s.bg,borderRadius:11,padding:"12px 13px",border:"2px solid "+s.border+"40",position:"relative",overflow:"hidden",transition:"transform .2s,box-shadow .2s",cursor:"default"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 16px rgba(0,0,0,.08)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="";}}>
+        <div style={{position:"absolute",top:9,right:11,fontSize:20,opacity:.5}}>{s.icon}</div>
+        <p style={{fontSize:10,color:s.color,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:3,opacity:.85}}>{s.label}</p>
+        <p style={{fontSize:20,fontWeight:700,color:s.color}}>{s.value}</p>
+      </div>)}
+    </div>
+    
+    {/* BEAUTIFUL TAB NAVIGATION */}
+    <div style={{background:"#fff",borderRadius:11,padding:7,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)",overflow:"hidden"}}>
+      <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:2}}>
+        {TABS.map(([k,l])=>{
+          var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
+          return <button key={k} onClick={()=>setTab(k)} style={{padding:"8px 13px",borderRadius:8,fontWeight:600,fontSize:11.5,whiteSpace:"nowrap",border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"transparent",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:5,boxShadow:tab===k?"0 2px 8px rgba(26,18,8,.25)":"none"}} onMouseEnter={e=>{if(tab!==k){e.target.style.background="#f7f3ee";e.target.style.color="#1a1208";}}} onMouseLeave={e=>{if(tab!==k){e.target.style.background="transparent";e.target.style.color="#5d4e3e";}}}>
+            <span style={{fontSize:13}}>{tabIcons[k]||String.fromCharCode(0x2022)}</span>
+            <span>{l}</span>
+          </button>;
+        })}
+      </div>
+    </div>
     {tab==="orders"&&<div>
       {/* Search Bar */}
       <div className="card" style={{marginBottom:10,padding:12}}>
