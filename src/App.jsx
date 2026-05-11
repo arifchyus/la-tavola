@@ -13166,14 +13166,14 @@ export default function App(){
     var successCount=0;
     var failedOrders=[];
     var successIds=[];
-    for(var o of q){
+    for(let o of q){
       try{
         // Use current state of order (with updated status/paid/etc.)
-        var currentOrder=currentOrders.find(co=>co.id===o.id);
-        var orderToSave=currentOrder||o;
+        let currentOrder=currentOrders.find(co=>co.id===o.id);
+        let orderToSave=currentOrder||o;
         
         console.log("Syncing order:",orderToSave.id,"status:",orderToSave.status,"paid:",orderToSave.paid);
-        var result=await saveOrderToDb(orderToSave);
+        let result=await saveOrderToDb(orderToSave);
         if(result.error){
           console.error("Sync failed for order:",o.id,result.error);
           failedOrders.push(o);
