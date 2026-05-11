@@ -466,6 +466,7 @@ export async function saveTable(table) {
         y_pos: table.y,
         status: table.status,
         table_number: table.id,
+        shape: table.shape || 'rectangle',
       })
       .eq('id', table.dbId)
       .select().single();
@@ -479,6 +480,7 @@ export async function saveTable(table) {
       x_pos: table.x,
       y_pos: table.y,
       status: table.status || 'free',
+      shape: table.shape || 'rectangle',
     }).select().single();
     return { data, error };
   }

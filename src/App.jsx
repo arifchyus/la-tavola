@@ -3174,6 +3174,7 @@ function TableEditor({table,onSave,onClose,existingTables}){
     dbId:table.dbId,
     branchId:table.branchId,
     status:table.status||"free",
+    shape:table.shape||"rectangle",
   });
   var isNew=!table.dbId;
   var numberTaken=isNew&&existingTables.some(t=>+t.id===+form.id);
@@ -3183,26 +3184,20 @@ function TableEditor({table,onSave,onClose,existingTables}){
     onSave(form);
   };
   
-  // Visual position picker - click to place
-  var handlePickerClick=(e)=>{
-    var rect=e.currentTarget.getBoundingClientRect();
-    var clickX=Math.round((e.clientX-rect.left)/rect.width*400);
-    var clickY=Math.round((e.clientY-rect.top)/rect.height*250);
-    setForm(f=>({...f,x:Math.max(20,Math.min(380,clickX)),y:Math.max(20,Math.min(230,clickY))}));
-  };
-  
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:8500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:480,padding:22,maxHeight:"90vh",overflow:"auto"}}>
+    <div onClick={e=>e.stopPropagation()} className="card" style={{width:"100%",maxWidth:420,padding:22,maxHeight:"90vh",overflow:"auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <h2 style={{fontSize:20}}>{isNew?"Add Table":"Edit Table "+table.id}</h2>
         <button onClick={onClose} style={{color:"#999",fontSize:22,border:"none",background:"none",cursor:"pointer"}}>x</button>
       </div>
-      <div style={{marginBottom:12}}>
+      
+      <div style={{marginBottom:14}}>
         <label className="lbl">Table Number</label>
         <input type="number" className="field" value={form.id} onChange={e=>setForm(f=>({...f,id:+e.target.value}))} min="1"/>
         {numberTaken&&<p style={{color:"#dc2626",fontSize:11,marginTop:3}}>This number is already taken in this branch</p>}
       </div>
-      <div style={{marginBottom:12}}>
+      
+      <div style={{marginBottom:14}}>
         <label className="lbl">Number of Seats</label>
         <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:5}}>
           {[2,4,6,8,10,12].map(n=><button key={n} onClick={()=>setForm(f=>({...f,seats:n}))} style={{padding:"10px 4px",fontSize:13,fontWeight:700,background:form.seats===n?"#bf4626":"#fff",color:form.seats===n?"#fff":"#1a1208",border:"2px solid "+(form.seats===n?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{n}</button>)}
@@ -3210,44 +3205,27 @@ function TableEditor({table,onSave,onClose,existingTables}){
         <input type="number" className="field" value={form.seats} onChange={e=>setForm(f=>({...f,seats:Math.max(1,+e.target.value)}))} min="1" max="20" style={{marginTop:6}} placeholder="Or enter custom seats"/>
       </div>
       
-      {/* POSITION CONTROLS */}
-      <div style={{marginBottom:12}}>
-        <label className="lbl">Position on Floor Plan</label>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:7}}>
-          <div>
-            <p style={{fontSize:10,color:"#8a8078",marginBottom:3}}>X (horizontal)</p>
-            <input type="number" className="field" value={form.x} onChange={e=>setForm(f=>({...f,x:+e.target.value}))} min="0" max="500" style={{padding:7,fontSize:12}}/>
-          </div>
-          <div>
-            <p style={{fontSize:10,color:"#8a8078",marginBottom:3}}>Y (vertical)</p>
-            <input type="number" className="field" value={form.y} onChange={e=>setForm(f=>({...f,y:+e.target.value}))} min="0" max="300" style={{padding:7,fontSize:12}}/>
-          </div>
-        </div>
-        
-        {/* VISUAL POSITION PICKER */}
-        <p style={{fontSize:11,color:"#8a8078",marginBottom:5}}>Or click on the floor plan below to place:</p>
-        <div onClick={handlePickerClick} style={{position:"relative",width:"100%",height:160,background:"repeating-linear-gradient(45deg,#f7f3ee,#f7f3ee 8px,#ede8de 8px,#ede8de 10px)",border:"2px dashed #8a8078",borderRadius:8,cursor:"crosshair"}}>
-          <p style={{position:"absolute",top:5,left:8,fontSize:9,color:"#8a8078",letterSpacing:1,fontWeight:700}}>MAIN DINING</p>
-          <p style={{position:"absolute",bottom:5,right:8,fontSize:9,color:"#8a8078",letterSpacing:1,fontWeight:700}}>KITCHEN</p>
-          {/* Show the table at its current position */}
-          <div style={{position:"absolute",left:(form.x/400)*100+"%",top:(form.y/250)*100+"%",transform:"translate(-50%,-50%)",width:40,height:40,background:"#bf4626",color:"#fff",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:11,pointerEvents:"none",boxShadow:"0 2px 6px rgba(0,0,0,.2)"}}>
-            T{form.id}
-          </div>
-          {/* Show other tables for reference */}
-          {existingTables&&existingTables.filter(t=>t.dbId!==form.dbId).map(t=>
-            <div key={t.dbId||t.id} style={{position:"absolute",left:((t.x||60)/400)*100+"%",top:((t.y||60)/250)*100+"%",transform:"translate(-50%,-50%)",width:30,height:30,background:"rgba(34,197,94,.4)",color:"#0a4922",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:9,pointerEvents:"none",border:"1px solid #16a34a"}}>
-              T{t.id}
-            </div>
-          )}
+      <div style={{marginBottom:14}}>
+        <label className="lbl">Table Shape</label>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
+          {[
+            ["rectangle","Rectangle",String.fromCharCode(0x2B1B)],
+            ["square","Square",String.fromCharCode(0x25A0)],
+            ["round","Round",String.fromCharCode(0x25CF)]
+          ].map(([sh,nm,ico])=><button key={sh} onClick={()=>setForm(f=>({...f,shape:sh}))} style={{padding:"11px 5px",fontSize:12,fontWeight:700,background:form.shape===sh?"#bf4626":"#fff",color:form.shape===sh?"#fff":"#1a1208",border:"2px solid "+(form.shape===sh?"#bf4626":"#ede8de"),borderRadius:7,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <span style={{fontSize:18}}>{ico}</span>
+            <span>{nm}</span>
+          </button>)}
         </div>
       </div>
       
-      <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:8,marginBottom:12,fontSize:11,color:"#92400e"}}>
-        <strong>{String.fromCharCode(0xD83D,0xDCA1)} Tip:</strong> Click on the floor plan to place the table. Other tables (green) are shown for reference.
+      <div style={{padding:"10px 12px",background:"#fffbeb",borderRadius:8,marginBottom:14,fontSize:11,color:"#92400e"}}>
+        <strong>{String.fromCharCode(0xD83D,0xDCA1)} Tip:</strong> After saving, drag the table on the floor plan to position it.
       </div>
+      
       <div style={{display:"flex",gap:7}}>
         <button className="btn btn-o" onClick={onClose} style={{flex:1,padding:"11px"}}>Cancel</button>
-        <button className="btn btn-r" onClick={save} disabled={numberTaken} style={{flex:2,padding:"11px"}}>{isNew?"Add Table":"Save Changes"}</button>
+        <button className="btn btn-r" onClick={save} disabled={numberTaken} style={{flex:2,padding:"11px"}}>{isNew?"Add Table":"Save"}</button>
       </div>
     </div>
   </div>;
@@ -6799,8 +6777,76 @@ var TABLES0=[
   {id:10,seats:8,x:85,y:30,status:"reserved",resTime:"20:00",resName:"Smith party"},
 ];
 
-function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
+function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEditTable}){
   var [tablesDeliv,setTablesDeliv]=useState(null);
+  // EDIT MODE & DRAG STATE
+  var [editMode,setEditMode]=useState(false);
+  var [draggedTable,setDraggedTable]=useState(null);
+  var [dragOffset,setDragOffset]=useState({x:0,y:0});
+  var floorRef=useRef(null);
+  
+  // Snap to grid (5% increments)
+  var snap=(val)=>Math.round(val/5)*5;
+  
+  // Drag handlers - desktop
+  var handleDragStart=(e,table)=>{
+    e.preventDefault();
+    var rect=floorRef.current.getBoundingClientRect();
+    var btnRect=e.currentTarget.getBoundingClientRect();
+    setDraggedTable(table.id);
+    setDragOffset({
+      x:e.clientX-btnRect.left-btnRect.width/2,
+      y:e.clientY-btnRect.top-btnRect.height/2,
+    });
+  };
+  
+  var handleDrag=(e)=>{
+    if(!draggedTable||!floorRef.current)return;
+    var rect=floorRef.current.getBoundingClientRect();
+    var x=((e.clientX-rect.left-dragOffset.x)/rect.width)*100;
+    var y=((e.clientY-rect.top-dragOffset.y)/rect.height)*100;
+    // Clamp to bounds
+    x=Math.max(5,Math.min(95,snap(x)));
+    y=Math.max(5,Math.min(95,snap(y)));
+    setTables(prev=>prev.map(t=>t.id===draggedTable?{...t,x:x,y:y}:t));
+  };
+  
+  var handleDragEnd=async()=>{
+    if(!draggedTable)return;
+    var tableObj=tables.find(t=>t.id===draggedTable);
+    if(tableObj&&tableObj.dbId){
+      // Save new position to DB
+      try{
+        var r=await dbSaveTable(tableObj);
+        if(r.error)console.error("Save position failed:",r.error);
+      }catch(e){console.error(e);}
+    }
+    setDraggedTable(null);
+  };
+  
+  // Touch handlers - mobile/tablet
+  var handleTouchStart=(e,table)=>{
+    var touch=e.touches[0];
+    var btnRect=e.currentTarget.getBoundingClientRect();
+    setDraggedTable(table.id);
+    setDragOffset({
+      x:touch.clientX-btnRect.left-btnRect.width/2,
+      y:touch.clientY-btnRect.top-btnRect.height/2,
+    });
+  };
+  
+  var handleTouchMove=(e)=>{
+    if(!draggedTable||!floorRef.current)return;
+    e.preventDefault();
+    var touch=e.touches[0];
+    var rect=floorRef.current.getBoundingClientRect();
+    var x=((touch.clientX-rect.left-dragOffset.x)/rect.width)*100;
+    var y=((touch.clientY-rect.top-dragOffset.y)/rect.height)*100;
+    x=Math.max(5,Math.min(95,snap(x)));
+    y=Math.max(5,Math.min(95,snap(y)));
+    setTables(prev=>prev.map(t=>t.id===draggedTable?{...t,x:x,y:y}:t));
+  };
+  
   useEffect(()=>{
     if(!branch)return;
     dbFetchAllDelivery().then(list=>{
@@ -6961,22 +7007,47 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos}){
       {[["Free",stats.free,"#10b981"],["Occupied",stats.occupied,"#dc2626"],["Reserved",stats.reserved,"#d4952a"],["Total",stats.total,"#1a1208"]].map(([l,v,c])=><div key={l} style={{background:"#fff",borderRadius:11,padding:"10px 8px",border:"1px solid #ede8de",textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
     </div>
     <div style={{background:"#fff",borderRadius:14,padding:16,marginBottom:14,border:"1px solid #ede8de"}}>
-      <div style={{position:"relative",width:"100%",height:380,background:"repeating-linear-gradient(45deg,#fafaf5,#fafaf5 10px,#f5f0e8 10px,#f5f0e8 20px)",borderRadius:10,border:"2px dashed #d4c9b8"}}>
-        <div style={{position:"absolute",top:4,left:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>MAIN DINING</div>
-        <div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1}}>KITCHEN</div>
+      {/* Edit mode toggle */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:7}}>
+        <p style={{fontSize:13,fontWeight:700,color:"#1a1208"}}>{String.fromCharCode(0xD83C,0xDFE0)} Floor Plan {editMode&&<span style={{color:"#bf4626",fontSize:11,marginLeft:7}}>{String.fromCharCode(0x270F,0xFE0F)} Edit Mode</span>}</p>
+        <button onClick={()=>{setEditMode(!editMode);setSelected(null);}} style={{padding:"7px 14px",background:editMode?"#dc2626":"#0891b2",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          {editMode?String.fromCharCode(0x2713)+" Done Editing":String.fromCharCode(0x270F,0xFE0F)+" Edit Layout"}
+        </button>
+      </div>
+      
+      {editMode&&<div style={{padding:9,background:"#fef3c7",borderRadius:7,marginBottom:10,fontSize:11,color:"#92400e"}}>
+        <strong>{String.fromCharCode(0xD83D,0xDC46)} Drag tables to position them.</strong> Tables snap to grid. Click a table to edit details (number/seats/shape).
+      </div>}
+      
+      <div ref={floorRef} onMouseMove={editMode?handleDrag:undefined} onMouseUp={editMode?handleDragEnd:undefined} onTouchMove={editMode?handleTouchMove:undefined} onTouchEnd={editMode?handleDragEnd:undefined} style={{position:"relative",width:"100%",height:380,background:editMode?"repeating-linear-gradient(0deg,transparent,transparent 19px,rgba(0,0,0,.05) 19px,rgba(0,0,0,.05) 20px),repeating-linear-gradient(90deg,transparent,transparent 19px,rgba(0,0,0,.05) 19px,rgba(0,0,0,.05) 20px),repeating-linear-gradient(45deg,#fafaf5,#fafaf5 10px,#f5f0e8 10px,#f5f0e8 20px)":"repeating-linear-gradient(45deg,#fafaf5,#fafaf5 10px,#f5f0e8 10px,#f5f0e8 20px)",borderRadius:10,border:"2px dashed #d4c9b8",userSelect:"none",touchAction:editMode?"none":"auto"}}>
+        <div style={{position:"absolute",top:4,left:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1,pointerEvents:"none"}}>MAIN DINING</div>
+        <div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#aaa",fontWeight:700,letterSpacing:1,pointerEvents:"none"}}>KITCHEN</div>
         {branchTables.map(tb=>{
           var isSel=selected===tb.id,c=colors[tb.status],bg=bgs[tb.status];
+          var isDragging=draggedTable===tb.id;
           var size=tb.seats<=2?44:tb.seats<=4?54:tb.seats<=6?64:74;
-          return <button key={tb.id} onClick={()=>setSelected(tb.id)} style={{position:"absolute",left:tb.x+"%",top:tb.y+"%",width:size,height:size,borderRadius:tb.seats<=2?"50%":12,background:bg,border:"3px solid "+c,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",transition:"all .2s",transform:isSel?"scale(1.15)":"scale(1)",boxShadow:isSel?"0 4px 20px "+c+"88":"0 2px 6px rgba(0,0,0,.1)",zIndex:isSel?10:1,padding:0}}>
+          // Shape-aware border radius
+          var shape=tb.shape||"rectangle";
+          var br=shape==="round"?"50%":shape==="square"?12:8;
+          // Rectangle is wider
+          var w=shape==="rectangle"?size+18:size;
+          var h=size;
+          return <button 
+            key={tb.id} 
+            onMouseDown={editMode?(e)=>handleDragStart(e,tb):undefined}
+            onTouchStart={editMode?(e)=>handleTouchStart(e,tb):undefined}
+            onClick={editMode?(e)=>{e.preventDefault();if(!isDragging)onEditTable&&onEditTable(tb);}:()=>setSelected(tb.id)} 
+            style={{position:"absolute",left:tb.x+"%",top:tb.y+"%",width:w,height:h,borderRadius:br,background:bg,border:"3px solid "+c,cursor:editMode?"move":"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",transition:isDragging?"none":"all .2s",transform:"translate(-50%,-50%)"+(isSel?" scale(1.1)":""),boxShadow:isSel?"0 4px 20px "+c+"88":isDragging?"0 8px 24px rgba(0,0,0,.3)":"0 2px 6px rgba(0,0,0,.1)",zIndex:isDragging?100:(isSel?10:1),padding:0,opacity:isDragging?.7:1}}>
             <span style={{fontSize:14,fontWeight:700,color:c,lineHeight:1}}>T{tb.id}</span>
             <span style={{fontSize:9,color:c,fontWeight:600}}>{tb.seats} seats</span>
-            {tb.status==="occupied"&&tb.guests&&<span style={{fontSize:9,color:c,fontWeight:700,marginTop:1}}>{tb.guests} in</span>}
+            {tb.status==="occupied"&&tb.guests&&!editMode&&<span style={{fontSize:9,color:c,fontWeight:700,marginTop:1}}>{tb.guests} in</span>}
           </button>;
         })}
       </div>
-      <div style={{display:"flex",gap:14,marginTop:12,justifyContent:"center",flexWrap:"wrap"}}>
+      
+      {!editMode&&<div style={{display:"flex",gap:14,marginTop:12,justifyContent:"center",flexWrap:"wrap"}}>
         {[["Free","#10b981","#d1fae5"],["Occupied","#dc2626","#fee2e2"],["Reserved","#d4952a","#fef3c7"]].map(([l,c,bg])=><div key={l} style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,borderRadius:"50%",background:bg,border:"2px solid "+c,display:"inline-block"}}/><span style={{fontSize:11,color:"#8a8078",fontWeight:600}}>{l}</span></div>)}
-      </div>
+      </div>}
     </div>
     {t&&<div className="card fadeup" style={{borderLeft:"4px solid "+colors[t.status]}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -10141,7 +10212,7 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
         <div style={{flex:1,overflowY:"auto",padding:14}}>
           {modalView==="incoming"&&<IncomingOrdersV orders={orders} setOrders={setOrders} push={push} branch={branch} customers={customers} tables={tables} setTables={setTables} stations={stations} menu={menu}/>}
           {modalView==="kitchen"&&<KitchenV orders={orders} setOrders={setOrders} push={push} stations={stations} menu={menu}/>}
-          {modalView==="tables"&&<TablesV tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onGoToPos={tableId=>{setModalView(null);if(typeof window!=="undefined")window.__preselectedTable=tableId;onOpenPos();}}/>}
+          {modalView==="tables"&&<TablesV tables={tables} setTables={setTables} push={push} branch={branch} orders={orders} setOrders={setOrders} onEditTable={(tb)=>{setModalView(null);setTimeout(()=>{if(typeof window!=="undefined")window.__editTable=tb;setView&&setView("admin");},100);}} onGoToPos={tableId=>{setModalView(null);if(typeof window!=="undefined")window.__preselectedTable=tableId;onOpenPos();}}/>}
           {modalView==="driver"&&<DriverV orders={orders} setOrders={setOrders} push={push} user={user} branch={branch}/>}
           {modalView==="bookings"&&<StaffBookingsV branch={branch} push={push}/>}
           {modalView==="report"&&<ReportV orders={orders}/>}
@@ -12736,6 +12807,7 @@ export default function App(){
           x:t.x_pos,
           y:t.y_pos,
           status:t.status||"free",
+          shape:t.shape||"rectangle",
         }));
         setTables(formatted);
       }
