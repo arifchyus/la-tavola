@@ -2667,6 +2667,7 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
   var defaultCat=(categories&&categories.length>0)?categories[0].name:"Starters";
   var [f,setF]=useState({
     id:item?.id||Date.now(),
+    dbId:item?.dbId, // CRITICAL: preserve database ID when editing
     name:item?.name||"",
     price:item?.price||0,
     desc:item?.desc||"",
@@ -5200,14 +5201,21 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   };
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
   var saveItem=item=>{
+    // Determine if this is an edit (has dbId) or new item
+    var isEdit=!!item.dbId;
+    
     // Check if item with same name+category already exists (prevent duplicates)
-    var existing=menu.find(m=>
-      m.dbId!==item.dbId && // not the same item
-      (m.name||"").toLowerCase().trim()===(item.name||"").toLowerCase().trim() &&
-      (m.cat||"").toLowerCase().trim()===(item.cat||"").toLowerCase().trim()
-    );
-    if(existing && !item.dbId){
-      // New item with duplicate name+category - block it - PRETTY MODAL
+    var existing=menu.find(m=>{
+      // Skip the same item (by dbId or by id)
+      if(item.dbId && m.dbId === item.dbId)return false;
+      if(item.id && m.id === item.id)return false;
+      // Check name+category match
+      return (m.name||"").toLowerCase().trim()===(item.name||"").toLowerCase().trim() &&
+             (m.cat||"").toLowerCase().trim()===(item.cat||"").toLowerCase().trim();
+    });
+    
+    // Only block duplicates for NEW items (not edits)
+    if(existing && !isEdit){
       if(window.showAlert){
         window.showAlert("Duplicate Item",'"'+item.name+'" already exists in '+item.cat+'. Please use a different name or category.',"warning");
       } else {
