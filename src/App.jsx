@@ -16,6 +16,9 @@ var isOnline=()=>typeof navigator!=="undefined"&&navigator.onLine!==false;
 
 // Offline order queue - stored until internet returns
 var OFFLINE_QUEUE_KEY="latavola_offline_queue";
+var OFFLINE_MENU_KEY="latavola_offline_menu";
+var OFFLINE_TABLES_KEY="latavola_offline_tables";
+var OFFLINE_CATEGORIES_KEY="latavola_offline_categories";
 var queueOffline=order=>{
   var q=LS.get(OFFLINE_QUEUE_KEY)||[];
   q.push({...order,queuedAt:Date.now()});
@@ -24,6 +27,10 @@ var queueOffline=order=>{
 };
 var getQueue=()=>LS.get(OFFLINE_QUEUE_KEY)||[];
 var clearQueue=()=>LS.del(OFFLINE_QUEUE_KEY);
+
+// Cache critical data for offline use
+var cacheForOffline=(key,data)=>{LS.set(key,{data,cachedAt:Date.now()});};
+var getCached=(key)=>{var c=LS.get(key);return c?c.data:null;};
 
 // String.fromCharCode with surrogate pairs - CONFIRMED WORKING in emoji-test.jsx
 var EM={
@@ -12914,44 +12921,63 @@ export default function App(){
       }
     }).catch(e=>console.log("Orders load failed (using demo data):",e));
 
-    // Load menu items from the database
-    dbFetchMenu().then(dbMenu=>{
-      if(dbMenu&&dbMenu.length){
-        // DEDUPE: remove duplicate items by name+category (keep first/oldest)
-        var seen=new Set();
-        var deduped=dbMenu.filter(m=>{
-          var key=(m.name||"").toLowerCase().trim()+"|"+(m.category_name||"").toLowerCase().trim();
-          if(seen.has(key))return false;
-          seen.add(key);
-          return true;
-        });
-        var formatted=deduped.map(m=>({
-          id:m.id,
-          dbId:m.id,
-          name:m.name,
-          desc:m.description||"",
-          price:parseFloat(m.price),
-          cat:m.category_name||"Mains",
-          icon:m.icon,
-          stock:m.stock,
-          avail:m.available,
-          // Convert legacy format (array of strings/ids) to new format (array of objects)
-          allergens:Array.isArray(m.allergens)?m.allergens.map(a=>typeof a==="object"?a:{id:"al_"+a,name:a.replace(/^al-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}):[],
-          sizes:Array.isArray(m.sizes)?m.sizes.map(s=>typeof s==="object"?s:{id:"sz_"+s,name:s.replace(/^sz-/,"").charAt(0).toUpperCase()+s.replace(/^sz-/,"").slice(1),priceAdj:0}):[],
-          extras:Array.isArray(m.extras)?m.extras.map(x=>typeof x==="object"?x:{id:"ex_"+x,name:x.replace(/^ex-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase()),priceAdj:0}):[],
-          cookingOpts:Array.isArray(m.cooking_opts)?m.cooking_opts.map(c=>typeof c==="object"?c:{id:"ck_"+c,name:c.replace(/^ck-/,"").charAt(0).toUpperCase()+c.replace(/^ck-/,"").slice(1)}):[],
-          station:m.station||null,
-          priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
-          priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
-          priceDelivery:m.price_delivery?parseFloat(m.price_delivery):null,
-          availDineIn:m.avail_dinein!==false,
-          availTakeaway:m.avail_takeaway!==false,
-          availDelivery:m.avail_delivery!==false,
-          image_url:m.image_url||null,
-        }));
-        setMenu(formatted);
+    // Load menu items from the database (with offline cache support)
+    if(!navigator.onLine){
+      // OFFLINE - load from cache
+      var cachedMenu=getCached(OFFLINE_MENU_KEY);
+      if(cachedMenu&&cachedMenu.length){
+        setMenu(cachedMenu);
+        console.log("Menu loaded from offline cache:",cachedMenu.length,"items");
       }
-    }).catch(e=>console.log("Menu load failed:",e));
+    } else {
+      // ONLINE - load from DB and cache for offline
+      dbFetchMenu().then(dbMenu=>{
+        if(dbMenu&&dbMenu.length){
+          // DEDUPE: remove duplicate items by name+category (keep first/oldest)
+          var seen=new Set();
+          var deduped=dbMenu.filter(m=>{
+            var key=(m.name||"").toLowerCase().trim()+"|"+(m.category_name||"").toLowerCase().trim();
+            if(seen.has(key))return false;
+            seen.add(key);
+            return true;
+          });
+          var formatted=deduped.map(m=>({
+            id:m.id,
+            dbId:m.id,
+            name:m.name,
+            desc:m.description||"",
+            price:parseFloat(m.price),
+            cat:m.category_name||"Mains",
+            icon:m.icon,
+            stock:m.stock,
+            // Convert legacy format (array of strings/ids) to new format (array of objects)
+            allergens:Array.isArray(m.allergens)?m.allergens.map(a=>typeof a==="object"?a:{id:"al_"+a,name:a.replace(/^al-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}):[],
+            sizes:Array.isArray(m.sizes)?m.sizes.map(s=>typeof s==="object"?s:{id:"sz_"+s,name:s.replace(/^sz-/,"").charAt(0).toUpperCase()+s.replace(/^sz-/,"").slice(1),priceAdj:0}):[],
+            extras:Array.isArray(m.extras)?m.extras.map(x=>typeof x==="object"?x:{id:"ex_"+x,name:x.replace(/^ex-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase()),priceAdj:0}):[],
+            cookingOpts:Array.isArray(m.cooking_opts)?m.cooking_opts.map(c=>typeof c==="object"?c:{id:"ck_"+c,name:c.replace(/^ck-/,"").charAt(0).toUpperCase()+c.replace(/^ck-/,"").slice(1)}):[],
+            station:m.station||null,
+            priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
+            priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
+            priceDelivery:m.price_delivery?parseFloat(m.price_delivery):null,
+            availDineIn:m.avail_dinein!==false,
+            availTakeaway:m.avail_takeaway!==false,
+            availDelivery:m.avail_delivery!==false,
+            image_url:m.image_url||null,
+          }));
+          setMenu(formatted);
+          // Cache for offline use
+          cacheForOffline(OFFLINE_MENU_KEY,formatted);
+        }
+      }).catch(e=>{
+        console.log("Menu load failed:",e);
+        // Fallback to cache on error
+        var cachedMenu=getCached(OFFLINE_MENU_KEY);
+        if(cachedMenu&&cachedMenu.length){
+          setMenu(cachedMenu);
+          push&&push({title:"Using offline menu",body:"Could not connect to server",color:"#d97706"});
+        }
+      });
+    }
 
     // Load categories from the database
     dbFetchCategories().then(dbCats=>{
@@ -13088,14 +13114,37 @@ export default function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
-  // Sync queued orders when back online
-  var syncQueue=useCallback(()=>{
+  // Sync queued orders when back online - ACTUALLY SAVE TO DB
+  var syncQueue=useCallback(async()=>{
     var q=getQueue();
     if(!q.length)return;
-    setOrders(os=>[...q,...os]);
-    clearQueue();
-    setPendingCount(0);
-    setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Synced!",body:q.length+" offline order"+(q.length>1?"s":"")+" uploaded",color:"#059669"}]);
+    setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Syncing...",body:"Uploading "+q.length+" offline order"+(q.length>1?"s":""),color:"#0891b2"}]);
+    var successCount=0;
+    var failedOrders=[];
+    for(var o of q){
+      try{
+        var result=await saveOrderToDb(o);
+        if(result.error){
+          console.error("Sync failed for order:",o.id,result.error);
+          failedOrders.push(o);
+        }else{
+          successCount++;
+        }
+      }catch(e){
+        console.error("Sync exception:",e);
+        failedOrders.push(o);
+      }
+    }
+    // Save back the failed ones, clear the successful ones
+    if(failedOrders.length>0){
+      LS.set(OFFLINE_QUEUE_KEY,failedOrders);
+      setPendingCount(failedOrders.length);
+      setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Partial sync",body:successCount+" uploaded, "+failedOrders.length+" failed",color:"#d97706"}]);
+    }else{
+      clearQueue();
+      setPendingCount(0);
+      setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Synced!",body:successCount+" order"+(successCount>1?"s":"")+" uploaded successfully",color:"#059669"}]);
+    }
   },[]);
   useEffect(()=>{var s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);return()=>document.head.removeChild(s);},[]);
   var push=useCallback(n=>{var id=++nid.current;setNotifs(ns=>[...ns.slice(-3),{...n,id}]);setTimeout(()=>setNotifs(ns=>ns.filter(x=>x.id!==id)),5000);},[]);
@@ -13376,6 +13425,20 @@ export default function App(){
         <span>{tl[k]||k}</span>
       </button>)}
     </div>
+    {/* OFFLINE STATUS BANNER */}
+    {!online && <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9990,background:"linear-gradient(135deg,#dc2626,#991b1b)",color:"#fff",padding:"9px 15px",textAlign:"center",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(0,0,0,.15)"}}>
+      <span style={{fontSize:13,marginRight:6}}>{String.fromCharCode(0xD83D,0xDCF6)}</span>
+      OFFLINE MODE
+      <span style={{opacity:.85,marginLeft:9,fontWeight:500,fontSize:11}}>{pendingCount>0?"- "+pendingCount+" order"+(pendingCount>1?"s":"")+" queued to sync":"- Orders will save locally and sync when online"}</span>
+    </div>}
+    
+    {/* PENDING SYNC BANNER (Online but has queue) */}
+    {online && pendingCount>0 && <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9990,background:"linear-gradient(135deg,#d97706,#92400e)",color:"#fff",padding:"9px 15px",textAlign:"center",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(0,0,0,.15)",cursor:"pointer"}} onClick={syncQueue}>
+      <span style={{fontSize:13,marginRight:6}}>{String.fromCharCode(0x23F3)}</span>
+      {pendingCount} OFFLINE ORDER{pendingCount>1?"S":""} WAITING TO SYNC
+      <span style={{opacity:.85,marginLeft:9,fontWeight:500,fontSize:11}}>Click here to retry sync</span>
+    </div>}
+    
     <Toasts list={notifs} dismiss={id=>setNotifs(ns=>ns.filter(n=>n.id!==id))}/>
     {alertModal&&<AlertModal {...alertModal}/>}
     {confirmModal&&<ConfirmModal {...confirmModal}/>}
