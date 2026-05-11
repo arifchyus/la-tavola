@@ -5070,8 +5070,19 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   };
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
   var saveItem=item=>{
+    // Check if item with same name+category already exists (prevent duplicates)
+    var existing=menu.find(m=>
+      m.dbId!==item.dbId && // not the same item
+      (m.name||"").toLowerCase().trim()===(item.name||"").toLowerCase().trim() &&
+      (m.cat||"").toLowerCase().trim()===(item.cat||"").toLowerCase().trim()
+    );
+    if(existing && !item.dbId){
+      // New item with duplicate name+category - block it
+      push({title:"Duplicate item",body:item.name+" already exists in "+item.cat,color:"#dc2626"});
+      return;
+    }
     // Save to local state immediately (for instant UI)
-    setMenu(ms=>{var ex=ms.find(m=>m.id===item.id);return ex?ms.map(m=>m.id===item.id?item:m):[...ms,item];});
+    setMenu(ms=>{var ex=ms.find(m=>m.id===item.id||(m.dbId&&m.dbId===item.dbId));return ex?ms.map(m=>(m.id===item.id||m.dbId===item.dbId)?{...m,...item}:m):[...ms,item];});
     // Save to database
     dbSaveMenuItem(item).then(result=>{
       if(result.error){push({title:"DB save failed",body:result.error.message||"Try again",color:"#dc2626"});}
@@ -5079,7 +5090,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         push({title:"Saved",body:item.name,color:"#059669"});
         // Update the local state with the database ID
         if(result.data&&result.data.id){
-          setMenu(ms=>ms.map(m=>m.id===item.id?{...m,dbId:result.data.id,id:result.data.id}:m));
+          setMenu(ms=>ms.map(m=>(m.id===item.id||m.dbId===item.dbId)?{...m,dbId:result.data.id,id:result.data.id}:m));
         }
       }
     }).catch(e=>{console.error(e);push({title:"Error",body:"Could not save",color:"#dc2626"});});
@@ -12703,7 +12714,15 @@ export default function App(){
     // Load menu items from the database
     dbFetchMenu().then(dbMenu=>{
       if(dbMenu&&dbMenu.length){
-        var formatted=dbMenu.map(m=>({
+        // DEDUPE: remove duplicate items by name+category (keep first/oldest)
+        var seen=new Set();
+        var deduped=dbMenu.filter(m=>{
+          var key=(m.name||"").toLowerCase().trim()+"|"+(m.category_name||"").toLowerCase().trim();
+          if(seen.has(key))return false;
+          seen.add(key);
+          return true;
+        });
+        var formatted=deduped.map(m=>({
           id:m.id,
           dbId:m.id,
           name:m.name,
