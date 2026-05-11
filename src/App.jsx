@@ -12919,63 +12919,62 @@ export default function App(){
       }
     }).catch(e=>console.log("Orders load failed (using demo data):",e));
 
-    // Load menu items from the database (with offline cache support)
-    if(!navigator.onLine){
-      // OFFLINE - load from cache
-      var cachedMenu=getCached(OFFLINE_MENU_KEY);
-      if(cachedMenu&&cachedMenu.length){
-        setMenu(cachedMenu);
-        console.log("Menu loaded from offline cache:",cachedMenu.length,"items");
-      }
-    } else {
-      // ONLINE - load from DB and cache for offline
-      dbFetchMenu().then(dbMenu=>{
-        if(dbMenu&&dbMenu.length){
-          // DEDUPE: remove duplicate items by name+category (keep first/oldest)
-          var seen=new Set();
-          var deduped=dbMenu.filter(m=>{
-            var key=(m.name||"").toLowerCase().trim()+"|"+(m.category_name||"").toLowerCase().trim();
-            if(seen.has(key))return false;
-            seen.add(key);
-            return true;
-          });
-          var formatted=deduped.map(m=>({
-            id:m.id,
-            dbId:m.id,
-            name:m.name,
-            desc:m.description||"",
-            price:parseFloat(m.price),
-            cat:m.category_name||"Mains",
-            icon:m.icon,
-            stock:m.stock,
-            // Convert legacy format (array of strings/ids) to new format (array of objects)
-            allergens:Array.isArray(m.allergens)?m.allergens.map(a=>typeof a==="object"?a:{id:"al_"+a,name:a.replace(/^al-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}):[],
-            sizes:Array.isArray(m.sizes)?m.sizes.map(s=>typeof s==="object"?s:{id:"sz_"+s,name:s.replace(/^sz-/,"").charAt(0).toUpperCase()+s.replace(/^sz-/,"").slice(1),priceAdj:0}):[],
-            extras:Array.isArray(m.extras)?m.extras.map(x=>typeof x==="object"?x:{id:"ex_"+x,name:x.replace(/^ex-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase()),priceAdj:0}):[],
-            cookingOpts:Array.isArray(m.cooking_opts)?m.cooking_opts.map(c=>typeof c==="object"?c:{id:"ck_"+c,name:c.replace(/^ck-/,"").charAt(0).toUpperCase()+c.replace(/^ck-/,"").slice(1)}):[],
-            station:m.station||null,
-            priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
-            priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
-            priceDelivery:m.price_delivery?parseFloat(m.price_delivery):null,
-            availDineIn:m.avail_dinein!==false,
-            availTakeaway:m.avail_takeaway!==false,
-            availDelivery:m.avail_delivery!==false,
-            image_url:m.image_url||null,
-          }));
-          setMenu(formatted);
-          // Cache for offline use
-          cacheForOffline(OFFLINE_MENU_KEY,formatted);
-        }
-      }).catch(e=>{
-        console.log("Menu load failed:",e);
-        // Fallback to cache on error
+    // Load menu items - ALWAYS try DB first, cache as fallback
+    dbFetchMenu().then(dbMenu=>{
+      if(dbMenu&&dbMenu.length){
+        // DEDUPE: remove duplicate items by name+category (keep first/oldest)
+        var seen=new Set();
+        var deduped=dbMenu.filter(m=>{
+          var key=(m.name||"").toLowerCase().trim()+"|"+(m.category_name||"").toLowerCase().trim();
+          if(seen.has(key))return false;
+          seen.add(key);
+          return true;
+        });
+        var formatted=deduped.map(m=>({
+          id:m.id,
+          dbId:m.id,
+          name:m.name,
+          desc:m.description||"",
+          price:parseFloat(m.price),
+          cat:m.category_name||"Mains",
+          icon:m.icon,
+          stock:m.stock,
+          avail:m.available,
+          // Convert legacy format (array of strings/ids) to new format (array of objects)
+          allergens:Array.isArray(m.allergens)?m.allergens.map(a=>typeof a==="object"?a:{id:"al_"+a,name:a.replace(/^al-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}):[],
+          sizes:Array.isArray(m.sizes)?m.sizes.map(s=>typeof s==="object"?s:{id:"sz_"+s,name:s.replace(/^sz-/,"").charAt(0).toUpperCase()+s.replace(/^sz-/,"").slice(1),priceAdj:0}):[],
+          extras:Array.isArray(m.extras)?m.extras.map(x=>typeof x==="object"?x:{id:"ex_"+x,name:x.replace(/^ex-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase()),priceAdj:0}):[],
+          cookingOpts:Array.isArray(m.cooking_opts)?m.cooking_opts.map(c=>typeof c==="object"?c:{id:"ck_"+c,name:c.replace(/^ck-/,"").charAt(0).toUpperCase()+c.replace(/^ck-/,"").slice(1)}):[],
+          station:m.station||null,
+          priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
+          priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
+          priceDelivery:m.price_delivery?parseFloat(m.price_delivery):null,
+          availDineIn:m.avail_dinein!==false,
+          availTakeaway:m.avail_takeaway!==false,
+          availDelivery:m.avail_delivery!==false,
+          image_url:m.image_url||null,
+        }));
+        setMenu(formatted);
+        // Cache for future offline use
+        cacheForOffline(OFFLINE_MENU_KEY,formatted);
+        console.log("Menu loaded from DB:",formatted.length,"items");
+      } else {
+        // DB returned empty - try cache
         var cachedMenu=getCached(OFFLINE_MENU_KEY);
         if(cachedMenu&&cachedMenu.length){
           setMenu(cachedMenu);
-          push&&push({title:"Using offline menu",body:"Could not connect to server",color:"#d97706"});
+          console.log("Menu loaded from cache (DB empty):",cachedMenu.length,"items");
         }
-      });
-    }
+      }
+    }).catch(e=>{
+      console.log("Menu DB load failed, trying cache:",e);
+      // DB failed - fallback to cache
+      var cachedMenu=getCached(OFFLINE_MENU_KEY);
+      if(cachedMenu&&cachedMenu.length){
+        setMenu(cachedMenu);
+        push&&push({title:"Using offline menu",body:"Could not connect to server",color:"#d97706"});
+      }
+    });
 
     // Load categories from the database
     dbFetchCategories().then(dbCats=>{
