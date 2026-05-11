@@ -12713,6 +12713,8 @@ export default function App(){
   var [confirmModal,setConfirmModal]=useState(null); // {title, message, type, onConfirm, onCancel, confirmText, cancelText, destructive}
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
+  var ordersRef=useRef([]);
+  useEffect(()=>{ordersRef.current=orders;},[orders]);
   
   // SAAS-2: Auth state
   var [saasOwner,setSaasOwner]=useState(()=>dbGetOwner());
@@ -13157,12 +13159,21 @@ export default function App(){
     }
     console.log("Syncing",q.length,"queued orders");
     setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Syncing...",body:"Uploading "+q.length+" offline order"+(q.length>1?"s":""),color:"#0891b2"}]);
+    
+    // Get CURRENT state of orders (which may have updated status, paid, etc.)
+    var currentOrders=ordersRef.current||[];
+    
     var successCount=0;
     var failedOrders=[];
     var successIds=[];
     for(var o of q){
       try{
-        var result=await saveOrderToDb(o);
+        // Use current state of order (with updated status/paid/etc.)
+        var currentOrder=currentOrders.find(co=>co.id===o.id);
+        var orderToSave=currentOrder||o;
+        
+        console.log("Syncing order:",orderToSave.id,"status:",orderToSave.status,"paid:",orderToSave.paid);
+        var result=await saveOrderToDb(orderToSave);
         if(result.error){
           console.error("Sync failed for order:",o.id,result.error);
           failedOrders.push(o);
@@ -13185,7 +13196,6 @@ export default function App(){
       var dineInOrders=q.filter(o=>successIds.includes(o.id)&&o.type==="dine-in"&&o.tableId);
       for(let dio of dineInOrders){
         try{
-          // Find the table in current state
           let allTablesData=window.__allTables||[];
           let tbl=allTablesData.find(t=>String(t.id)===String(dio.tableId)&&(!dio.branchId||!t.branchId||t.branchId===dio.branchId));
           if(tbl&&tbl.dbId){
