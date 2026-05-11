@@ -13183,11 +13183,11 @@ export default function App(){
       
       // Also sync table statuses to DB for dine-in orders
       var dineInOrders=q.filter(o=>successIds.includes(o.id)&&o.type==="dine-in"&&o.tableId);
-      for(var dio of dineInOrders){
+      for(let dio of dineInOrders){
         try{
           // Find the table in current state
-          var allTablesData=window.__allTables||[];
-          var tbl=allTablesData.find(t=>String(t.id)===String(dio.tableId)&&(!dio.branchId||!t.branchId||t.branchId===dio.branchId));
+          let allTablesData=window.__allTables||[];
+          let tbl=allTablesData.find(t=>String(t.id)===String(dio.tableId)&&(!dio.branchId||!t.branchId||t.branchId===dio.branchId));
           if(tbl&&tbl.dbId){
             await dbUpdateTableStatus(tbl.dbId,"occupied",{});
             console.log("Synced table status to DB for table",dio.tableId);
