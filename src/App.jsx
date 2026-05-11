@@ -5126,8 +5126,12 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       (m.cat||"").toLowerCase().trim()===(item.cat||"").toLowerCase().trim()
     );
     if(existing && !item.dbId){
-      // New item with duplicate name+category - block it
-      push({title:"Duplicate item",body:item.name+" already exists in "+item.cat,color:"#dc2626"});
+      // New item with duplicate name+category - block it - PRETTY MODAL
+      if(window.showAlert){
+        window.showAlert("Duplicate Item",'"'+item.name+'" already exists in '+item.cat+'. Please use a different name or category.',"warning");
+      } else {
+        push({title:"Duplicate item",body:item.name+" already exists in "+item.cat,color:"#dc2626"});
+      }
       return;
     }
     // Save to local state immediately (for instant UI)
