@@ -2869,36 +2869,104 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
         </div>
       </div>
 
-      {/* Sizes */}
-      <div style={{marginBottom:12}}>
-        <label className="lbl">Available Sizes</label>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {modifiers.size.map(s=><button key={s.id} onClick={()=>toggleArr("sizes",s.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.sizes.includes(s.id)?"#bf4626":"#fff",color:f.sizes.includes(s.id)?"#fff":"#1a1208",border:"2px solid "+(f.sizes.includes(s.id)?"#bf4626":"#ede8de"),cursor:"pointer"}}>{s.name}{s.priceAdj>0?" (+"+fmt(s.priceAdj)+")":""}</button>)}
+      {/* SIZES - Custom per item */}
+      <div style={{marginBottom:14,padding:12,background:"#fef3c7",borderRadius:9,border:"1px solid #fde68a"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+          <label className="lbl" style={{margin:0}}>{String.fromCharCode(0xD83D,0xDCCF)} Sizes & Pricing</label>
+          <button type="button" onClick={()=>{
+            var name=prompt("Size name (e.g. Small, Medium, Large):");
+            if(!name||!name.trim())return;
+            var priceAdj=prompt("Price adjustment (+/- £):","0");
+            update("sizes",[...(f.sizes||[]),{id:"sz_"+Date.now(),name:name.trim(),priceAdj:parseFloat(priceAdj)||0}]);
+          }} style={{padding:"5px 10px",fontSize:11,background:"#d97706",color:"#fff",border:"none",borderRadius:5,fontWeight:700,cursor:"pointer"}}>+ Add Size</button>
         </div>
+        {(!f.sizes||f.sizes.length===0)?<p style={{fontSize:11,color:"#92400e",fontStyle:"italic"}}>No sizes added. Click "+ Add Size" to add (e.g. Small £0, Large +£3)</p>:
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {f.sizes.map((s,i)=>typeof s==="object"?
+            <div key={s.id||i} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 7px",background:"#fff",borderRadius:6,border:"1px solid #ede8de"}}>
+              <span style={{fontSize:11,fontWeight:700}}>{s.name}</span>
+              <span style={{fontSize:10,color:"#8a8078"}}>{s.priceAdj>0?"+"+fmt(s.priceAdj):s.priceAdj<0?fmt(s.priceAdj):"+£0"}</span>
+              <button type="button" onClick={()=>update("sizes",f.sizes.filter((_,idx)=>idx!==i))} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:11,cursor:"pointer",lineHeight:1}}>{String.fromCharCode(0x00D7)}</button>
+            </div>
+            :null
+          )}
+        </div>}
       </div>
 
-      {/* Cooking preferences */}
-      <div style={{marginBottom:12}}>
-        <label className="lbl">Cooking Preferences (for meats)</label>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {modifiers.cooking.map(c=><button key={c.id} onClick={()=>toggleArr("cookingOpts",c.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.cookingOpts.includes(c.id)?"#d97706":"#fff",color:f.cookingOpts.includes(c.id)?"#fff":"#1a1208",border:"2px solid "+(f.cookingOpts.includes(c.id)?"#d97706":"#ede8de"),cursor:"pointer"}}>{c.name}</button>)}
+      {/* COOKING PREFERENCES - Custom per item */}
+      <div style={{marginBottom:14,padding:12,background:"#fed7aa",borderRadius:9,border:"1px solid #fdba74"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+          <label className="lbl" style={{margin:0}}>{String.fromCharCode(0xD83D,0xDD25)} Cooking / Spice Preferences</label>
+          <button type="button" onClick={()=>{
+            var name=prompt("Preference name (e.g. Mild, Medium Spicy, Extra Hot):");
+            if(!name||!name.trim())return;
+            update("cookingOpts",[...(f.cookingOpts||[]),{id:"ck_"+Date.now(),name:name.trim()}]);
+          }} style={{padding:"5px 10px",fontSize:11,background:"#c2410c",color:"#fff",border:"none",borderRadius:5,fontWeight:700,cursor:"pointer"}}>+ Add Option</button>
         </div>
+        {(!f.cookingOpts||f.cookingOpts.length===0)?<p style={{fontSize:11,color:"#7c2d12",fontStyle:"italic"}}>No options. Add e.g. "Mild", "Medium", "Extra Spicy" for curry dishes</p>:
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {f.cookingOpts.map((c,i)=>typeof c==="object"?
+            <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 7px",background:"#fff",borderRadius:6,border:"1px solid #ede8de"}}>
+              <span style={{fontSize:11,fontWeight:700}}>{c.name}</span>
+              <button type="button" onClick={()=>update("cookingOpts",f.cookingOpts.filter((_,idx)=>idx!==i))} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:11,cursor:"pointer",lineHeight:1}}>{String.fromCharCode(0x00D7)}</button>
+            </div>
+            :null
+          )}
+        </div>}
       </div>
 
-      {/* Extras */}
-      <div style={{marginBottom:12}}>
-        <label className="lbl">Available Extras / Add-ons</label>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {modifiers.extras.map(x=><button key={x.id} onClick={()=>toggleArr("extras",x.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.extras.includes(x.id)?"#059669":"#fff",color:f.extras.includes(x.id)?"#fff":"#1a1208",border:"2px solid "+(f.extras.includes(x.id)?"#059669":"#ede8de"),cursor:"pointer"}}>{x.name} (+{fmt(x.priceAdj)})</button>)}
+      {/* EXTRAS / ADD-ONS - Custom per item */}
+      <div style={{marginBottom:14,padding:12,background:"#d1fae5",borderRadius:9,border:"1px solid #6ee7b7"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+          <label className="lbl" style={{margin:0}}>{String.fromCharCode(0x2728)} Extras / Add-ons (with prices)</label>
+          <button type="button" onClick={()=>{
+            var name=prompt("Extra/Add-on name (e.g. Extra Cheese, Extra Sauce):");
+            if(!name||!name.trim())return;
+            var priceAdj=prompt("Extra price £:","1.00");
+            update("extras",[...(f.extras||[]),{id:"ex_"+Date.now(),name:name.trim(),priceAdj:parseFloat(priceAdj)||0}]);
+          }} style={{padding:"5px 10px",fontSize:11,background:"#059669",color:"#fff",border:"none",borderRadius:5,fontWeight:700,cursor:"pointer"}}>+ Add Extra</button>
         </div>
+        {(!f.extras||f.extras.length===0)?<p style={{fontSize:11,color:"#065f46",fontStyle:"italic"}}>No extras. Add toppings/sides customers can pay extra for</p>:
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {f.extras.map((x,i)=>typeof x==="object"?
+            <div key={x.id||i} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 7px",background:"#fff",borderRadius:6,border:"1px solid #ede8de"}}>
+              <span style={{fontSize:11,fontWeight:700}}>{x.name}</span>
+              <span style={{fontSize:10,color:"#059669",fontWeight:700}}>+{fmt(x.priceAdj)}</span>
+              <button type="button" onClick={()=>update("extras",f.extras.filter((_,idx)=>idx!==i))} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:11,cursor:"pointer",lineHeight:1}}>{String.fromCharCode(0x00D7)}</button>
+            </div>
+            :null
+          )}
+        </div>}
       </div>
 
-      {/* Allergens */}
-      <div style={{marginBottom:12}}>
-        <label className="lbl">Allergens / Dietary Info</label>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {modifiers.allergens.map(a=><button key={a.id} onClick={()=>toggleArr("allergens",a.id)} style={{padding:"5px 11px",borderRadius:7,fontSize:11,fontWeight:700,background:f.allergens.includes(a.id)?"#7c3aed":"#fff",color:f.allergens.includes(a.id)?"#fff":"#1a1208",border:"2px solid "+(f.allergens.includes(a.id)?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{a.name}</button>)}
+      {/* ALLERGENS / DIETARY - Custom per item */}
+      <div style={{marginBottom:14,padding:12,background:"#ede9fe",borderRadius:9,border:"1px solid #c4b5fd"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+          <label className="lbl" style={{margin:0}}>{String.fromCharCode(0x26A0,0xFE0F)} Allergens / Dietary Info</label>
+          <button type="button" onClick={()=>{
+            var name=prompt("Allergen or dietary info (e.g. Contains Gluten, Vegetarian, Halal):");
+            if(!name||!name.trim())return;
+            update("allergens",[...(f.allergens||[]),{id:"al_"+Date.now(),name:name.trim()}]);
+          }} style={{padding:"5px 10px",fontSize:11,background:"#7c3aed",color:"#fff",border:"none",borderRadius:5,fontWeight:700,cursor:"pointer"}}>+ Add Info</button>
         </div>
+        <p style={{fontSize:10,color:"#5b21b6",marginBottom:5,fontStyle:"italic"}}>Tip: Quick add common ones:</p>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:7}}>
+          {["Contains Gluten","Contains Dairy","Contains Nuts","Vegetarian","Vegan","Gluten Free","Halal","Spicy"].map(quick=>{
+            var alreadyAdded=(f.allergens||[]).some(a=>(typeof a==="object"?a.name:"")===quick);
+            if(alreadyAdded)return null;
+            return <button key={quick} type="button" onClick={()=>update("allergens",[...(f.allergens||[]),{id:"al_"+Date.now()+Math.random(),name:quick}])} style={{padding:"3px 7px",fontSize:10,background:"#fff",color:"#7c3aed",border:"1px dashed #c4b5fd",borderRadius:5,cursor:"pointer"}}>+ {quick}</button>;
+          })}
+        </div>
+        {(!f.allergens||f.allergens.length===0)?<p style={{fontSize:11,color:"#5b21b6",fontStyle:"italic"}}>No allergen info added</p>:
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {f.allergens.map((a,i)=>typeof a==="object"?
+            <div key={a.id||i} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 7px",background:"#fff",borderRadius:6,border:"1px solid #ede8de"}}>
+              <span style={{fontSize:11,fontWeight:700}}>{a.name}</span>
+              <button type="button" onClick={()=>update("allergens",f.allergens.filter((_,idx)=>idx!==i))} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:"50%",width:18,height:18,fontSize:11,cursor:"pointer",lineHeight:1}}>{String.fromCharCode(0x00D7)}</button>
+            </div>
+            :null
+          )}
+        </div>}
       </div>
 
       <div style={{marginBottom:16}}>
@@ -3068,7 +3136,7 @@ function MenuImportModal({onClose,onImport,categories}){
                 <div style={{flex:1,minWidth:0}}>
                   <p style={{fontSize:13,fontWeight:600}}>{it.name}</p>
                   {it.description&&<p style={{fontSize:11,color:"#8a8078",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.description}</p>}
-                  {it.allergens&&it.allergens.length>0&&<div style={{display:"flex",gap:3,marginTop:2,flexWrap:"wrap"}}>{it.allergens.map((a,i)=><span key={i} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#f5f0ff",color:"#7c3aed",fontWeight:700}}>{a}</span>)}</div>}
+                  {it.allergens&&it.allergens.length>0&&<div style={{display:"flex",gap:3,marginTop:2,flexWrap:"wrap"}}>{it.allergens.map((a,i)=><span key={i} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#f5f0ff",color:"#7c3aed",fontWeight:700}}>{typeof a==="object"?a.name:a}</span>)}</div>}
                 </div>
                 <p style={{fontSize:14,fontWeight:700,color:"#bf4626"}}>{fmt(it.price)}</p>
               </label>)}
@@ -12802,10 +12870,11 @@ export default function App(){
           icon:m.icon,
           stock:m.stock,
           avail:m.available,
-          allergens:m.allergens||[],
-          sizes:m.sizes||[],
-          extras:m.extras||[],
-          cookingOpts:m.cooking_opts||[],
+          // Convert legacy format (array of strings/ids) to new format (array of objects)
+          allergens:Array.isArray(m.allergens)?m.allergens.map(a=>typeof a==="object"?a:{id:"al_"+a,name:a.replace(/^al-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase())}):[],
+          sizes:Array.isArray(m.sizes)?m.sizes.map(s=>typeof s==="object"?s:{id:"sz_"+s,name:s.replace(/^sz-/,"").charAt(0).toUpperCase()+s.replace(/^sz-/,"").slice(1),priceAdj:0}):[],
+          extras:Array.isArray(m.extras)?m.extras.map(x=>typeof x==="object"?x:{id:"ex_"+x,name:x.replace(/^ex-/,"").replace(/_/g," ").replace(/\b\w/g,l=>l.toUpperCase()),priceAdj:0}):[],
+          cookingOpts:Array.isArray(m.cooking_opts)?m.cooking_opts.map(c=>typeof c==="object"?c:{id:"ck_"+c,name:c.replace(/^ck-/,"").charAt(0).toUpperCase()+c.replace(/^ck-/,"").slice(1)}):[],
           station:m.station||null,
           priceDineIn:m.price_dinein?parseFloat(m.price_dinein):null,
           priceTakeaway:m.price_takeaway?parseFloat(m.price_takeaway):null,
