@@ -1387,11 +1387,60 @@ function printR(o,b){
 }
 
 function Toasts({list,dismiss}){
-  return <div style={{position:"fixed",top:64,right:10,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:300,width:"calc(100% - 20px)"}}>
-    {list.map(n=><div key={n.id} className="fadeup" style={{background:"#fff",borderRadius:11,padding:"10px 12px",boxShadow:"0 4px 16px rgba(0,0,0,.12)",borderLeft:"4px solid "+(n.color||"#bf4626"),display:"flex",gap:8,alignItems:"flex-start"}}>
-      <div style={{flex:1}}><p style={{fontWeight:700,fontSize:13}}>{n.title}</p><p style={{fontSize:12,color:"#8a8078"}}>{n.body}</p></div>
-      <button onClick={()=>dismiss(n.id)} style={{color:"#ccc",fontSize:15,lineHeight:1}}>x</button>
-    </div>)}
+  return <div style={{position:"fixed",top:64,right:10,zIndex:9999,display:"flex",flexDirection:"column",gap:8,maxWidth:340,width:"calc(100% - 20px)"}}>
+    {list.map(n=>{
+      var icon=n.icon||(n.color==="#dc2626"?String.fromCharCode(0x26A0,0xFE0F):n.color==="#059669"?String.fromCharCode(0x2705):n.color==="#d97706"?String.fromCharCode(0x26A1):String.fromCharCode(0x1F389,0xFE0F));
+      return <div key={n.id} className="fadeup" style={{background:"#fff",borderRadius:12,padding:"12px 14px",boxShadow:"0 8px 24px rgba(0,0,0,.15)",borderLeft:"5px solid "+(n.color||"#bf4626"),display:"flex",gap:10,alignItems:"flex-start"}}>
+        <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{icon}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{fontWeight:700,fontSize:13,marginBottom:2,color:"#1a1208"}}>{n.title}</p>
+          {n.body&&<p style={{fontSize:12,color:"#6b6359",lineHeight:1.4,wordBreak:"break-word"}}>{n.body}</p>}
+        </div>
+        <button onClick={()=>dismiss(n.id)} style={{color:"#bbb",fontSize:18,lineHeight:1,border:"none",background:"transparent",cursor:"pointer",padding:0,flexShrink:0}}>{String.fromCharCode(0x00D7)}</button>
+      </div>;
+    })}
+  </div>;
+}
+
+// =================================================================
+// MODAL DIALOGS - Alert & Confirm replacements for window.alert/confirm
+// =================================================================
+function AlertModal({title,message,onClose,type}){
+  var colors={info:"#0891b2",success:"#059669",warning:"#d97706",error:"#dc2626"};
+  var icons={info:String.fromCharCode(0x2139,0xFE0F),success:String.fromCharCode(0x2705),warning:String.fromCharCode(0x26A0,0xFE0F),error:String.fromCharCode(0x274C)};
+  var color=colors[type||"info"];
+  var icon=icons[type||"info"];
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,10,5,.7)",backdropFilter:"blur(4px)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18,animation:"fadeIn .15s ease-out"}}>
+    <div onClick={e=>e.stopPropagation()} className="card fadeup" style={{maxWidth:380,width:"100%",padding:0,overflow:"hidden",boxShadow:"0 25px 50px rgba(0,0,0,.4)"}}>
+      <div style={{padding:"22px 24px 16px",textAlign:"center",borderBottom:"1px solid #ede8de"}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:color+"20",border:"3px solid "+color+"40",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:30}}>{icon}</div>
+        <h3 style={{fontSize:18,fontWeight:700,color:"#1a1208",marginBottom:6}}>{title}</h3>
+        {message&&<p style={{fontSize:13,color:"#6b6359",lineHeight:1.5}}>{message}</p>}
+      </div>
+      <div style={{padding:"14px 18px"}}>
+        <button onClick={onClose} style={{width:"100%",padding:"12px",background:color,color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:"pointer"}}>Got it</button>
+      </div>
+    </div>
+  </div>;
+}
+
+function ConfirmModal({title,message,confirmText,cancelText,onConfirm,onCancel,type,destructive}){
+  var colors={info:"#0891b2",warning:"#d97706",danger:"#dc2626"};
+  var icons={info:String.fromCharCode(0x2753),warning:String.fromCharCode(0x26A0,0xFE0F),danger:String.fromCharCode(0x1F5D1,0xFE0F)};
+  var color=colors[type||(destructive?"danger":"warning")];
+  var icon=icons[type||(destructive?"danger":"warning")];
+  return <div onClick={onCancel} style={{position:"fixed",inset:0,background:"rgba(15,10,5,.7)",backdropFilter:"blur(4px)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18,animation:"fadeIn .15s ease-out"}}>
+    <div onClick={e=>e.stopPropagation()} className="card fadeup" style={{maxWidth:380,width:"100%",padding:0,overflow:"hidden",boxShadow:"0 25px 50px rgba(0,0,0,.4)"}}>
+      <div style={{padding:"22px 24px 16px",textAlign:"center",borderBottom:"1px solid #ede8de"}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:color+"20",border:"3px solid "+color+"40",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:30}}>{icon}</div>
+        <h3 style={{fontSize:18,fontWeight:700,color:"#1a1208",marginBottom:6}}>{title}</h3>
+        {message&&<p style={{fontSize:13,color:"#6b6359",lineHeight:1.5}}>{message}</p>}
+      </div>
+      <div style={{padding:"14px 18px",display:"flex",gap:9}}>
+        <button onClick={onCancel} style={{flex:1,padding:"12px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}}>{cancelText||"Cancel"}</button>
+        <button onClick={onConfirm} style={{flex:1,padding:"12px",background:color,color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}}>{confirmText||"Confirm"}</button>
+      </div>
+    </div>
   </div>;
 }
 
@@ -12503,6 +12552,9 @@ export default function App(){
     }catch(e){return null;}
   });
   var [showAuth,setAuth]=useState(false),[notifs,setNotifs]=useState([]);
+  // PRETTY ALERT & CONFIRM modals
+  var [alertModal,setAlertModal]=useState(null); // {title, message, type, onClose}
+  var [confirmModal,setConfirmModal]=useState(null); // {title, message, type, onConfirm, onCancel, confirmText, cancelText, destructive}
   var [online,setOnline]=useState(isOnline()),[pendingCount,setPendingCount]=useState(getQueue().length);
   var nid=useRef(0);
   
@@ -12895,6 +12947,43 @@ export default function App(){
   },[]);
   useEffect(()=>{var s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);return()=>document.head.removeChild(s);},[]);
   var push=useCallback(n=>{var id=++nid.current;setNotifs(ns=>[...ns.slice(-3),{...n,id}]);setTimeout(()=>setNotifs(ns=>ns.filter(x=>x.id!==id)),5000);},[]);
+  
+  // PRETTY ALERT - replaces window.alert
+  var showAlert=useCallback((title,message,type)=>{
+    return new Promise(resolve=>{
+      setAlertModal({title:title||"Notice",message:message||"",type:type||"info",onClose:()=>{setAlertModal(null);resolve(true);}});
+    });
+  },[]);
+  
+  // PRETTY CONFIRM - replaces window.confirm
+  var showConfirm=useCallback((title,message,opts)=>{
+    return new Promise(resolve=>{
+      setConfirmModal({
+        title:title||"Confirm",
+        message:message||"",
+        confirmText:(opts&&opts.confirmText)||"Confirm",
+        cancelText:(opts&&opts.cancelText)||"Cancel",
+        type:opts&&opts.type,
+        destructive:opts&&opts.destructive,
+        onConfirm:()=>{setConfirmModal(null);resolve(true);},
+        onCancel:()=>{setConfirmModal(null);resolve(false);},
+      });
+    });
+  },[]);
+  
+  // Make available globally for any component to use
+  useEffect(()=>{
+    try{
+      window.showAlert=showAlert;
+      window.showConfirm=showConfirm;
+      // OVERRIDE window.alert and window.confirm globally
+      if(!window.__originalAlert)window.__originalAlert=window.alert;
+      if(!window.__originalConfirm)window.__originalConfirm=window.confirm;
+      window.alert=(msg)=>{showAlert("Notice",String(msg||""),"info");};
+      // Note: window.confirm needs synchronous response, but we use async - this is a limitation
+      // Components that use window.confirm should switch to showConfirm for pretty UI
+    }catch(e){}
+  },[showAlert,showConfirm]);
   var addOrder=o=>{
     if(!online){
       var count=queueOffline(o);
@@ -13136,6 +13225,8 @@ export default function App(){
       </button>)}
     </div>
     <Toasts list={notifs} dismiss={id=>setNotifs(ns=>ns.filter(n=>n.id!==id))}/>
+    {alertModal&&<AlertModal {...alertModal}/>}
+    {confirmModal&&<ConfirmModal {...confirmModal}/>}
     {!online&&<div style={{background:"#dc2626",color:"#fff",padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:12,fontWeight:700,position:"sticky",top:58,zIndex:450}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:"#fff",display:"inline-block",animation:"pulse 1s infinite"}}/>
       OFFLINE MODE - Orders saved locally{pendingCount>0?" ("+pendingCount+" pending sync)":""}
