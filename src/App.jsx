@@ -13099,14 +13099,50 @@ export default function App(){
     return()=>clearInterval(interval);
   },[]);
 
-  // Monitor network status
+  // Monitor network status - multiple methods
   useEffect(()=>{
-    var goOnline=()=>{setOnline(true);syncQueue();};
-    var goOffline=()=>setOnline(false);
+    var goOnline=()=>{
+      setOnline(true);
+      console.log("Online event - triggering sync");
+      syncQueue();
+    };
+    var goOffline=()=>{
+      setOnline(false);
+      console.log("Offline event");
+    };
+    
+    // Periodic check (every 10 seconds) - catches cases where events don't fire
+    var checkInterval=setInterval(()=>{
+      var actuallyOnline=navigator.onLine!==false;
+      setOnline(prev=>{
+        if(prev!==actuallyOnline){
+          console.log("State changed:",prev,"->",actuallyOnline);
+          if(actuallyOnline){
+            // Came online, try sync
+            setTimeout(()=>syncQueue(),500);
+          }
+        }
+        return actuallyOnline;
+      });
+    },10000);
+    
     if(typeof window!=="undefined"){
       window.addEventListener("online",goOnline);
       window.addEventListener("offline",goOffline);
-      return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
+      
+      // On mount: if we have queued orders and we're online, sync them
+      setTimeout(()=>{
+        if(navigator.onLine!==false && getQueue().length>0){
+          console.log("App started with",getQueue().length,"queued orders - syncing");
+          syncQueue();
+        }
+      },2000);
+      
+      return()=>{
+        window.removeEventListener("online",goOnline);
+        window.removeEventListener("offline",goOffline);
+        clearInterval(checkInterval);
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
@@ -13114,10 +13150,15 @@ export default function App(){
   // Sync queued orders when back online - ACTUALLY SAVE TO DB
   var syncQueue=useCallback(async()=>{
     var q=getQueue();
-    if(!q.length)return;
+    if(!q.length){
+      console.log("No orders to sync");
+      return;
+    }
+    console.log("Syncing",q.length,"queued orders");
     setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Syncing...",body:"Uploading "+q.length+" offline order"+(q.length>1?"s":""),color:"#0891b2"}]);
     var successCount=0;
     var failedOrders=[];
+    var successIds=[];
     for(var o of q){
       try{
         var result=await saveOrderToDb(o);
@@ -13126,12 +13167,20 @@ export default function App(){
           failedOrders.push(o);
         }else{
           successCount++;
+          successIds.push(o.id);
+          console.log("Synced order to DB:",o.id);
         }
       }catch(e){
         console.error("Sync exception:",e);
         failedOrders.push(o);
       }
     }
+    
+    // Remove offline flag from synced orders in local state
+    if(successIds.length>0){
+      setOrders(prev=>prev.map(o=>successIds.includes(o.id)?{...o,offline:false,synced:true}:o));
+    }
+    
     // Save back the failed ones, clear the successful ones
     if(failedOrders.length>0){
       LS.set(OFFLINE_QUEUE_KEY,failedOrders);
@@ -13430,10 +13479,10 @@ export default function App(){
     </div>}
     
     {/* PENDING SYNC BANNER (Online but has queue) */}
-    {online && pendingCount>0 && <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9990,background:"linear-gradient(135deg,#d97706,#92400e)",color:"#fff",padding:"9px 15px",textAlign:"center",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(0,0,0,.15)",cursor:"pointer"}} onClick={syncQueue}>
-      <span style={{fontSize:13,marginRight:6}}>{String.fromCharCode(0x23F3)}</span>
+    {online && pendingCount>0 && <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9990,background:"linear-gradient(135deg,#d97706,#92400e)",color:"#fff",padding:"11px 15px",textAlign:"center",fontSize:12,fontWeight:700,boxShadow:"0 2px 8px rgba(0,0,0,.15)",cursor:"pointer"}} onClick={syncQueue}>
+      <span style={{fontSize:14,marginRight:6}}>{String.fromCharCode(0x23F3)}</span>
       {pendingCount} OFFLINE ORDER{pendingCount>1?"S":""} WAITING TO SYNC
-      <span style={{opacity:.85,marginLeft:9,fontWeight:500,fontSize:11}}>Click here to retry sync</span>
+      <span style={{opacity:.9,marginLeft:9,fontWeight:600,fontSize:11,textDecoration:"underline"}}>{String.fromCharCode(0xD83D,0xDC46)} Click here to sync now</span>
     </div>}
     
     <Toasts list={notifs} dismiss={id=>setNotifs(ns=>ns.filter(n=>n.id!==id))}/>
