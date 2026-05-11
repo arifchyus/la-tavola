@@ -17,8 +17,6 @@ var isOnline=()=>typeof navigator!=="undefined"&&navigator.onLine!==false;
 // Offline order queue - stored until internet returns
 var OFFLINE_QUEUE_KEY="latavola_offline_queue";
 var OFFLINE_MENU_KEY="latavola_offline_menu";
-var OFFLINE_TABLES_KEY="latavola_offline_tables";
-var OFFLINE_CATEGORIES_KEY="latavola_offline_categories";
 var queueOffline=order=>{
   var q=LS.get(OFFLINE_QUEUE_KEY)||[];
   q.push({...order,queuedAt:Date.now()});
