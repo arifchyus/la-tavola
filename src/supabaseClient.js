@@ -213,7 +213,7 @@ export async function saveMenuItem(item) {
     sizes: item.sizes || [],
     extras: item.extras || [],
     cooking_opts: item.cookingOpts || [],
-    category_name: item.cat || 'Mains',
+    category_name: item.cat || null,
     station: item.station || null,
     price_dinein: item.priceDineIn || null,
     price_takeaway: item.priceTakeaway || null,

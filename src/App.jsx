@@ -2663,12 +2663,14 @@ var ICON_KEYS=[
 // -- MENU ITEM EDITOR MODAL ----------------------------------------------------
 function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}){
   var isNew=!item||!item.id;
+  // Use first available category as default, fallback to "Starters"
+  var defaultCat=(categories&&categories.length>0)?categories[0].name:"Starters";
   var [f,setF]=useState({
     id:item?.id||Date.now(),
     name:item?.name||"",
     price:item?.price||0,
     desc:item?.desc||"",
-    cat:item?.cat||"Mains",
+    cat:item?.cat||defaultCat,
     icon:item?.icon||"cart",
     avail:item?.avail!==false,
     stock:item?.stock??20,
@@ -2689,6 +2691,18 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
   var [uploading,setUploading]=useState(false);
   var [imageMode,setImageMode]=useState(item?.image_url?"current":"none"); // "current","upload","url","none"
   var [urlInput,setUrlInput]=useState("");
+  
+  // Validate cat - if user's saved cat doesn't exist in categories list, default to first available
+  useEffect(()=>{
+    if(categories&&categories.length>0){
+      var valid=categories.some(c=>c.name===f.cat);
+      if(!valid){
+        // Current cat is not in available categories, switch to first available
+        setF(prev=>({...prev,cat:categories[0].name}));
+      }
+    }
+  },[categories]); // eslint-disable-line react-hooks/exhaustive-deps
+  
   var update=(k,v)=>setF(x=>({...x,[k]:v}));
   var toggleArr=(k,id)=>setF(x=>({...x,[k]:x[k].includes(id)?x[k].filter(i=>i!==id):[...x[k],id]}));
   
@@ -2819,7 +2833,7 @@ function MenuEditor({item,onSave,onClose,onDelete,modifiers,categories,stations}
       <div className="g2" style={{marginBottom:12}}>
         <div><label className="lbl">Category</label>
           <select className="field" value={f.cat} onChange={e=>update("cat",e.target.value)}>
-            {(categories||[{name:"Starters"},{name:"Mains"},{name:"Sides"},{name:"Desserts"},{name:"Drinks"}]).map(c=><option key={c.id||c.name}>{c.name}</option>)}
+            {(categories&&categories.length>0?categories:[{name:"Starters"},{name:"Mains"},{name:"Sides"},{name:"Desserts"},{name:"Drinks"}]).map(c=><option key={c.id||c.name} value={c.name}>{c.name}</option>)}
           </select>
         </div>
         <div><label className="lbl">Stock</label><input type="number" className="field" value={f.stock} onChange={e=>update("stock",e.target.value)}/></div>
