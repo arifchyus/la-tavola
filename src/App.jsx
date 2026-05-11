@@ -6791,7 +6791,6 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
   // Drag handlers - desktop
   var handleDragStart=(e,table)=>{
     e.preventDefault();
-    var rect=floorRef.current.getBoundingClientRect();
     var btnRect=e.currentTarget.getBoundingClientRect();
     setDraggedTable(table.id);
     setDragOffset({
