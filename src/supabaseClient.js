@@ -464,6 +464,8 @@ export async function saveTable(table) {
         seats: table.seats,
         x_pos: table.x,
         y_pos: table.y,
+        position_x: table.x,
+        position_y: table.y,
         status: table.status,
         table_number: table.id,
         shape: table.shape || 'rectangle',
@@ -479,6 +481,8 @@ export async function saveTable(table) {
       seats: table.seats,
       x_pos: table.x,
       y_pos: table.y,
+      position_x: table.x,
+      position_y: table.y,
       status: table.status || 'free',
       shape: table.shape || 'rectangle',
     }).select().single();

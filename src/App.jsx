@@ -7162,8 +7162,25 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
       {/* Edit mode toggle */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:7}}>
         <p style={{fontSize:13,fontWeight:700,color:"#1a1208"}}>{String.fromCharCode(0xD83C,0xDFE0)} Floor Plan {editMode&&<span style={{color:"#bf4626",fontSize:11,marginLeft:7}}>{String.fromCharCode(0x270F,0xFE0F)} Edit Mode</span>}</p>
-        <button onClick={()=>{setEditMode(!editMode);setSelected(null);}} style={{padding:"7px 14px",background:editMode?"#dc2626":"#0891b2",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>
-          {editMode?String.fromCharCode(0x2713)+" Done Editing":String.fromCharCode(0x270F,0xFE0F)+" Edit Layout"}
+        <button onClick={async()=>{
+          if(editMode){
+            // SAVING: Save ALL table positions to DB
+            try{
+              for(var t of branchTables){
+                if(t.dbId){
+                  await dbSaveTable(t);
+                }
+              }
+              push&&push({title:"Layout saved",body:"All tables saved to database",color:"#059669"});
+            }catch(e){
+              console.error("Save layout failed:",e);
+              push&&push({title:"Save failed",body:e.message,color:"#dc2626"});
+            }
+          }
+          setEditMode(!editMode);
+          setSelected(null);
+        }} style={{padding:"7px 14px",background:editMode?"#dc2626":"#0891b2",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          {editMode?String.fromCharCode(0x2713)+" Save & Done":String.fromCharCode(0x270F,0xFE0F)+" Edit Layout"}
         </button>
       </div>
       
@@ -12968,8 +12985,8 @@ export default function App(){
           dbId:t.id,
           branchId:t.branch_id,
           seats:t.seats,
-          x:t.x_pos,
-          y:t.y_pos,
+          x:t.x_pos!==null&&t.x_pos!==undefined?t.x_pos:(t.position_x||50),
+          y:t.y_pos!==null&&t.y_pos!==undefined?t.y_pos:(t.position_y||50),
           status:t.status||"free",
           shape:t.shape||"rectangle",
         }));
