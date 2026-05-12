@@ -6891,6 +6891,47 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </label>
       </div>
 
+      {/* FULLSCREEN POS MODE SETTING */}
+      <div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #9333ea"}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>{String.fromCharCode(0x26F6,0xFE0F)} Fullscreen POS Mode</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Make the POS feel like a real EPOS terminal. Hides browser bars, address bar, tabs, etc. for a clean professional look. Staff can press ESC anytime to exit.</p>
+        
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:11}}>
+          <input type="checkbox" checked={(()=>{try{return localStorage.getItem("pos_auto_fullscreen")==="1";}catch(e){return false;}})()} onChange={e=>{
+            try{
+              localStorage.setItem("pos_auto_fullscreen",e.target.checked?"1":"0");
+              push({title:e.target.checked?"Auto fullscreen enabled":"Auto fullscreen disabled",body:e.target.checked?"POS will go fullscreen automatically":"Staff can choose to go fullscreen",color:"#059669"});
+            }catch(err){}
+          }} style={{width:18,height:18,cursor:"pointer"}}/>
+          <span style={{fontWeight:700,fontSize:13}}>Auto-enter fullscreen when staff opens dashboard</span>
+        </label>
+        
+        <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:7}}>
+          <button onClick={()=>{
+            try{
+              if(document.fullscreenElement){
+                document.exitFullscreen();
+              }else{
+                document.documentElement.requestFullscreen().catch(e=>{
+                  alert("Fullscreen not supported in your browser");
+                });
+              }
+            }catch(e){}
+          }} style={{padding:"9px 14px",background:"#9333ea",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x26F6,0xFE0F)} Test Fullscreen Now</button>
+          <span style={{fontSize:10,color:"#8a8078",alignSelf:"center"}}>{String.fromCharCode(0xD83D,0xDCA1)} Press F11 or ESC to exit anytime</span>
+        </div>
+        
+        <div style={{padding:9,background:"#f3e8ff",borderRadius:7,marginTop:11,fontSize:11,color:"#6b21a8"}}>
+          <strong>{String.fromCharCode(0xD83D,0xDCA1)} Pro tip:</strong> For best EPOS experience:
+          <ul style={{paddingLeft:18,marginTop:5}}>
+            <li>Use a tablet/iPad mounted on counter</li>
+            <li>Or dedicated touchscreen monitor</li>
+            <li>Enable auto-fullscreen above</li>
+            <li>Bookmark the URL for quick access</li>
+          </ul>
+        </div>
+      </div>
+
       <div className="card" style={{padding:16,marginBottom:12}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>Receipt & VAT Settings</p>
         <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Configure how VAT is shown on receipts. UK businesses are usually required to show VAT breakdown by HMRC.</p>
@@ -10259,7 +10300,31 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
   var [currentShift,setCurrentShift]=useState(null);
   var [showShiftOpen,setShowShiftOpen]=useState(false);
   var [showShiftClose,setShowShiftClose]=useState(false);
+  // eslint-disable-next-line no-unused-vars
+  var [, setFsTick]=useState(0); // Re-render trigger when fullscreen changes
   var shiftsEnabled=(()=>{try{return localStorage.getItem("shifts_enabled")==="1";}catch(e){return false;}})();
+  
+  // Listen for fullscreen changes to update UI
+  useEffect(()=>{
+    var handler=()=>setFsTick(t=>t+1);
+    document.addEventListener("fullscreenchange",handler);
+    return()=>document.removeEventListener("fullscreenchange",handler);
+  },[]);
+  
+  // Auto-enter fullscreen if setting enabled
+  useEffect(()=>{
+    var autoFs=false;
+    try{autoFs=localStorage.getItem("pos_auto_fullscreen")==="1";}catch(e){}
+    if(autoFs&&!document.fullscreenElement){
+      // Small delay so it doesn't trigger immediately
+      setTimeout(()=>{
+        try{
+          document.documentElement.requestFullscreen().catch(()=>{});
+        }catch(e){}
+      },500);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   
   // Load active shift on mount
   useEffect(()=>{
@@ -10350,6 +10415,19 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
       onClick:()=>currentShift?setShowShiftClose(true):setShowShiftOpen(true),
     }]:[]),
     {icon:EM.gear,label:"Admin",color:"#1f2937",bgGradient:"linear-gradient(135deg,#1f2937,#374151)",badge:null,sublabel:"Menu & settings",onClick:()=>setView("admin")},
+    {icon:String.fromCharCode(0x26F6,0xFE0F),label:document.fullscreenElement?"Exit Fullscreen":"Fullscreen POS",color:"#9333ea",bgGradient:"linear-gradient(135deg,#9333ea,#7c3aed)",badge:document.fullscreenElement?"ON":null,sublabel:document.fullscreenElement?"Press ESC to exit":"Hide browser bars",onClick:()=>{
+      try{
+        if(document.fullscreenElement){
+          document.exitFullscreen();
+        }else{
+          document.documentElement.requestFullscreen().catch(e=>{
+            if(window.showAlert)window.showAlert("Fullscreen not available","Your browser does not support fullscreen mode, or it's blocked. Try Chrome/Edge/Safari.","warning");
+          });
+        }
+      }catch(e){
+        console.error("Fullscreen error:",e);
+      }
+    }},
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
     {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
   ];
