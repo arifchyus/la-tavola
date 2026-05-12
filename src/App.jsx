@@ -12455,6 +12455,29 @@ function SaaSAuthScreen({onAuthSuccess}){
         {mode==="login"&&<div>
           <h2 style={{fontSize:22,fontWeight:700,marginBottom:18,textAlign:"center"}}>Sign In</h2>
           
+          {/* OFFLINE LOGIN OPTION - if cached and offline */}
+          {(()=>{
+            try{
+              var isOffline=navigator.onLine===false;
+              var cached=localStorage.getItem("latavola_offline_login");
+              if(!cached)return null;
+              var data=JSON.parse(cached);
+              var ageHours=Math.round((Date.now()-data.cachedAt)/(1000*60*60));
+              return <div style={{marginBottom:14,padding:11,background:isOffline?"#fef3c7":"#dbeafe",border:"2px solid "+(isOffline?"#f59e0b":"#3b82f6"),borderRadius:9}}>
+                <p style={{fontSize:11,fontWeight:700,color:isOffline?"#92400e":"#1e40af",marginBottom:3}}>{isOffline?String.fromCharCode(0xD83D,0xDCF6)+" OFFLINE":String.fromCharCode(0xD83D,0xDD12)+" QUICK LOGIN"}</p>
+                <p style={{fontSize:12,fontWeight:700,marginBottom:3}}>{data.restaurant.name}</p>
+                <p style={{fontSize:11,color:"#6b6359",marginBottom:9}}>{data.owner.email} {String.fromCharCode(0x2022)} Cached {ageHours}h ago</p>
+                <button onClick={()=>{
+                  // Restore from cache
+                  onAuthSuccess(data.owner,data.restaurant);
+                }} style={{width:"100%",padding:"11px",background:isOffline?"#d97706":"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                  {isOffline?String.fromCharCode(0xD83D,0xDCF6)+" Continue Offline as "+data.owner.full_name:String.fromCharCode(0x26A1)+" Quick Login as "+data.owner.full_name}
+                </button>
+                {isOffline&&<p style={{fontSize:10,color:"#92400e",marginTop:7,fontStyle:"italic",textAlign:"center"}}>Will sync with cloud when internet returns</p>}
+              </div>;
+            }catch(e){return null;}
+          })()}
+          
           <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL</p>
           <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@restaurant.com" autoFocus style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
           
@@ -12913,10 +12936,47 @@ export default function App(){
     setUser(null);
     setSaasOwner(owner);
     setRestaurant(rest);
+    
+    // CACHE login for offline use (just non-sensitive data)
+    try{
+      localStorage.setItem("latavola_offline_login",JSON.stringify({
+        owner:{
+          id:owner.id,
+          email:owner.email,
+          full_name:owner.full_name,
+          phone:owner.phone,
+        },
+        restaurant:rest,
+        cachedAt:Date.now(),
+      }));
+      console.log("Login cached for offline use");
+    }catch(e){console.error("Failed to cache login:",e);}
+    
     if(!rest.onboarding_complete){
       setShowOnboarding(true);
     }
   };
+  
+  // Restore from offline login cache (when offline and no active session)
+  useEffect(()=>{
+    if(saasOwner||restaurant)return; // Already logged in
+    if(navigator.onLine!==false)return; // We have internet, normal login should work
+    
+    try{
+      var cached=localStorage.getItem("latavola_offline_login");
+      if(!cached)return;
+      var data=JSON.parse(cached);
+      // Auto-restore offline session
+      console.log("Restoring offline session for:",data.owner.email);
+      setSaasOwner(data.owner);
+      setRestaurant(data.restaurant);
+      // Show notification
+      setTimeout(()=>{
+        setNotifs(ns=>[...ns.slice(-3),{id:++nid.current,title:"Offline mode",body:"Logged in from cache. Will sync when online.",color:"#d97706"}]);
+      },1000);
+    }catch(e){console.error("Failed to restore offline login:",e);}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[saasOwner,restaurant]);
   
   // SAAS-2: Logout
   var handleSaasLogout=()=>{
