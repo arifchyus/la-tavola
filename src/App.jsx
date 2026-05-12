@@ -7148,6 +7148,26 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
   var [customAmount,setCustomAmount]=useState("");
   // Filter tables by current branch
   var branchTables=branch?tables.filter(t=>!t.branchId||t.branchId===branch.id):tables;
+  
+  // AUTO-MARK tables as occupied if they have unpaid dine-in orders
+  // This handles the case where order is synced but table status didn't update
+  branchTables=branchTables.map(tbl=>{
+    var hasActiveOrder=orders.some(o=>{
+      if(branch&&o.branchId&&o.branchId!==branch.id)return false;
+      if(o.type!=="dine-in")return false;
+      if(o.paid)return false;
+      if(o.status==="cancelled")return false;
+      var orderTableNum=parseInt(o.tableId);
+      var thisTableNum=parseInt(tbl.id);
+      return !isNaN(orderTableNum)&&!isNaN(thisTableNum)&&orderTableNum===thisTableNum;
+    });
+    // Force occupied status if has active order
+    if(hasActiveOrder&&tbl.status!=="occupied"){
+      return {...tbl,status:"occupied",guests:tbl.guests||2,since:tbl.since||new Date().toLocaleTimeString()};
+    }
+    return tbl;
+  });
+  
   var t=branchTables.find(t=>t.id===selected);
 
   // Get all unpaid orders for selected table - MUST match branch + table number
@@ -13987,6 +14007,10 @@ export default function App(){
       
       // Also sync table statuses to DB for dine-in orders
       var dineInOrders=q.filter(o=>successIds.includes(o.id)&&o.type==="dine-in"&&o.tableId);
+      
+      // Build a map of tableId -> order info for local state update
+      var tableUpdates={};
+      
       for(let dio of dineInOrders){
         try{
           let allTablesData=window.__allTables||[];
@@ -13994,8 +14018,22 @@ export default function App(){
           if(tbl&&tbl.dbId){
             await dbUpdateTableStatus(tbl.dbId,"occupied",{});
             console.log("Synced table status to DB for table",dio.tableId);
+            tableUpdates[String(dio.tableId)]={
+              status:"occupied",
+              since:tbl.since||new Date().toLocaleTimeString(),
+              guests:tbl.guests||dio.guests||2,
+            };
           }
         }catch(te){console.log("Failed to sync table status:",te);}
+      }
+      
+      // Update local tables state with occupied status
+      if(Object.keys(tableUpdates).length>0){
+        setTables(prev=>prev.map(t=>{
+          var update=tableUpdates[String(t.id)];
+          return update?{...t,...update}:t;
+        }));
+        console.log("Local tables state updated after sync");
       }
     }
     
