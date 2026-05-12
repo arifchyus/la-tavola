@@ -12241,15 +12241,32 @@ function SuperAdminPanel({onExit,saasOwner}){
         {/* Rep Form Modal */}
         {showRepForm&&<RepFormModal rep={editingRep} onClose={()=>{setShowRepForm(false);setEditingRep(null);}} onSave={async(formData)=>{
           var result;
-          if(editingRep){
-            result=await dbUpdateRep(editingRep.id,formData);
-          }else{
-            result=await dbCreateRep(formData);
+          try{
+            if(editingRep){
+              result=await dbUpdateRep(editingRep.id,formData);
+            }else{
+              result=await dbCreateRep(formData);
+            }
+            console.log("Rep save result:",result);
+            if(result.error){
+              var errMsg=result.error.message||JSON.stringify(result.error);
+              if(errMsg.includes("duplicate")||errMsg.includes("unique")){
+                alert("Email already exists. Use a different email.");
+              }else if(errMsg.includes("does not exist")||errMsg.includes("relation")){
+                alert("Database tables not set up yet. Please run sales-rep-system.sql in Supabase SQL Editor first.");
+              }else{
+                alert("Failed to save: "+errMsg);
+              }
+              return;
+            }
+            setShowRepForm(false);
+            setEditingRep(null);
+            loadData();
+            alert("Rep saved successfully!");
+          }catch(e){
+            console.error("Rep save exception:",e);
+            alert("Error: "+(e.message||"Unknown error. Check console for details."));
           }
-          if(result.error){alert("Failed: "+result.error.message);return;}
-          setShowRepForm(false);
-          setEditingRep(null);
-          loadData();
         }}/>}
       </>}
       
