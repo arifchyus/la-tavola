@@ -13024,7 +13024,36 @@ export default function App(){
   useEffect(()=>{
     if(!urlChecked)return;
     if(!restaurant)return;
-    // Clear old data first (in case restaurant changed)
+    
+    // OFFLINE MODE: Use all cached data
+    if(navigator.onLine===false){
+      console.log("Offline mode - loading from cache");
+      // Load all cached data
+      var cachedMenu=getCached(OFFLINE_MENU_KEY);
+      if(cachedMenu&&cachedMenu.length){
+        setMenu(cachedMenu);
+        console.log("Cached menu loaded:",cachedMenu.length,"items");
+      }
+      var cachedTables=LS.get("latavola_cached_tables");
+      if(cachedTables&&cachedTables.length){
+        setTables(cachedTables);
+        console.log("Cached tables loaded:",cachedTables.length);
+      }
+      var cachedCats=LS.get("latavola_cached_categories");
+      if(cachedCats&&cachedCats.length){
+        setCategories(cachedCats);
+        console.log("Cached categories loaded:",cachedCats.length);
+      }
+      var cachedOrders=LS.get("latavola_cached_orders");
+      if(cachedOrders&&cachedOrders.length){
+        setOrders(cachedOrders);
+        console.log("Cached orders loaded:",cachedOrders.length);
+      }
+      push&&push({title:"Offline mode",body:"Showing cached data. Changes will sync when online.",color:"#d97706"});
+      return; // Don't try to load from DB
+    }
+    
+    // ONLINE MODE: Clear and load fresh
     setOrders([]);
     setMenu([]);
     setCategories([]);
@@ -13056,6 +13085,7 @@ export default function App(){
           time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
         }));
         setOrders(formatted);
+        try{LS.set("latavola_cached_orders",formatted.slice(0,100));}catch(e){}
       }
     }).catch(e=>console.log("Orders load failed (using demo data):",e));
 
@@ -13127,6 +13157,7 @@ export default function App(){
           order:c.display_order,
         }));
         setCategories(formatted);
+        try{LS.set("latavola_cached_categories",formatted);}catch(e){}
       }
     }).catch(e=>console.log("Categories load failed:",e));
 
@@ -13195,7 +13226,7 @@ export default function App(){
           shape:t.shape||"rectangle",
         }));
         setTables(formatted);
-        try{window.__allTables=formatted;}catch(e){}
+        try{window.__allTables=formatted;LS.set("latavola_cached_tables",formatted);}catch(e){}
       }
     }).catch(e=>console.log("Tables load failed:",e));
 
