@@ -12023,7 +12023,6 @@ function SuperAdminPanel({onExit,saasOwner}){
   var [showRepForm,setShowRepForm]=useState(false);
   var [editingRep,setEditingRep]=useState(null);
   var [allCommissions,setAllCommissions]=useState([]);
-  var [showCommForm,setShowCommForm]=useState(null);
   
   var loadData=()=>{
     setLoading(true);
