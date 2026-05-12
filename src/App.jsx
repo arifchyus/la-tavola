@@ -12268,6 +12268,51 @@ function SuperAdminPanel({onExit,saasOwner}){
             alert("Error: "+(e.message||"Unknown error. Check console for details."));
           }
         }}/>}
+        
+        {/* PENDING COMMISSIONS TO PAY */}
+        {allCommissions.filter(c=>c.status==="pending").length>0&&<div style={{marginTop:18,background:"#1a1208",borderRadius:11,padding:14,border:"2px solid #d97706"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:11,flexWrap:"wrap",gap:7}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,color:"#fbbf24"}}>{String.fromCharCode(0xD83D,0xDCB0)} Pending Commissions to Pay</p>
+              <p style={{fontSize:11,color:"#a8956a"}}>
+                Total: \u00A3{allCommissions.filter(c=>c.status==="pending").reduce((s,c)=>s+parseFloat(c.amount||0),0).toFixed(2)} 
+                {String.fromCharCode(0x2022)} {allCommissions.filter(c=>c.status==="pending").length} commission{allCommissions.filter(c=>c.status==="pending").length>1?"s":""}
+              </p>
+            </div>
+          </div>
+          
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {allCommissions.filter(c=>c.status==="pending").map(c=>{
+              var rep=reps.find(r=>r.id===c.rep_id);
+              if(!rep)return null;
+              return <div key={c.id} style={{padding:11,background:"#0f0a05",borderRadius:7,border:"1px solid #5d3a1f",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:11}}>
+                <div style={{flex:1,minWidth:180}}>
+                  <p style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{rep.full_name}</p>
+                  <p style={{fontSize:11,color:"#a8956a"}}>{c.sales_reps?.email||rep.email}</p>
+                  <p style={{fontSize:10,color:"#6b5d3f",marginTop:3}}>
+                    {c.type} {String.fromCharCode(0x2022)} {c.rep_subscriptions?.restaurants?.name||"Restaurant"} {String.fromCharCode(0x2022)} {new Date(c.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <p style={{fontSize:18,fontWeight:700,color:"#fbbf24",marginBottom:5}}>\u00A3{parseFloat(c.amount).toFixed(2)}</p>
+                  <button onClick={async()=>{
+                    var method=window.prompt("Payment method? (e.g. Bank Transfer, PayPal, Cash)","Bank Transfer");
+                    if(!method)return;
+                    var ref=window.prompt("Transaction reference (optional):","");
+                    var r=await dbMarkCommPaid(c.id,method,ref||"");
+                    if(r.error){alert("Failed: "+r.error.message);return;}
+                    alert("Marked as PAID!\n\nAmount: \u00A3"+parseFloat(c.amount).toFixed(2)+"\nTo: "+rep.full_name+"\nMethod: "+method);
+                    loadData();
+                  }} style={{padding:"6px 13px",background:"#22c55e",color:"#fff",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2705)} Mark as Paid</button>
+                </div>
+              </div>;
+            })}
+          </div>
+          
+          <div style={{marginTop:11,padding:9,background:"rgba(217,119,6,.1)",borderRadius:7,fontSize:11,color:"#fbbf24"}}>
+            <strong>{String.fromCharCode(0xD83D,0xDCA1)} How to Pay:</strong> Transfer the amount to the rep's bank account via Faster Payments / Bank Transfer, then click "Mark as Paid" with the transaction reference.
+          </div>
+        </div>}
       </>}
       
       {activeTab==="activity"&&<>
