@@ -6891,6 +6891,45 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </label>
       </div>
 
+      {/* OFFLINE PIN - Security */}
+      <div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #dc2626"}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>{String.fromCharCode(0xD83D,0xDD12)} Offline Login PIN</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Set a 4-6 digit PIN to require for offline login. Prevents unauthorized access when internet is down. Leave empty to disable PIN requirement.</p>
+        
+        <div style={{display:"flex",gap:7,alignItems:"end",flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:140}}>
+            <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>CURRENT PIN</p>
+            <input type="password" id="offline-pin-input" defaultValue={(()=>{try{return localStorage.getItem("latavola_offline_pin")||"";}catch(e){return"";}})()} inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="4-6 digits" style={{width:"100%",padding:"11px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,letterSpacing:3,boxSizing:"border-box"}}/>
+          </div>
+          <button onClick={()=>{
+            var input=document.getElementById("offline-pin-input");
+            var val=input?input.value.replace(/\D/g,""):"";
+            try{
+              if(!val){
+                localStorage.removeItem("latavola_offline_pin");
+                push({title:"PIN disabled",body:"No PIN required for offline login",color:"#d97706"});
+              }else if(val.length<4){
+                if(window.showAlert)window.showAlert("PIN too short","Use at least 4 digits","warning");
+                return;
+              }else{
+                localStorage.setItem("latavola_offline_pin",val);
+                push({title:"PIN saved",body:val.length+" digit PIN set",color:"#059669"});
+              }
+            }catch(err){}
+          }} style={{padding:"11px 18px",background:"#dc2626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>Save PIN</button>
+        </div>
+        
+        <div style={{padding:9,background:"#fef2f2",borderRadius:7,marginTop:11,fontSize:11,color:"#991b1b"}}>
+          <strong>{String.fromCharCode(0x26A0,0xFE0F)} Important:</strong>
+          <ul style={{paddingLeft:18,marginTop:5}}>
+            <li>PIN only applies to OFFLINE login</li>
+            <li>Online login still requires email + password</li>
+            <li>Remember your PIN - if forgotten, login online to reset</li>
+            <li>Don't share PIN with anyone</li>
+          </ul>
+        </div>
+      </div>
+      
       {/* FULLSCREEN POS MODE SETTING */}
       <div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #9333ea"}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:6}}>{String.fromCharCode(0x26F6,0xFE0F)} Fullscreen POS Mode</p>
@@ -12319,6 +12358,50 @@ function DeleteRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
 // SAAS-2: SIGNUP / LOGIN / VERIFICATION SCREENS
 // ============================================================
 
+// ============================================================
+// OFFLINE LOGIN BOX with PIN security
+// ============================================================
+function OfflineLoginBox({data,ageHours,isOffline,offlinePin,onAuthSuccess}){
+  var [showPin,setShowPin]=useState(false);
+  var [pinInput,setPinInput]=useState("");
+  var [error,setError]=useState("");
+  
+  var tryLogin=()=>{
+    // If PIN is set, require it
+    if(offlinePin){
+      if(!showPin){
+        setShowPin(true);
+        return;
+      }
+      if(pinInput!==offlinePin){
+        setError("Wrong PIN");
+        setPinInput("");
+        return;
+      }
+    }
+    // PIN matched or not required - log in
+    onAuthSuccess(data.owner,data.restaurant);
+  };
+  
+  return <div style={{marginBottom:14,padding:11,background:isOffline?"#fef3c7":"#dbeafe",border:"2px solid "+(isOffline?"#f59e0b":"#3b82f6"),borderRadius:9}}>
+    <p style={{fontSize:11,fontWeight:700,color:isOffline?"#92400e":"#1e40af",marginBottom:3}}>{isOffline?String.fromCharCode(0xD83D,0xDCF6)+" OFFLINE":String.fromCharCode(0xD83D,0xDD12)+" QUICK LOGIN"}</p>
+    <p style={{fontSize:12,fontWeight:700,marginBottom:3}}>{data.restaurant.name}</p>
+    <p style={{fontSize:11,color:"#6b6359",marginBottom:9}}>{data.owner.email} {String.fromCharCode(0x2022)} Cached {ageHours}h ago</p>
+    
+    {showPin && <div style={{marginBottom:9,padding:11,background:"#fff",borderRadius:7,border:"1px solid #ede8de"}}>
+      <p style={{fontSize:11,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDD12)} Enter Offline PIN</p>
+      <input type="password" inputMode="numeric" pattern="[0-9]*" value={pinInput} onChange={e=>{setPinInput(e.target.value.replace(/\D/g,""));setError("");}} onKeyPress={e=>e.key==="Enter"&&tryLogin()} placeholder="****" autoFocus style={{width:"100%",padding:"11px",border:"2px solid "+(error?"#dc2626":"#ede8de"),borderRadius:7,fontSize:18,letterSpacing:4,textAlign:"center",boxSizing:"border-box"}}/>
+      {error&&<p style={{fontSize:11,color:"#dc2626",marginTop:5}}>{error}</p>}
+    </div>}
+    
+    <button onClick={tryLogin} style={{width:"100%",padding:"11px",background:isOffline?"#d97706":"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+      {showPin?String.fromCharCode(0x2713)+" Verify PIN":(isOffline?String.fromCharCode(0xD83D,0xDCF6)+" Continue Offline as "+data.owner.full_name:String.fromCharCode(0x26A1)+" Quick Login as "+data.owner.full_name)}
+    </button>
+    {isOffline&&<p style={{fontSize:10,color:"#92400e",marginTop:7,fontStyle:"italic",textAlign:"center"}}>Will sync with cloud when internet returns</p>}
+    {offlinePin&&!showPin&&<p style={{fontSize:10,color:"#6b6359",marginTop:5,fontStyle:"italic",textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDD12)} PIN required</p>}
+  </div>;
+}
+
 function SaaSAuthScreen({onAuthSuccess}){
   var [mode,setMode]=useState("login"); // "login", "signup", "verify"
   var [email,setEmail]=useState("");
@@ -12463,18 +12546,9 @@ function SaaSAuthScreen({onAuthSuccess}){
               if(!cached)return null;
               var data=JSON.parse(cached);
               var ageHours=Math.round((Date.now()-data.cachedAt)/(1000*60*60));
-              return <div style={{marginBottom:14,padding:11,background:isOffline?"#fef3c7":"#dbeafe",border:"2px solid "+(isOffline?"#f59e0b":"#3b82f6"),borderRadius:9}}>
-                <p style={{fontSize:11,fontWeight:700,color:isOffline?"#92400e":"#1e40af",marginBottom:3}}>{isOffline?String.fromCharCode(0xD83D,0xDCF6)+" OFFLINE":String.fromCharCode(0xD83D,0xDD12)+" QUICK LOGIN"}</p>
-                <p style={{fontSize:12,fontWeight:700,marginBottom:3}}>{data.restaurant.name}</p>
-                <p style={{fontSize:11,color:"#6b6359",marginBottom:9}}>{data.owner.email} {String.fromCharCode(0x2022)} Cached {ageHours}h ago</p>
-                <button onClick={()=>{
-                  // Restore from cache
-                  onAuthSuccess(data.owner,data.restaurant);
-                }} style={{width:"100%",padding:"11px",background:isOffline?"#d97706":"#2563eb",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>
-                  {isOffline?String.fromCharCode(0xD83D,0xDCF6)+" Continue Offline as "+data.owner.full_name:String.fromCharCode(0x26A1)+" Quick Login as "+data.owner.full_name}
-                </button>
-                {isOffline&&<p style={{fontSize:10,color:"#92400e",marginTop:7,fontStyle:"italic",textAlign:"center"}}>Will sync with cloud when internet returns</p>}
-              </div>;
+              var offlinePin=null;
+              try{offlinePin=localStorage.getItem("latavola_offline_pin");}catch(e){}
+              return <OfflineLoginBox data={data} ageHours={ageHours} isOffline={isOffline} offlinePin={offlinePin} onAuthSuccess={onAuthSuccess}/>;
             }catch(e){return null;}
           })()}
           
@@ -12774,7 +12848,13 @@ export default function App(){
   var [activeStaff,setActiveStaffState]=useState(()=>{try{return dbGetActiveStaff();}catch(e){return null;}});
   var [showStaffPinModal,setShowStaffPinModal]=useState(false);
   // SAAS: Current restaurant (tenant) info
-  var [restaurant,setRestaurant]=useState(null);
+  var [restaurant,setRestaurant]=useState(()=>{
+    try{
+      var saved=localStorage.getItem("latavola_saas_restaurant");
+      if(saved)return JSON.parse(saved);
+    }catch(e){}
+    return null;
+  });
   // SAAS: Current restaurant's branches (auto-branch using their info)
   // For La Tavola, use 'b3' to match existing data; for others, use 'main'
   var currentBranches=restaurant?[
@@ -12936,6 +13016,12 @@ export default function App(){
     setUser(null);
     setSaasOwner(owner);
     setRestaurant(rest);
+    
+    // CRITICAL: Save session so refresh works (offline or online)
+    try{
+      dbSaveOwner(owner,rest);
+      console.log("Session saved for refresh");
+    }catch(e){console.error("Failed to save session:",e);}
     
     // CACHE login for offline use (just non-sensitive data)
     try{
