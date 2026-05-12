@@ -14005,6 +14005,27 @@ export default function App(){
     if(successIds.length>0){
       setOrders(prev=>prev.map(o=>successIds.includes(o.id)?{...o,offline:false,synced:true}:o));
       
+      // CRITICAL FIX: For each synced order, update DB status to match current local status
+      // (e.g., kitchen marked as "ready" while offline - we need to push that to DB)
+      var ordersWithUpdates=q.filter(o=>successIds.includes(o.id));
+      for(let queuedOrder of ordersWithUpdates){
+        try{
+          let currentOrder=currentOrders.find(co=>co.id===queuedOrder.id);
+          if(currentOrder){
+            // Update status if it changed from queue's original
+            if(currentOrder.status&&currentOrder.status!==queuedOrder.status){
+              await dbUpdateOrderStatus(currentOrder.id,currentOrder.status);
+              console.log("Updated DB status for",currentOrder.id,"to",currentOrder.status);
+            }
+            // Update paid if it changed
+            if(currentOrder.paid&&!queuedOrder.paid){
+              await dbUpdateOrderPayment(currentOrder.id,true,currentOrder.payMethod||"cash");
+              console.log("Updated DB paid status for",currentOrder.id);
+            }
+          }
+        }catch(e){console.error("Failed to update synced order status:",e);}
+      }
+      
       // Also sync table statuses to DB for dine-in orders
       var dineInOrders=q.filter(o=>successIds.includes(o.id)&&o.type==="dine-in"&&o.tableId);
       
