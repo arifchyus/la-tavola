@@ -12534,13 +12534,10 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
   // SALES REP ASSIGNMENT
   var [reps,setReps]=useState([]);
   var [assignedRepId,setAssignedRepId]=useState(restaurant.assigned_rep_id||"");
-  var [currentSubscription,setCurrentSubscription]=useState(null);
   
   // Load reps and current assignment
   useEffect(()=>{
     dbFetchAllReps().then(list=>setReps(list||[]));
-    // Check if this restaurant has a rep subscription
-    dbFetchRepSubs("").then(()=>{}); // Will load all
   },[]);
   
   // Auto-update plan price when plan changes
