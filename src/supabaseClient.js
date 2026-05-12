@@ -3357,3 +3357,223 @@ export async function deleteMenuImage(imageUrl) {
     return { success: false, error: { message: err.message } };
   }
 }
+
+// ===========================================================
+// SALES REP SYSTEM
+// ===========================================================
+
+// === SALES REP CRUD ===
+
+export async function fetchAllReps() {
+  const { data, error } = await supabase
+    .from('sales_reps')
+    .select('*')
+    .order('full_name');
+  if (error) console.error('fetchAllReps:', error);
+  return data || [];
+}
+
+export async function fetchRepPerformance() {
+  const { data, error } = await supabase
+    .from('rep_performance')
+    .select('*');
+  if (error) console.error('fetchRepPerformance:', error);
+  return data || [];
+}
+
+export async function createRep(rep) {
+  const { data, error } = await supabase
+    .from('sales_reps')
+    .insert({
+      email: rep.email.toLowerCase().trim(),
+      password_hash: rep.password, // TODO: hash this
+      full_name: rep.full_name,
+      phone: rep.phone || null,
+      commission_type: rep.commission_type || 'percentage',
+      commission_percent: rep.commission_percent || 15,
+      fixed_per_signup: rep.fixed_per_signup || 0,
+      base_salary: rep.base_salary || 0,
+      recurring_commission: rep.recurring_commission || false,
+      notes: rep.notes || null,
+    })
+    .select()
+    .single();
+  if (error) console.error('createRep:', error);
+  return { data, error };
+}
+
+export async function updateRep(repId, updates) {
+  const { id, created_at, updated_at, ...cleanUpdates } = updates;
+  const { data, error } = await supabase
+    .from('sales_reps')
+    .update({ ...cleanUpdates, updated_at: new Date().toISOString() })
+    .eq('id', repId)
+    .select()
+    .single();
+  if (error) console.error('updateRep:', error);
+  return { data, error };
+}
+
+export async function deleteRep(repId) {
+  const { error } = await supabase
+    .from('sales_reps')
+    .delete()
+    .eq('id', repId);
+  return { error };
+}
+
+// === REP LOGIN ===
+
+export async function loginRep(email, password) {
+  const { data: rep, error } = await supabase
+    .from('sales_reps')
+    .select('*')
+    .eq('email', email.toLowerCase().trim())
+    .eq('active', true)
+    .maybeSingle();
+  
+  if (error || !rep) {
+    return { error: { message: 'Invalid email or password' } };
+  }
+  
+  if (rep.password_hash !== password) {
+    return { error: { message: 'Invalid email or password' } };
+  }
+  
+  // Update last login
+  await supabase
+    .from('sales_reps')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('id', rep.id);
+  
+  return { data: { ...rep, password_hash: undefined } };
+}
+
+// Save current rep to localStorage
+export function saveCurrentRep(rep) {
+  try {
+    localStorage.setItem('latavola_current_rep', JSON.stringify(rep));
+  } catch (e) {}
+}
+
+export function getCurrentRep() {
+  try {
+    const raw = localStorage.getItem('latavola_current_rep');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+export function logoutRep() {
+  try {
+    localStorage.removeItem('latavola_current_rep');
+  } catch (e) {}
+}
+
+// === REP SUBSCRIPTIONS ===
+
+export async function fetchRepSubscriptions(repId) {
+  const { data, error } = await supabase
+    .from('rep_subscriptions')
+    .select('*, restaurants(name, plan, active, subscription_ends_at, trial_ends_at, created_at)')
+    .eq('rep_id', repId)
+    .order('signed_at', { ascending: false });
+  if (error) console.error('fetchRepSubscriptions:', error);
+  return data || [];
+}
+
+export async function assignRepToRestaurant(repId, restaurantId, signupCommission, monthlyCommission) {
+  const { data, error } = await supabase
+    .from('rep_subscriptions')
+    .insert({
+      rep_id: repId,
+      restaurant_id: restaurantId,
+      signup_commission: signupCommission || 0,
+      monthly_commission: monthlyCommission || 0,
+    })
+    .select()
+    .single();
+  if (error) console.error('assignRepToRestaurant:', error);
+  return { data, error };
+}
+
+export async function removeRepAssignment(subscriptionId) {
+  const { error } = await supabase
+    .from('rep_subscriptions')
+    .delete()
+    .eq('id', subscriptionId);
+  return { error };
+}
+
+// === COMMISSIONS ===
+
+export async function fetchRepCommissions(repId) {
+  const { data, error } = await supabase
+    .from('rep_commissions')
+    .select('*, rep_subscriptions(restaurants(name))')
+    .eq('rep_id', repId)
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchRepCommissions:', error);
+  return data || [];
+}
+
+export async function fetchAllCommissions() {
+  const { data, error } = await supabase
+    .from('rep_commissions')
+    .select('*, sales_reps(full_name, email), rep_subscriptions(restaurants(name))')
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchAllCommissions:', error);
+  return data || [];
+}
+
+export async function createCommission(commission) {
+  const { data, error } = await supabase
+    .from('rep_commissions')
+    .insert({
+      rep_id: commission.rep_id,
+      subscription_id: commission.subscription_id,
+      amount: commission.amount,
+      type: commission.type || 'signup',
+      description: commission.description,
+      period_start: commission.period_start,
+      period_end: commission.period_end,
+    })
+    .select()
+    .single();
+  if (error) console.error('createCommission:', error);
+  return { data, error };
+}
+
+export async function markCommissionPaid(commissionId, paymentMethod, paymentReference) {
+  const { data, error } = await supabase
+    .from('rep_commissions')
+    .update({
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      payment_method: paymentMethod,
+      payment_reference: paymentReference,
+    })
+    .eq('id', commissionId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// Calculate commission for a restaurant signup
+export function calculateSignupCommission(rep, planPrice) {
+  if (!rep || !planPrice) return 0;
+  
+  switch (rep.commission_type) {
+    case 'percentage':
+      return (planPrice * rep.commission_percent) / 100;
+    case 'fixed':
+      return rep.fixed_per_signup;
+    case 'hybrid':
+      return ((planPrice * rep.commission_percent) / 100) + rep.fixed_per_signup;
+    case 'salary':
+      return 0; // salary-only reps don't get per-signup commission
+    default:
+      return 0;
+  }
+}
+

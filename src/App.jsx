@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -11691,6 +11691,321 @@ function RestaurantQRGenerator({restaurant,onClose}){
 // SUPER ADMIN PANEL - Platform owner control center
 // ============================================================
 
+// =================================================================
+// REP FORM MODAL - Create/Edit Sales Rep
+// =================================================================
+function RepFormModal({rep,onClose,onSave}){
+  var isEdit=!!rep;
+  var [form,setForm]=useState({
+    full_name:rep?.full_name||"",
+    email:rep?.email||"",
+    password:"",
+    phone:rep?.phone||"",
+    commission_type:rep?.commission_type||"percentage",
+    commission_percent:rep?.commission_percent||15,
+    fixed_per_signup:rep?.fixed_per_signup||0,
+    base_salary:rep?.base_salary||0,
+    recurring_commission:rep?.recurring_commission||false,
+    active:rep?.active!==false,
+    notes:rep?.notes||"",
+  });
+  
+  var save=()=>{
+    if(!form.full_name||!form.email){alert("Name and email required");return;}
+    if(!isEdit&&!form.password){alert("Password required for new rep");return;}
+    var data={...form};
+    if(isEdit&&!data.password)delete data.password; // Don't update password if empty
+    onSave(data);
+  };
+  
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#1a1208",borderRadius:14,padding:22,maxWidth:540,width:"100%",maxHeight:"90vh",overflow:"auto",border:"2px solid #3d2e22"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <h2 style={{fontSize:20,color:"#fbbf24",fontFamily:"Georgia,serif"}}>{isEdit?"Edit Sales Rep":"Add Sales Rep"}</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#a8956a",fontSize:24,cursor:"pointer"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      <div style={{display:"grid",gap:11}}>
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>FULL NAME</p>
+          <input value={form.full_name} onChange={e=>setForm(f=>({...f,full_name:e.target.value}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>
+        
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL</p>
+          <input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>
+        
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>PASSWORD {isEdit&&"(leave empty to keep current)"}</p>
+          <input type="password" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder={isEdit?"Leave empty":"Set password"} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>
+        
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>PHONE (optional)</p>
+          <input value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>
+        
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>COMMISSION TYPE</p>
+          <select value={form.commission_type} onChange={e=>setForm(f=>({...f,commission_type:e.target.value}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}>
+            <option value="percentage">Percentage of plan price</option>
+            <option value="fixed">Fixed amount per signup</option>
+            <option value="salary">Monthly salary only</option>
+            <option value="hybrid">Hybrid (percentage + fixed)</option>
+          </select>
+        </div>
+        
+        {(form.commission_type==="percentage"||form.commission_type==="hybrid")&&<div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>COMMISSION PERCENT (% of plan price)</p>
+          <input type="number" min="0" max="100" value={form.commission_percent} onChange={e=>setForm(f=>({...f,commission_percent:parseFloat(e.target.value)||0}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>}
+        
+        {(form.commission_type==="fixed"||form.commission_type==="hybrid")&&<div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>FIXED AMOUNT PER SIGNUP (£)</p>
+          <input type="number" min="0" value={form.fixed_per_signup} onChange={e=>setForm(f=>({...f,fixed_per_signup:parseFloat(e.target.value)||0}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>}
+        
+        {(form.commission_type==="salary"||form.commission_type==="hybrid")&&<div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>MONTHLY SALARY (£)</p>
+          <input type="number" min="0" value={form.base_salary} onChange={e=>setForm(f=>({...f,base_salary:parseFloat(e.target.value)||0}))} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>}
+        
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:9,background:"#0f0a05",borderRadius:7}}>
+          <input type="checkbox" checked={form.recurring_commission} onChange={e=>setForm(f=>({...f,recurring_commission:e.target.checked}))} style={{width:18,height:18}}/>
+          <span style={{fontSize:12,color:"#fff"}}>Recurring monthly commission (paid each month the restaurant subscribes)</span>
+        </label>
+        
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:9,background:"#0f0a05",borderRadius:7}}>
+          <input type="checkbox" checked={form.active} onChange={e=>setForm(f=>({...f,active:e.target.checked}))} style={{width:18,height:18}}/>
+          <span style={{fontSize:12,color:"#fff"}}>Active (can login)</span>
+        </label>
+        
+        <div>
+          <p style={{fontSize:10,color:"#a8956a",fontWeight:700,letterSpacing:1,marginBottom:5}}>NOTES (internal only)</p>
+          <textarea value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows={3} style={{width:"100%",padding:11,background:"#0f0a05",color:"#fff",border:"1px solid #3d2e22",borderRadius:7,fontSize:13,boxSizing:"border-box",resize:"vertical"}}/>
+        </div>
+      </div>
+      
+      <div style={{display:"flex",gap:9,marginTop:18}}>
+        <button onClick={onClose} style={{flex:1,padding:13,background:"#0f0a05",color:"#a8956a",border:"1px solid #3d2e22",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>Cancel</button>
+        <button onClick={save} style={{flex:2,padding:13,background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:13,cursor:"pointer"}}>{isEdit?"Save Changes":"Create Rep"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// =================================================================
+// SALES REP LOGIN SCREEN
+// =================================================================
+function SalesRepLogin({onLogin}){
+  var [email,setEmail]=useState("");
+  var [password,setPassword]=useState("");
+  var [loading,setLoading]=useState(false);
+  var [error,setError]=useState("");
+  
+  var doLogin=async()=>{
+    if(!email||!password){setError("Email and password required");return;}
+    setLoading(true);
+    setError("");
+    var result=await dbLoginRep(email,password);
+    setLoading(false);
+    if(result.error){
+      setError(result.error.message);
+      return;
+    }
+    dbSaveRep(result.data);
+    onLogin(result.data);
+  };
+  
+  return <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f0a05,#1a1208)",display:"flex",alignItems:"center",justifyContent:"center",padding:18,fontFamily:"-apple-system,sans-serif"}}>
+    <div style={{maxWidth:420,width:"100%",background:"#1a1208",borderRadius:18,padding:32,border:"2px solid #5d3a1f"}}>
+      <div style={{textAlign:"center",marginBottom:22}}>
+        <div style={{fontSize:48,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCBC)}</div>
+        <h2 style={{fontSize:24,fontWeight:700,color:"#fbbf24",fontFamily:"Georgia,serif",marginBottom:5}}>Sales Rep Portal</h2>
+        <p style={{color:"#a8956a",fontSize:12}}>La Tavola Platform</p>
+      </div>
+      
+      <p style={{fontSize:11,color:"#fbbf24",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL</p>
+      <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="rep@example.com" autoFocus style={{width:"100%",padding:"13px",background:"#0f0a05",color:"#fff",border:"2px solid #5d3a1f",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+      
+      <p style={{fontSize:11,color:"#fbbf24",fontWeight:700,letterSpacing:1,marginBottom:5}}>PASSWORD</p>
+      <input value={password} onChange={e=>setPassword(e.target.value)} onKeyPress={e=>e.key==="Enter"&&doLogin()} type="password" placeholder="******" style={{width:"100%",padding:"13px",background:"#0f0a05",color:"#fff",border:"2px solid #5d3a1f",borderRadius:7,fontSize:14,marginBottom:14,boxSizing:"border-box"}}/>
+      
+      {error&&<div style={{background:"#7f1d1d",color:"#fecaca",padding:9,borderRadius:7,marginBottom:11,fontSize:12,textAlign:"center"}}>{error}</div>}
+      
+      <button onClick={doLogin} disabled={loading} style={{width:"100%",padding:"15px",background:loading?"#5d3a1f":"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:loading?"not-allowed":"pointer"}}>{loading?"Signing in...":"Sign In"}</button>
+      
+      <button onClick={()=>{window.location.href="/";}} style={{width:"100%",marginTop:11,padding:"11px",background:"transparent",color:"#a8956a",border:"none",cursor:"pointer",fontSize:11}}>{String.fromCharCode(0x2190)} Back to Main Site</button>
+    </div>
+  </div>;
+}
+
+// =================================================================
+// SALES REP DASHBOARD - rep sees their subscriptions & earnings
+// =================================================================
+function SalesRepDashboard({rep,onLogout}){
+  var [tab,setTab]=useState("overview");
+  var [subscriptions,setSubscriptions]=useState([]);
+  var [commissions,setCommissions]=useState([]);
+  var [loading,setLoading]=useState(true);
+  
+  useEffect(()=>{
+    if(!rep)return;
+    Promise.all([
+      dbFetchRepSubs(rep.id).then(d=>setSubscriptions(d||[])),
+      dbFetchRepComm(rep.id).then(d=>setCommissions(d||[])),
+    ]).then(()=>setLoading(false));
+  },[rep]);
+  
+  var activeSubs=subscriptions.filter(s=>s.active);
+  var totalEarned=commissions.filter(c=>c.status==="paid").reduce((s,c)=>s+parseFloat(c.amount||0),0);
+  var pendingEarned=commissions.filter(c=>c.status==="pending").reduce((s,c)=>s+parseFloat(c.amount||0),0);
+  var thisMonth=commissions.filter(c=>{
+    var d=new Date(c.created_at);
+    var now=new Date();
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  }).reduce((s,c)=>s+parseFloat(c.amount||0),0);
+  
+  return <div style={{minHeight:"100vh",background:"#f7f3ee",fontFamily:"-apple-system,sans-serif"}}>
+    {/* Header */}
+    <div style={{background:"linear-gradient(135deg,#1a1208,#3d2818)",color:"#fff",padding:"16px 22px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 8px rgba(0,0,0,.15)"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
+        <div>
+          <p style={{fontSize:10,color:"#d4952a",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase"}}>{String.fromCharCode(0xD83D,0xDCBC)} Sales Rep Portal</p>
+          <h1 style={{fontSize:22,fontWeight:700,fontFamily:"Georgia,serif"}}>Welcome, {rep.full_name}</h1>
+          <p style={{fontSize:11,opacity:.75}}>{rep.email} {String.fromCharCode(0x2022)} Commission: {rep.commission_type==="percentage"?rep.commission_percent+"%":rep.commission_type==="fixed"?"\u00A3"+rep.fixed_per_signup+" per signup":rep.commission_type==="salary"?"\u00A3"+rep.base_salary+"/mo salary":"Hybrid"}</p>
+        </div>
+        <button onClick={onLogout} style={{padding:"7px 14px",background:"rgba(220,38,38,.2)",color:"#fecaca",border:"1px solid #dc2626",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700}}>{String.fromCharCode(0x21AA,0xFE0F)} Logout</button>
+      </div>
+    </div>
+    
+    <div style={{padding:18,maxWidth:1100,margin:"0 auto"}}>
+      {/* STATS CARDS */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:11,marginBottom:18}}>
+        {[
+          {label:"Active Subscriptions",value:activeSubs.length,color:"#0891b2",bg:"linear-gradient(135deg,#cffafe,#a5f3fc)",icon:String.fromCharCode(0xD83C,0xDFEA)},
+          {label:"Total Earned",value:"\u00A3"+totalEarned.toFixed(2),color:"#059669",bg:"linear-gradient(135deg,#d1fae5,#a7f3d0)",icon:String.fromCharCode(0xD83D,0xDCB0)},
+          {label:"Pending",value:"\u00A3"+pendingEarned.toFixed(2),color:"#d97706",bg:"linear-gradient(135deg,#fef3c7,#fde68a)",icon:String.fromCharCode(0x23F3)},
+          {label:"This Month",value:"\u00A3"+thisMonth.toFixed(2),color:"#bf4626",bg:"linear-gradient(135deg,#fee2e2,#fecaca)",icon:String.fromCharCode(0xD83D,0xDCCA)},
+        ].map(s=><div key={s.label} style={{background:s.bg,borderRadius:11,padding:"14px",border:"2px solid "+s.color+"40",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:11,right:13,fontSize:24,opacity:.4}}>{s.icon}</div>
+          <p style={{fontSize:10,color:s.color,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{s.label}</p>
+          <p style={{fontSize:24,fontWeight:700,color:s.color}}>{s.value}</p>
+        </div>)}
+      </div>
+      
+      {/* TABS */}
+      <div style={{background:"#fff",borderRadius:11,padding:7,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)"}}>
+        <div style={{display:"flex",gap:3}}>
+          {[["overview","Overview",String.fromCharCode(0xD83D,0xDCCA)],["subscriptions","My Subscriptions",String.fromCharCode(0xD83C,0xDFEA)],["commissions","Commissions",String.fromCharCode(0xD83D,0xDCB0)]].map(([k,l,ic])=><button key={k} onClick={()=>setTab(k)} style={{padding:"9px 14px",borderRadius:8,fontWeight:600,fontSize:12,border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"transparent",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <span style={{fontSize:13}}>{ic}</span>
+            <span>{l}</span>
+          </button>)}
+        </div>
+      </div>
+      
+      {/* TAB CONTENT */}
+      {loading?<div style={{padding:40,textAlign:"center",color:"#8a8078"}}>Loading...</div>:<>
+      
+      {tab==="overview"&&<div>
+        <div className="card" style={{padding:18,marginBottom:14}}>
+          <p style={{fontSize:15,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCCB)} How You Get Paid</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:11,fontSize:13}}>
+            <div style={{padding:11,background:"#f7f3ee",borderRadius:8}}>
+              <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>COMMISSION TYPE</p>
+              <p style={{fontWeight:700,textTransform:"capitalize"}}>{rep.commission_type}</p>
+            </div>
+            {rep.commission_type==="percentage"&&<div style={{padding:11,background:"#f7f3ee",borderRadius:8}}>
+              <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>RATE</p>
+              <p style={{fontWeight:700}}>{rep.commission_percent}%</p>
+            </div>}
+            {(rep.commission_type==="fixed"||rep.commission_type==="hybrid")&&<div style={{padding:11,background:"#f7f3ee",borderRadius:8}}>
+              <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>FIXED PER SIGNUP</p>
+              <p style={{fontWeight:700}}>£{rep.fixed_per_signup}</p>
+            </div>}
+            {rep.base_salary>0&&<div style={{padding:11,background:"#f7f3ee",borderRadius:8}}>
+              <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>MONTHLY SALARY</p>
+              <p style={{fontWeight:700}}>£{rep.base_salary}/mo</p>
+            </div>}
+            <div style={{padding:11,background:"#f7f3ee",borderRadius:8}}>
+              <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>RECURRING</p>
+              <p style={{fontWeight:700}}>{rep.recurring_commission?"\u2705 Yes (monthly)":"\u274C No (one-time)"}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="card" style={{padding:18}}>
+          <p style={{fontSize:15,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCAB)} Recent Activity</p>
+          {commissions.length===0?<p style={{color:"#8a8078",fontSize:13,padding:14,textAlign:"center"}}>No commissions yet. Start signing up restaurants!</p>:
+          <div>{commissions.slice(0,5).map(c=><div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:"1px solid #ede8de"}}>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,textTransform:"capitalize"}}>{c.type} commission</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{c.rep_subscriptions?.restaurants?.name||"Unknown"} {String.fromCharCode(0x2022)} {new Date(c.created_at).toLocaleDateString()}</p>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <p style={{fontWeight:700,color:"#059669"}}>£{parseFloat(c.amount).toFixed(2)}</p>
+              <p style={{fontSize:10,color:c.status==="paid"?"#059669":"#d97706",textTransform:"uppercase",fontWeight:700}}>{c.status}</p>
+            </div>
+          </div>)}</div>}
+        </div>
+      </div>}
+      
+      {tab==="subscriptions"&&<div className="card" style={{padding:18}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83C,0xDFEA)} Restaurants You Signed Up ({subscriptions.length})</p>
+        {subscriptions.length===0?<p style={{color:"#8a8078",fontSize:13,padding:14,textAlign:"center"}}>You haven't signed up any restaurants yet</p>:
+        <div style={{display:"flex",flexDirection:"column",gap:9}}>{subscriptions.map(s=>{
+          var r=s.restaurants;
+          if(!r)return null;
+          var isExpired=r.subscription_ends_at&&new Date(r.subscription_ends_at)<new Date();
+          return <div key={s.id} style={{padding:13,background:"#fafaf5",borderRadius:9,border:"1px solid #ede8de"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:7}}>
+              <div>
+                <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{r.name}</p>
+                <p style={{fontSize:11,color:"#8a8078"}}>Signed: {new Date(s.signed_at).toLocaleDateString()} {String.fromCharCode(0x2022)} Plan: {r.plan||"trial"}</p>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <span style={{padding:"3px 9px",background:r.active===false||isExpired?"#fee2e2":"#d1fae5",color:r.active===false||isExpired?"#dc2626":"#059669",borderRadius:11,fontSize:10,fontWeight:700,textTransform:"uppercase"}}>
+                  {r.active===false?"Suspended":isExpired?"Expired":"Active"}
+                </span>
+                <p style={{fontSize:11,color:"#059669",fontWeight:700,marginTop:5}}>Earned: £{parseFloat(s.signup_commission||0).toFixed(2)}</p>
+              </div>
+            </div>
+          </div>;
+        })}</div>}
+      </div>}
+      
+      {tab==="commissions"&&<div className="card" style={{padding:18}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCB0)} Commission History</p>
+        {commissions.length===0?<p style={{color:"#8a8078",fontSize:13,padding:14,textAlign:"center"}}>No commissions yet</p>:
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{borderBottom:"2px solid #ede8de"}}>
+              <th style={{textAlign:"left",padding:"9px 7px",fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1}}>DATE</th>
+              <th style={{textAlign:"left",padding:"9px 7px",fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1}}>RESTAURANT</th>
+              <th style={{textAlign:"left",padding:"9px 7px",fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1}}>TYPE</th>
+              <th style={{textAlign:"right",padding:"9px 7px",fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1}}>AMOUNT</th>
+              <th style={{textAlign:"center",padding:"9px 7px",fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1}}>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {commissions.map(c=><tr key={c.id} style={{borderBottom:"1px solid #ede8de"}}>
+              <td style={{padding:"11px 7px",fontSize:12}}>{new Date(c.created_at).toLocaleDateString()}</td>
+              <td style={{padding:"11px 7px",fontSize:12}}>{c.rep_subscriptions?.restaurants?.name||"-"}</td>
+              <td style={{padding:"11px 7px",fontSize:12,textTransform:"capitalize"}}>{c.type}</td>
+              <td style={{padding:"11px 7px",fontSize:12,fontWeight:700,textAlign:"right"}}>£{parseFloat(c.amount).toFixed(2)}</td>
+              <td style={{padding:"11px 7px",fontSize:11,textAlign:"center"}}>
+                <span style={{padding:"3px 9px",background:c.status==="paid"?"#d1fae5":"#fef3c7",color:c.status==="paid"?"#059669":"#d97706",borderRadius:9,fontWeight:700,textTransform:"uppercase",fontSize:10}}>{c.status}</span>
+              </td>
+            </tr>)}
+          </tbody>
+        </table>}
+      </div>}
+      </>}
+    </div>
+  </div>;
+}
+
 function SuperAdminPanel({onExit,saasOwner}){
   var [restaurants,setRestaurants]=useState([]);
   var [stats,setStats]=useState({});
@@ -11703,17 +12018,27 @@ function SuperAdminPanel({onExit,saasOwner}){
   var [showEditModal,setShowEditModal]=useState(null);
   var [showDeleteModal,setShowDeleteModal]=useState(null);
   var [createResult,setCreateResult]=useState(null);
+  // SALES REP states
+  var [reps,setReps]=useState([]);
+  var [showRepForm,setShowRepForm]=useState(false);
+  var [editingRep,setEditingRep]=useState(null);
+  var [allCommissions,setAllCommissions]=useState([]);
+  var [showCommForm,setShowCommForm]=useState(null);
   
   var loadData=()=>{
     setLoading(true);
     Promise.all([
       dbFetchAllRestStats(),
       dbFetchPlatStats(),
-      dbFetchPlatActivity(20)
-    ]).then(([rests,plat,act])=>{
+      dbFetchPlatActivity(20),
+      dbFetchAllReps(),
+      dbFetchAllComm(),
+    ]).then(([rests,plat,act,repsList,commList])=>{
       setRestaurants(rests||[]);
       setStats(plat||{});
       setActivity(act||[]);
+      setReps(repsList||[]);
+      setAllCommissions(commList||[]);
       setLoading(false);
     });
   };
@@ -11804,8 +12129,8 @@ function SuperAdminPanel({onExit,saasOwner}){
     </div>
     
     {/* Tabs */}
-    <div style={{padding:"22px 22px 0 22px",maxWidth:1400,margin:"0 auto",display:"flex",gap:6,borderBottom:"1px solid #3d2e22"}}>
-      {[{id:"overview",label:String.fromCharCode(0xD83C,0xDFEA)+" Restaurants"},{id:"activity",label:String.fromCharCode(0xD83D,0xDCDC)+" Activity Log"}].map(t=>
+    <div style={{padding:"22px 22px 0 22px",maxWidth:1400,margin:"0 auto",display:"flex",gap:6,borderBottom:"1px solid #3d2e22",flexWrap:"wrap"}}>
+      {[{id:"overview",label:String.fromCharCode(0xD83C,0xDFEA)+" Restaurants"},{id:"reps",label:String.fromCharCode(0xD83D,0xDCBC)+" Sales Reps"},{id:"activity",label:String.fromCharCode(0xD83D,0xDCDC)+" Activity Log"}].map(t=>
         <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{padding:"11px 18px",background:activeTab===t.id?"#3d2e22":"transparent",color:activeTab===t.id?"#fbbf24":"#a8956a",border:"none",borderBottom:"3px solid "+(activeTab===t.id?"#fbbf24":"transparent"),fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.label}</button>
       )}
     </div>
@@ -11862,6 +12187,71 @@ function SuperAdminPanel({onExit,saasOwner}){
             })}
           </div>
         }
+      </>}
+      
+      {activeTab==="reps"&&<>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:7}}>
+          <div>
+            <p style={{fontSize:11,color:"#a8956a",letterSpacing:2,fontWeight:700,marginBottom:3}}>SALES REPRESENTATIVES</p>
+            <p style={{fontSize:11,color:"#a8956a"}}>{reps.length} reps {String.fromCharCode(0x2022)} {allCommissions.length} commission records</p>
+          </div>
+          <button onClick={()=>{setEditingRep(null);setShowRepForm(true);}} style={{padding:"9px 16px",background:"#bf4626",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Add Sales Rep</button>
+        </div>
+        
+        {reps.length===0?<div style={{background:"#1a1208",borderRadius:11,padding:22,textAlign:"center",border:"1px solid #3d2e22"}}>
+          <p style={{color:"#a8956a",fontSize:13,marginBottom:11}}>No sales reps added yet</p>
+          <p style={{color:"#a8956a",fontSize:11}}>Sales reps can sign up restaurants and earn commissions. They get their own login at /?rep=1</p>
+        </div>:<div style={{display:"grid",gap:9}}>
+          {reps.map(r=>{
+            var repComms=allCommissions.filter(c=>c.rep_id===r.id);
+            var totalEarned=repComms.filter(c=>c.status==="paid").reduce((s,c)=>s+parseFloat(c.amount||0),0);
+            var pending=repComms.filter(c=>c.status==="pending").reduce((s,c)=>s+parseFloat(c.amount||0),0);
+            return <div key={r.id} style={{background:"#1a1208",borderRadius:11,padding:14,border:"1px solid #3d2e22"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}>
+                <div style={{flex:1,minWidth:200}}>
+                  <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:5}}>
+                    <p style={{fontSize:15,fontWeight:700,color:"#fbbf24"}}>{r.full_name}</p>
+                    {!r.active&&<span style={{padding:"2px 7px",background:"#7f1d1d",color:"#fecaca",fontSize:9,borderRadius:9,fontWeight:700}}>INACTIVE</span>}
+                  </div>
+                  <p style={{fontSize:11,color:"#a8956a"}}>{r.email} {r.phone?String.fromCharCode(0x2022)+" "+r.phone:""}</p>
+                  <p style={{fontSize:11,color:"#a8956a",marginTop:3}}>
+                    {String.fromCharCode(0xD83D,0xDCB0)} {r.commission_type==="percentage"?r.commission_percent+"% commission":r.commission_type==="fixed"?"£"+r.fixed_per_signup+" per signup":r.commission_type==="salary"?"£"+r.base_salary+"/mo salary":"Hybrid: "+r.commission_percent+"% + £"+r.fixed_per_signup}
+                    {r.recurring_commission?" (recurring monthly)":""}
+                  </p>
+                </div>
+                <div style={{display:"flex",gap:7}}>
+                  <button onClick={()=>{setEditingRep(r);setShowRepForm(true);}} style={{padding:"6px 11px",background:"#1e3a8a",color:"#dbeafe",border:"1px solid #2563eb",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>Edit</button>
+                  <button onClick={async()=>{
+                    if(!window.confirm("Delete "+r.full_name+"? Their subscriptions will remain but they will lose access."))return;
+                    var res=await dbDeleteRep(r.id);
+                    if(res.error){alert("Failed: "+res.error.message);return;}
+                    loadData();
+                  }} style={{padding:"6px 11px",background:"#7f1d1d",color:"#fecaca",border:"1px solid #dc2626",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>Delete</button>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:7,marginTop:11,padding:11,background:"#0f0a05",borderRadius:7}}>
+                <div><p style={{fontSize:9,color:"#a8956a",letterSpacing:1,fontWeight:700}}>EARNED</p><p style={{fontSize:13,fontWeight:700,color:"#22c55e"}}>£{totalEarned.toFixed(2)}</p></div>
+                <div><p style={{fontSize:9,color:"#a8956a",letterSpacing:1,fontWeight:700}}>PENDING</p><p style={{fontSize:13,fontWeight:700,color:"#fbbf24"}}>£{pending.toFixed(2)}</p></div>
+                <div><p style={{fontSize:9,color:"#a8956a",letterSpacing:1,fontWeight:700}}>COMMISSIONS</p><p style={{fontSize:13,fontWeight:700,color:"#fff"}}>{repComms.length}</p></div>
+                <div><p style={{fontSize:9,color:"#a8956a",letterSpacing:1,fontWeight:700}}>LAST LOGIN</p><p style={{fontSize:11,color:"#fff"}}>{r.last_login_at?new Date(r.last_login_at).toLocaleDateString():"Never"}</p></div>
+              </div>
+            </div>;
+          })}
+        </div>}
+        
+        {/* Rep Form Modal */}
+        {showRepForm&&<RepFormModal rep={editingRep} onClose={()=>{setShowRepForm(false);setEditingRep(null);}} onSave={async(formData)=>{
+          var result;
+          if(editingRep){
+            result=await dbUpdateRep(editingRep.id,formData);
+          }else{
+            result=await dbCreateRep(formData);
+          }
+          if(result.error){alert("Failed: "+result.error.message);return;}
+          setShowRepForm(false);
+          setEditingRep(null);
+          loadData();
+        }}/>}
       </>}
       
       {activeTab==="activity"&&<>
@@ -12909,6 +13299,14 @@ export default function App(){
       return p.get("admin")==="lt-secret-2026";
     }catch(e){return false;}
   });
+  // SALES REP routing
+  var [showRepPortal,setShowRepPortal]=useState(()=>{
+    try{
+      var p=new URLSearchParams(window.location.search);
+      return p.get("rep")==="1"||window.location.pathname==="/reps";
+    }catch(e){return false;}
+  });
+  var [currentRep,setCurrentRep]=useState(()=>dbGetRep());
   var [isAdmin,setIsAdmin]=useState(false);
   var [impersonating,setImpersonating]=useState(()=>dbIsImpersonating());
   
@@ -13600,6 +13998,20 @@ export default function App(){
     }
     // User is admin - show panel
     return <><style>{CSS}</style><SuperAdminPanel saasOwner={saasOwner} onExit={()=>{setShowSuperAdmin(false);window.history.replaceState({},"","/");}}/></>;
+  }
+  
+  // SALES REP PORTAL
+  if(showRepPortal){
+    if(!currentRep){
+      // Show rep login
+      return <><style>{CSS}</style>
+        <SalesRepLogin onLogin={r=>{setCurrentRep(r);}}/>
+      </>;
+    }
+    // Rep is logged in - show dashboard
+    return <><style>{CSS}</style>
+      <SalesRepDashboard rep={currentRep} onLogout={()=>{dbLogoutRep();setCurrentRep(null);setShowRepPortal(false);window.history.replaceState({},"","/");}}/>
+    </>;
   }
   
   // PHASE A: If customer visited via URL and detected a restaurant, skip auth - go to ordering
