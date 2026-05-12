@@ -12525,10 +12525,32 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
   var [lat,setLat]=useState(restaurant.lat||"");
   var [lng,setLng]=useState(restaurant.lng||"");
   var [plan,setPlan]=useState(restaurant.plan||"starter");
+  var [planPrice,setPlanPrice]=useState(restaurant.plan_price||(restaurant.plan==="pro"?79:restaurant.plan==="enterprise"?149:29));
   var [serviceTypes,setServiceTypes]=useState(restaurant.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true});
   var [addons,setAddons]=useState(restaurant.addon_features||{marketing:false,loyalty:false,multi_branch:false,custom_domain:false});
   var [locks,setLocks]=useState(restaurant.feature_locks||{dine_in:"allow",collection:"allow",delivery:"allow",phone_orders:"allow",online_ordering:"allow",bookings:"allow",marketing:"allow",loyalty:"allow",multi_branch:"allow",custom_domain:"allow"});
   var [updating,setUpdating]=useState(false);
+  
+  // SALES REP ASSIGNMENT
+  var [reps,setReps]=useState([]);
+  var [assignedRepId,setAssignedRepId]=useState(restaurant.assigned_rep_id||"");
+  var [currentSubscription,setCurrentSubscription]=useState(null);
+  
+  // Load reps and current assignment
+  useEffect(()=>{
+    dbFetchAllReps().then(list=>setReps(list||[]));
+    // Check if this restaurant has a rep subscription
+    dbFetchRepSubs("").then(()=>{}); // Will load all
+  },[]);
+  
+  // Auto-update plan price when plan changes
+  var onPlanChange=(newPlan)=>{
+    setPlan(newPlan);
+    // Auto-fill price based on plan
+    if(newPlan==="starter")setPlanPrice(29);
+    else if(newPlan==="pro")setPlanPrice(79);
+    else if(newPlan==="enterprise")setPlanPrice(149);
+  };
   
   var handleSave=async()=>{
     if(!name.trim()){alert("Name required");return;}
@@ -12543,10 +12565,40 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
       lat:lat||null,
       lng:lng||null,
       plan:plan,
+      plan_price:parseFloat(planPrice)||0,
+      assigned_rep_id:assignedRepId||null,
       service_types:serviceTypes,
       addon_features:addons,
       feature_locks:locks,
     },saasOwner.email);
+    
+    // If rep was just assigned (or changed), create the subscription + commission
+    if(assignedRepId&&assignedRepId!==restaurant.assigned_rep_id){
+      try{
+        var rep=reps.find(r=>r.id===assignedRepId);
+        if(rep){
+          // Calculate commission
+          var signupComm=calculateSignupCommission(rep,parseFloat(planPrice)||0);
+          var monthlyComm=rep.recurring_commission?signupComm:0;
+          
+          // Create rep_subscription record
+          var subResult=await dbAssignRep(assignedRepId,restaurant.id,signupComm,monthlyComm);
+          
+          if(!subResult.error&&subResult.data){
+            // Create commission record
+            await dbCreateComm({
+              rep_id:assignedRepId,
+              subscription_id:subResult.data.id,
+              amount:signupComm,
+              type:'signup',
+              description:'Signup commission for '+restaurant.name+' ('+plan+' plan @ \u00A3'+planPrice+'/mo)',
+            });
+            console.log("Rep assigned and commission created:",signupComm);
+          }
+        }
+      }catch(e){console.error("Failed to create commission:",e);}
+    }
+    
     setUpdating(false);
     if(result.success){
       onSuccess();
@@ -12630,12 +12682,42 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
           <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB3)} Subscription Plan</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7}}>
             {[["starter","Starter","\u00A329"],["pro","Pro","\u00A369"],["enterprise","Enterprise","\u00A3149"]].map(p=>
-              <button key={p[0]} onClick={()=>setPlan(p[0])} style={{padding:"11px 5px",background:plan===p[0]?"#0891b2":"#1a1208",color:plan===p[0]?"#fff":"#a8956a",border:"2px solid "+(plan===p[0]?"#0891b2":"#5d3a1f"),borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>
+              <button key={p[0]} onClick={()=>onPlanChange(p[0])} style={{padding:"11px 5px",background:plan===p[0]?"#0891b2":"#1a1208",color:plan===p[0]?"#fff":"#a8956a",border:"2px solid "+(plan===p[0]?"#0891b2":"#5d3a1f"),borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>
                 <p style={{textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{p[1]}</p>
                 <p style={{fontSize:10,opacity:.85}}>{p[2]}/month</p>
               </button>
             )}
           </div>
+          
+          {/* CUSTOM PRICE */}
+          <div style={{marginTop:11,padding:11,background:"#0f0a05",borderRadius:7,border:"1px solid #5d3a1f"}}>
+            <label style={labelStyle}>{String.fromCharCode(0xD83D,0xDCB0)} CUSTOM MONTHLY PRICE (£)</label>
+            <input type="number" value={planPrice} onChange={e=>setPlanPrice(e.target.value)} step="0.01" min="0" placeholder="29.00" style={inputStyle}/>
+            <p style={{fontSize:10,color:"#6b5d3f",marginTop:5,fontStyle:"italic"}}>Override the default plan price (used for commission calculation)</p>
+          </div>
+        </div>
+        
+        {/* SALES REP ASSIGNMENT */}
+        <div style={{marginTop:11,padding:14,background:"#0f0a05",borderRadius:9,border:"1px solid #5d3a1f"}}>
+          <p style={{color:"#fbbf24",fontSize:13,fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCBC)} Sales Rep Assignment</p>
+          <p style={{color:"#6b5d3f",fontSize:10,marginBottom:11,fontStyle:"italic"}}>Assign a sales rep who signed up this restaurant. Commission will be auto-calculated on save.</p>
+          
+          <label style={labelStyle}>SALES REP</label>
+          <select value={assignedRepId} onChange={e=>setAssignedRepId(e.target.value)} style={inputStyle}>
+            <option value="">-- No rep assigned --</option>
+            {reps.filter(r=>r.active).map(r=><option key={r.id} value={r.id}>{r.full_name} ({r.commission_type==="percentage"?r.commission_percent+"%":r.commission_type==="fixed"?"\u00A3"+r.fixed_per_signup:r.commission_type==="salary"?"Salary":"Hybrid"})</option>)}
+          </select>
+          
+          {assignedRepId&&(()=>{
+            var rep=reps.find(r=>r.id===assignedRepId);
+            if(!rep)return null;
+            var comm=calculateSignupCommission(rep,parseFloat(planPrice)||0);
+            return <div style={{marginTop:9,padding:9,background:"#1a1208",borderRadius:7,border:"1px solid #22c55e"}}>
+              <p style={{fontSize:11,color:"#22c55e",fontWeight:700,marginBottom:3}}>{String.fromCharCode(0x2705)} COMMISSION PREVIEW</p>
+              <p style={{fontSize:12,color:"#fff"}}>Rep "{rep.full_name}" will earn <strong style={{color:"#fbbf24"}}>£{comm.toFixed(2)}</strong> when you save</p>
+              {rep.recurring_commission&&<p style={{fontSize:10,color:"#22c55e",marginTop:3}}>+ £{comm.toFixed(2)}/month recurring</p>}
+            </div>;
+          })()}
         </div>
 
         {/* SERVICE TYPES & LOCKS */}
