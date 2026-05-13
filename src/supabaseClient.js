@@ -3929,3 +3929,253 @@ export async function getAudienceCustomers(audienceType, filters, type) {
   return data || [];
 }
 
+
+// ===========================================================
+// PHASE 2: REAL PAYMENTS & SENDING via Edge Functions
+// ===========================================================
+
+// Helper to call edge functions
+async function callEdgeFunction(name, body) {
+  const supabaseUrl = supabase.supabaseUrl;
+  const supabaseKey = supabase.supabaseKey;
+  
+  const response = await fetch(`${supabaseUrl}/functions/v1/${name}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'apikey': supabaseKey,
+    },
+    body: JSON.stringify(body),
+  });
+  
+  const data = await response.json();
+  if (!response.ok) {
+    return { error: { message: data.error || 'Edge function error' } };
+  }
+  return { data };
+}
+
+// === STRIPE CHECKOUT (Real Payment) ===
+export async function createStripeCheckout(packageId) {
+  const pkg = SMS_PACKAGES.find(p => p.id === packageId) || EMAIL_PACKAGES.find(p => p.id === packageId);
+  if (!pkg) return { error: { message: 'Invalid package' } };
+  
+  const type = packageId.startsWith('sms_') ? 'sms' : 'email';
+  const restaurantId = _rid();
+  
+  // Create pending purchase record
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('credit_purchases')
+    .insert({
+      restaurant_id: restaurantId,
+      type,
+      amount: pkg.credits,
+      price: pkg.price,
+      payment_status: 'pending',
+      payment_method: 'stripe',
+      package_name: pkg.name,
+    })
+    .select()
+    .single();
+  
+  if (purchaseError) return { error: purchaseError };
+  
+  // Call edge function to create Stripe Checkout session
+  const successUrl = `${window.location.origin}/?payment=success&purchase=${purchase.id}`;
+  const cancelUrl = `${window.location.origin}/?payment=cancelled&purchase=${purchase.id}`;
+  
+  const result = await callEdgeFunction('stripe-checkout', {
+    package_id: packageId,
+    restaurant_id: restaurantId,
+    purchase_id: purchase.id,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+  });
+  
+  if (result.error) {
+    // Mark purchase as failed
+    await supabase
+      .from('credit_purchases')
+      .update({ payment_status: 'failed' })
+      .eq('id', purchase.id);
+    return { error: result.error };
+  }
+  
+  return { data: { url: result.data.url, purchase_id: purchase.id } };
+}
+
+// === MANUAL PAYMENT - For restaurants paying via bank transfer ===
+export async function recordManualPayment(packageId, paymentReference) {
+  const pkg = SMS_PACKAGES.find(p => p.id === packageId) || EMAIL_PACKAGES.find(p => p.id === packageId);
+  if (!pkg) return { error: { message: 'Invalid package' } };
+  
+  const type = packageId.startsWith('sms_') ? 'sms' : 'email';
+  
+  // Create purchase record (pending - super admin must approve)
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('credit_purchases')
+    .insert({
+      restaurant_id: _rid(),
+      type,
+      amount: pkg.credits,
+      price: pkg.price,
+      payment_status: 'pending',
+      payment_method: 'manual',
+      payment_reference: paymentReference,
+      package_name: pkg.name,
+    })
+    .select()
+    .single();
+  
+  if (purchaseError) return { error: purchaseError };
+  return { data: purchase };
+}
+
+// Super admin approves a manual payment
+export async function approveManualPayment(purchaseId) {
+  return completePurchase(purchaseId, 'manual', 'admin-approved');
+}
+
+// === REAL SEND SMS via Edge Function ===
+export async function sendSmsCampaignReal(campaignId, recipients) {
+  const restaurantId = _rid();
+  
+  // First create the campaign recipients
+  const recipientRecords = recipients.map(r => ({
+    campaign_id: campaignId,
+    customer_id: r.id || null,
+    phone: r.phone || null,
+    name: r.name || 'Customer',
+    status: 'pending',
+  }));
+  
+  await supabase.from('campaign_recipients').insert(recipientRecords);
+  
+  // Mark campaign as sending
+  await supabase
+    .from('marketing_campaigns')
+    .update({
+      status: 'sending',
+      started_at: new Date().toISOString(),
+      recipient_count: recipients.length,
+    })
+    .eq('id', campaignId);
+  
+  // Deduct credits NOW (will refund failed ones if needed)
+  const { data: credits } = await supabase
+    .from('marketing_credits')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .single();
+  
+  if (credits) {
+    await supabase
+      .from('marketing_credits')
+      .update({
+        sms_credits: credits.sms_credits - recipients.length,
+        sms_used: credits.sms_used + recipients.length,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('restaurant_id', restaurantId);
+  }
+  
+  // Call edge function to send SMS
+  const result = await callEdgeFunction('send-sms', {
+    campaign_id: campaignId,
+    restaurant_id: restaurantId,
+  });
+  
+  if (result.error) {
+    // Refund credits on failure
+    if (credits) {
+      await supabase
+        .from('marketing_credits')
+        .update({
+          sms_credits: credits.sms_credits,
+          sms_used: credits.sms_used,
+        })
+        .eq('restaurant_id', restaurantId);
+    }
+    return { error: result.error };
+  }
+  
+  return { data: result.data };
+}
+
+// === REAL SEND EMAIL via Edge Function ===
+export async function sendEmailCampaignReal(campaignId, recipients) {
+  const restaurantId = _rid();
+  
+  // First create the campaign recipients
+  const recipientRecords = recipients.map(r => ({
+    campaign_id: campaignId,
+    customer_id: r.id || null,
+    email: r.email || null,
+    name: r.name || 'Customer',
+    status: 'pending',
+  }));
+  
+  await supabase.from('campaign_recipients').insert(recipientRecords);
+  
+  // Mark campaign as sending
+  await supabase
+    .from('marketing_campaigns')
+    .update({
+      status: 'sending',
+      started_at: new Date().toISOString(),
+      recipient_count: recipients.length,
+    })
+    .eq('id', campaignId);
+  
+  // Deduct credits
+  const { data: credits } = await supabase
+    .from('marketing_credits')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .single();
+  
+  if (credits) {
+    await supabase
+      .from('marketing_credits')
+      .update({
+        email_credits: credits.email_credits - recipients.length,
+        email_used: credits.email_used + recipients.length,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('restaurant_id', restaurantId);
+  }
+  
+  // Call edge function
+  const result = await callEdgeFunction('send-email', {
+    campaign_id: campaignId,
+    restaurant_id: restaurantId,
+  });
+  
+  if (result.error) {
+    if (credits) {
+      await supabase
+        .from('marketing_credits')
+        .update({
+          email_credits: credits.email_credits,
+          email_used: credits.email_used,
+        })
+        .eq('restaurant_id', restaurantId);
+    }
+    return { error: result.error };
+  }
+  
+  return { data: result.data };
+}
+
+// === CHECK if Edge Functions are configured ===
+export async function checkEdgeFunctionsConfigured() {
+  try {
+    // Try a simple ping to see if functions are available
+    const result = await callEdgeFunction('stripe-checkout', { test: true });
+    return !result.error || !result.error.message?.includes('not found');
+  } catch (e) {
+    return false;
+  }
+}
+

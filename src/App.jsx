@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -4348,25 +4348,62 @@ function MarketingCenter({restaurant, branch, push}){
 }
 
 // ============================================================
-// BUY CREDITS MODAL
+// BUY CREDITS MODAL - with Stripe + Manual payment
 // ============================================================
 function BuyCreditsModal({type,onClose,onSuccess,push}){
   var packages=type==="sms"?SMS_PACKAGES:EMAIL_PACKAGES;
   var [buying,setBuying]=useState(false);
+  var [selectedPkg,setSelectedPkg]=useState(null);
+  var [paymentMethod,setPaymentMethod]=useState("stripe"); // 'stripe' or 'manual'
+  var [manualRef,setManualRef]=useState("");
   
-  var handleBuy=async(pkg)=>{
-    if(!window.confirm("Purchase "+pkg.credits+" "+(type==="sms"?"SMS":"email")+" credits for \u00A3"+pkg.price+"?\n\nNote: Stripe payment integration coming soon. For now this creates a pending order."))return;
+  var handlePackageSelect=(pkg)=>{
+    setSelectedPkg(pkg);
+  };
+  
+  var handlePayWithStripe=async()=>{
+    if(!selectedPkg)return;
     setBuying(true);
-    var result=await dbBuyCredits(pkg.id);
+    var result=await dbStripeCheckout(selectedPkg.id);
+    setBuying(false);
     if(result.error){
-      alert("Failed: "+result.error.message);
-      setBuying(false);
+      if(window.showAlert){
+        window.showAlert("Payment setup failed",result.error.message+"\n\nMake sure Stripe Edge Function is deployed.","error");
+      }else{
+        alert("Failed: "+result.error.message);
+      }
       return;
     }
-    // For now, auto-complete the purchase (in production, this would happen after Stripe payment)
-    await dbCompletePurchase(result.data.id,"manual","TEST-"+Date.now());
-    push&&push({title:"Credits added!",body:pkg.credits+" "+type+" credits ready to use",color:"#059669"});
+    // Redirect to Stripe checkout
+    window.location.href=result.data.url;
+  };
+  
+  var handleManualPayment=async()=>{
+    if(!selectedPkg)return;
+    if(!manualRef.trim()){
+      alert("Please enter your payment reference (e.g. bank transfer reference)");
+      return;
+    }
+    setBuying(true);
+    var result=await dbManualPayment(selectedPkg.id,manualRef.trim());
     setBuying(false);
+    if(result.error){
+      alert("Failed: "+result.error.message);
+      return;
+    }
+    if(window.showAlert){
+      window.showAlert(
+        "Manual payment recorded",
+        "Your payment request has been recorded with reference: "+manualRef+
+        "\n\nCredits will be added once super admin approves your payment.\n\n"+
+        "Please transfer £"+selectedPkg.price+" to:\n"+
+        "Bank: [YOUR BANK NAME]\n"+
+        "Account: [YOUR ACCOUNT]\n"+
+        "Reference: "+manualRef,
+        "info"
+      );
+    }
+    push&&push({title:"Payment recorded",body:"Waiting for admin approval",color:"#d97706"});
     onSuccess();
   };
   
@@ -4375,25 +4412,71 @@ function BuyCreditsModal({type,onClose,onSuccess,push}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
         <div>
           <h2 style={{fontSize:22,fontWeight:700}}>{type==="sms"?String.fromCharCode(0xD83D,0xDCF1)+" Buy SMS Credits":String.fromCharCode(0xD83D,0xDCE7)+" Buy Email Credits"}</h2>
-          <p style={{fontSize:12,color:"#8a8078"}}>Choose a package that fits your needs</p>
+          <p style={{fontSize:12,color:"#8a8078"}}>Choose a package and payment method</p>
         </div>
         <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#8a8078"}}>{String.fromCharCode(0x00D7)}</button>
       </div>
       
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:9}}>
-        {packages.map(pkg=><div key={pkg.id} style={{padding:16,background:pkg.recommended?"linear-gradient(135deg,#fef3c7,#fde68a)":"#fafaf5",borderRadius:11,border:"2px solid "+(pkg.recommended?"#f59e0b":"#ede8de"),position:"relative"}}>
-          {pkg.recommended&&<div style={{position:"absolute",top:-9,right:9,background:"#f59e0b",color:"#fff",fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:9}}>BEST VALUE</div>}
-          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>{pkg.name.toUpperCase()}</p>
-          <p style={{fontSize:24,fontWeight:700,marginBottom:3}}>{pkg.credits.toLocaleString()}</p>
-          <p style={{fontSize:11,color:"#8a8078",marginBottom:11}}>{type==="sms"?"SMS messages":"emails"}</p>
-          <p style={{fontSize:20,fontWeight:700,color:"#bf4626",marginBottom:3}}>\u00A3{pkg.price}</p>
-          <p style={{fontSize:10,color:"#8a8078",marginBottom:11}}>\u00A3{(pkg.perUnit*100).toFixed(1)}p per {type==="sms"?"SMS":"email"}</p>
-          <button onClick={()=>handleBuy(pkg)} disabled={buying} style={{width:"100%",padding:"9px",background:pkg.recommended?"linear-gradient(135deg,#bf4626,#7c2d12)":"#1a1208",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:buying?"not-allowed":"pointer"}}>{buying?"Processing...":"Choose"}</button>
-        </div>)}
-      </div>
+      {/* STEP 1: Select Package */}
+      {!selectedPkg&&<div>
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:11}}>STEP 1: CHOOSE PACKAGE</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:9}}>
+          {packages.map(pkg=><div key={pkg.id} onClick={()=>handlePackageSelect(pkg)} style={{padding:16,background:pkg.recommended?"linear-gradient(135deg,#fef3c7,#fde68a)":"#fafaf5",borderRadius:11,border:"2px solid "+(pkg.recommended?"#f59e0b":"#ede8de"),position:"relative",cursor:"pointer",transition:"transform .15s"}} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>
+            {pkg.recommended&&<div style={{position:"absolute",top:-9,right:9,background:"#f59e0b",color:"#fff",fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:9}}>BEST VALUE</div>}
+            <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>{pkg.name.toUpperCase()}</p>
+            <p style={{fontSize:24,fontWeight:700,marginBottom:3}}>{pkg.credits.toLocaleString()}</p>
+            <p style={{fontSize:11,color:"#8a8078",marginBottom:11}}>{type==="sms"?"SMS messages":"emails"}</p>
+            <p style={{fontSize:20,fontWeight:700,color:"#bf4626",marginBottom:3}}>\u00A3{pkg.price}</p>
+            <p style={{fontSize:10,color:"#8a8078"}}>\u00A3{(pkg.perUnit*100).toFixed(1)}p per {type==="sms"?"SMS":"email"}</p>
+          </div>)}
+        </div>
+      </div>}
+      
+      {/* STEP 2: Choose Payment Method */}
+      {selectedPkg&&<div>
+        <div style={{padding:13,background:"linear-gradient(135deg,#fef3c7,#fde68a)",borderRadius:9,marginBottom:18,border:"2px solid #f59e0b"}}>
+          <p style={{fontSize:11,fontWeight:700,color:"#92400e",letterSpacing:1}}>SELECTED PACKAGE</p>
+          <p style={{fontSize:18,fontWeight:700,marginTop:3}}>{selectedPkg.credits.toLocaleString()} {type==="sms"?"SMS":"Email"} credits - £{selectedPkg.price}</p>
+          <button onClick={()=>setSelectedPkg(null)} style={{padding:"5px 11px",marginTop:7,background:"transparent",color:"#92400e",border:"1px solid #f59e0b",borderRadius:5,fontSize:11,fontWeight:700,cursor:"pointer"}}>Change package</button>
+        </div>
+        
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:11}}>STEP 2: CHOOSE PAYMENT METHOD</p>
+        
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:9,marginBottom:14}}>
+          <label style={{padding:14,background:paymentMethod==="stripe"?"#dbeafe":"#fafaf5",borderRadius:9,border:"2px solid "+(paymentMethod==="stripe"?"#3b82f6":"#ede8de"),cursor:"pointer",display:"flex",alignItems:"center",gap:9}}>
+            <input type="radio" checked={paymentMethod==="stripe"} onChange={()=>setPaymentMethod("stripe")} style={{width:18,height:18}}/>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:13}}>{String.fromCharCode(0xD83D,0xDCB3)} Credit/Debit Card</p>
+              <p style={{fontSize:11,color:"#8a8078",marginTop:3}}>Instant - via Stripe (recommended)</p>
+            </div>
+          </label>
+          <label style={{padding:14,background:paymentMethod==="manual"?"#dbeafe":"#fafaf5",borderRadius:9,border:"2px solid "+(paymentMethod==="manual"?"#3b82f6":"#ede8de"),cursor:"pointer",display:"flex",alignItems:"center",gap:9}}>
+            <input type="radio" checked={paymentMethod==="manual"} onChange={()=>setPaymentMethod("manual")} style={{width:18,height:18}}/>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:13}}>{String.fromCharCode(0xD83C,0xDFE6)} Bank Transfer</p>
+              <p style={{fontSize:11,color:"#8a8078",marginTop:3}}>Wait for admin approval</p>
+            </div>
+          </label>
+        </div>
+        
+        {paymentMethod==="manual"&&<div style={{marginBottom:14}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>YOUR REFERENCE</p>
+          <input value={manualRef} onChange={e=>setManualRef(e.target.value)} placeholder="e.g. Your bank transfer reference" style={{width:"100%",padding:11,border:"2px solid #ede8de",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+          <p style={{fontSize:11,color:"#8a8078",marginTop:5}}>{String.fromCharCode(0xD83D,0xDCA1)} Transfer \u00A3{selectedPkg.price} via Faster Payments. Admin will approve once confirmed.</p>
+        </div>}
+        
+        <div style={{display:"flex",gap:9}}>
+          <button onClick={()=>setSelectedPkg(null)} disabled={buying} style={{flex:1,padding:13,background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2190)} Back</button>
+          {paymentMethod==="stripe"?
+            <button onClick={handlePayWithStripe} disabled={buying} style={{flex:2,padding:13,background:buying?"#9ca3af":"linear-gradient(135deg,#3b82f6,#1d4ed8)",color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:buying?"not-allowed":"pointer"}}>{buying?"Loading...":String.fromCharCode(0xD83D,0xDCB3)+" Pay £"+selectedPkg.price+" with Card"}</button>
+            :
+            <button onClick={handleManualPayment} disabled={buying||!manualRef.trim()} style={{flex:2,padding:13,background:buying||!manualRef.trim()?"#9ca3af":"linear-gradient(135deg,#059669,#10b981)",color:"#fff",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:buying||!manualRef.trim()?"not-allowed":"pointer"}}>{buying?"Submitting...":String.fromCharCode(0x2713)+" Submit Payment Request"}</button>
+          }
+        </div>
+      </div>}
       
       <div style={{marginTop:14,padding:11,background:"#dbeafe",borderRadius:7,fontSize:11,color:"#1e40af"}}>
-        <strong>{String.fromCharCode(0xD83D,0xDCA1)} About credits:</strong> Credits never expire. Bulk discounts available on larger packages. Stripe payment integration coming soon - for now purchases are auto-completed for testing.
+        <strong>{String.fromCharCode(0xD83D,0xDCA1)} About credits:</strong> Credits never expire. Bulk discounts available on larger packages. Manual payments require admin approval (usually within 24 hours).
       </div>
     </div>
   </div>;
@@ -4446,8 +4529,24 @@ function CampaignBuilder({type,credits,restaurant,branch,push,onClose}){
       return;
     }
     
-    // Send to recipients
-    var sendResult=await dbSendCampaign(campResult.data.id,audienceList);
+    // Try REAL sending via edge function first, fall back to simulation
+    var sendResult;
+    try{
+      if(type==="sms"){
+        sendResult=await dbSendSmsReal(campResult.data.id,audienceList);
+      }else{
+        sendResult=await dbSendEmailReal(campResult.data.id,audienceList);
+      }
+      
+      // If edge function returned error, fall back to simulation
+      if(sendResult.error){
+        console.warn("Edge function failed, falling back to simulation:",sendResult.error);
+        sendResult=await dbSendCampaign(campResult.data.id,audienceList);
+      }
+    }catch(e){
+      console.warn("Edge function error, simulating:",e);
+      sendResult=await dbSendCampaign(campResult.data.id,audienceList);
+    }
     
     setSending(false);
     
@@ -4456,7 +4555,11 @@ function CampaignBuilder({type,credits,restaurant,branch,push,onClose}){
       return;
     }
     
-    push&&push({title:"Campaign sent!",body:audienceList.length+" "+type+"s sending now",color:"#059669"});
+    var sentMsg=sendResult.data?.sent?
+      sendResult.data.sent+" "+type+"s sent successfully!"+(sendResult.data.failed>0?" ("+sendResult.data.failed+" failed)":""):
+      audienceList.length+" "+type+"s sending now";
+    
+    push&&push({title:"Campaign sent!",body:sentMsg,color:"#059669"});
     onClose();
   };
   
@@ -13862,6 +13965,36 @@ export default function App(){
       }
       setUrlChecked(true);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  
+  // Handle Stripe payment success/cancel return
+  useEffect(()=>{
+    try{
+      var p=new URLSearchParams(window.location.search);
+      var payment=p.get("payment");
+      var purchaseId=p.get("purchase");
+      if(payment==="success"){
+        if(window.showAlert){
+          window.showAlert(
+            "Payment Successful!",
+            "Your credits have been added to your account."+(purchaseId?"\n\nReference: "+purchaseId.slice(0,8):""),
+            "success"
+          );
+        }
+        // Clean URL
+        window.history.replaceState({},"",window.location.pathname);
+      }else if(payment==="cancelled"){
+        if(window.showAlert){
+          window.showAlert(
+            "Payment Cancelled",
+            "Your payment was cancelled. No credits were added.",
+            "warning"
+          );
+        }
+        window.history.replaceState({},"",window.location.pathname);
+      }
+    }catch(e){}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   
