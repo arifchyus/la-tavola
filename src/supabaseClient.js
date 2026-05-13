@@ -4179,3 +4179,40 @@ export async function checkEdgeFunctionsConfigured() {
   }
 }
 
+
+// === SUPER ADMIN: Fetch ALL pending purchases across all restaurants ===
+export async function fetchAllPendingPurchases() {
+  const { data, error } = await supabase
+    .from('credit_purchases')
+    .select('*, restaurants(name, phone, address)')
+    .eq('payment_status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchAllPendingPurchases:', error);
+  return data || [];
+}
+
+// === SUPER ADMIN: Fetch all purchases (history) ===
+export async function fetchAllPurchases(limit) {
+  let query = supabase
+    .from('credit_purchases')
+    .select('*, restaurants(name)')
+    .order('created_at', { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) console.error('fetchAllPurchases:', error);
+  return data || [];
+}
+
+
+// === SUPER ADMIN: Reject a manual payment ===
+export async function rejectManualPayment(purchaseId, reason) {
+  const { error } = await supabase
+    .from('credit_purchases')
+    .update({ 
+      payment_status: 'failed',
+      payment_reference: (reason || 'rejected'),
+    })
+    .eq('id', purchaseId);
+  return { error };
+}
+
