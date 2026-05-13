@@ -3887,9 +3887,7 @@ export async function getAudienceCount(audienceType, filters) {
       query = query.gte('total_orders', 10);
       break;
     case 'birthday':
-      // Customers with birthday this month
-      const currentMonth = new Date().getMonth() + 1;
-      // Would need a birthday column with proper indexing
+      // Would need a birthday column with proper indexing - placeholder
       break;
     case 'all':
     default:
@@ -3921,6 +3919,8 @@ export async function getAudienceCustomers(audienceType, filters, type) {
       break;
     case 'vip':
       query = query.gte('total_orders', 10);
+      break;
+    default:
       break;
   }
   

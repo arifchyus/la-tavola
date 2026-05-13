@@ -4222,7 +4222,6 @@ function MarketingCenter({restaurant, branch, push}){
   var [campaigns,setCampaigns]=useState([]);
   var [purchases,setPurchases]=useState([]);
   var [loading,setLoading]=useState(true);
-  var [view,setView]=useState("overview"); // overview, buy_sms, buy_email, new_campaign
   var [campaignType,setCampaignType]=useState("sms");
   var [showBuyModal,setShowBuyModal]=useState(null); // 'sms' or 'email'
   var [showCampaignBuilder,setShowCampaignBuilder]=useState(false);
