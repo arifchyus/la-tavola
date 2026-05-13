@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -4214,6 +4214,373 @@ function ActiveStaffBanner({activeStaff, onSwitchUser, onLogout}){
 }
 
 
+// ============================================================
+// MARKETING CENTER - SMS & Email campaigns + credits
+// ============================================================
+function MarketingCenter({restaurant, branch, push}){
+  var [credits,setCredits]=useState({sms_credits:0,email_credits:0,sms_purchased:0,email_purchased:0,sms_used:0,email_used:0});
+  var [campaigns,setCampaigns]=useState([]);
+  var [purchases,setPurchases]=useState([]);
+  var [loading,setLoading]=useState(true);
+  var [view,setView]=useState("overview"); // overview, buy_sms, buy_email, new_campaign
+  var [campaignType,setCampaignType]=useState("sms");
+  var [showBuyModal,setShowBuyModal]=useState(null); // 'sms' or 'email'
+  var [showCampaignBuilder,setShowCampaignBuilder]=useState(false);
+  
+  var loadData=()=>{
+    setLoading(true);
+    Promise.all([
+      dbFetchCredits(),
+      dbFetchCampaigns(),
+      dbFetchPurchases(),
+    ]).then(([cr,camps,purchs])=>{
+      setCredits(cr||{sms_credits:0,email_credits:0});
+      setCampaigns(camps||[]);
+      setPurchases(purchs||[]);
+      setLoading(false);
+    });
+  };
+  
+  useEffect(()=>{loadData();},[]);
+  
+  if(loading)return <div style={{padding:30,textAlign:"center",color:"#8a8078"}}>Loading marketing center...</div>;
+  
+  return <div>
+    {/* Header */}
+    <div style={{background:"linear-gradient(135deg,#7c2d12,#9333ea,#7c3aed)",borderRadius:14,padding:"18px 22px",marginBottom:14,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,255,255,.15),transparent 70%)"}}></div>
+      <div style={{position:"relative",zIndex:1}}>
+        <p style={{fontSize:10,color:"#fbbf24",letterSpacing:2.5,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83D,0xDCE3)} MARKETING CENTER</p>
+        <h2 style={{fontSize:22,fontWeight:700,fontFamily:"Georgia,serif"}}>Grow Your Business</h2>
+        <p style={{fontSize:12,opacity:.85}}>Send SMS & Email campaigns to your customers</p>
+      </div>
+    </div>
+    
+    {/* Credit Cards */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:11,marginBottom:14}}>
+      {/* SMS Credits Card */}
+      <div style={{background:"linear-gradient(135deg,#1e40af,#2563eb)",borderRadius:14,padding:16,color:"#fff",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:11,right:13,fontSize:40,opacity:.2}}>{String.fromCharCode(0xD83D,0xDCF1)}</div>
+        <p style={{fontSize:10,letterSpacing:2,fontWeight:700,opacity:.8,marginBottom:5}}>SMS CREDITS</p>
+        <p style={{fontSize:36,fontWeight:700,marginBottom:5}}>{credits.sms_credits||0}</p>
+        <p style={{fontSize:11,opacity:.85,marginBottom:11}}>{credits.sms_used||0} used {String.fromCharCode(0x2022)} {credits.sms_purchased||0} total purchased</p>
+        <button onClick={()=>setShowBuyModal("sms")} style={{padding:"9px 16px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Buy SMS Credits</button>
+      </div>
+      
+      {/* Email Credits Card */}
+      <div style={{background:"linear-gradient(135deg,#059669,#10b981)",borderRadius:14,padding:16,color:"#fff",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:11,right:13,fontSize:40,opacity:.2}}>{String.fromCharCode(0xD83D,0xDCE7)}</div>
+        <p style={{fontSize:10,letterSpacing:2,fontWeight:700,opacity:.8,marginBottom:5}}>EMAIL CREDITS</p>
+        <p style={{fontSize:36,fontWeight:700,marginBottom:5}}>{credits.email_credits||0}</p>
+        <p style={{fontSize:11,opacity:.85,marginBottom:11}}>{credits.email_used||0} used {String.fromCharCode(0x2022)} {credits.email_purchased||0} total purchased</p>
+        <button onClick={()=>setShowBuyModal("email")} style={{padding:"9px 16px",background:"rgba(255,255,255,.2)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Buy Email Credits</button>
+      </div>
+    </div>
+    
+    {/* Quick Actions */}
+    <div className="card" style={{padding:16,marginBottom:14}}>
+      <p style={{fontSize:14,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0x26A1)} Create Campaign</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:9}}>
+        <button onClick={()=>{setCampaignType("sms");setShowCampaignBuilder(true);}} disabled={credits.sms_credits<=0} style={{padding:"14px 16px",background:credits.sms_credits>0?"linear-gradient(135deg,#1e40af,#2563eb)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:credits.sms_credits>0?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:9}}>
+          <span style={{fontSize:22}}>{String.fromCharCode(0xD83D,0xDCF1)}</span>
+          <div style={{textAlign:"left"}}>
+            <p>New SMS Campaign</p>
+            <p style={{fontSize:10,opacity:.85,fontWeight:500}}>Reach customers via text</p>
+          </div>
+        </button>
+        <button onClick={()=>{setCampaignType("email");setShowCampaignBuilder(true);}} disabled={credits.email_credits<=0} style={{padding:"14px 16px",background:credits.email_credits>0?"linear-gradient(135deg,#059669,#10b981)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:credits.email_credits>0?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:9}}>
+          <span style={{fontSize:22}}>{String.fromCharCode(0xD83D,0xDCE7)}</span>
+          <div style={{textAlign:"left"}}>
+            <p>New Email Campaign</p>
+            <p style={{fontSize:10,opacity:.85,fontWeight:500}}>Send beautiful emails</p>
+          </div>
+        </button>
+      </div>
+      {(credits.sms_credits<=0||credits.email_credits<=0)&&<p style={{fontSize:11,color:"#92400e",marginTop:9,padding:9,background:"#fef3c7",borderRadius:7}}>{String.fromCharCode(0xD83D,0xDCA1)} Buy credits to enable campaign sending</p>}
+    </div>
+    
+    {/* Campaign History */}
+    <div className="card" style={{padding:16,marginBottom:14}}>
+      <p style={{fontSize:14,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCCB)} Campaign History</p>
+      {campaigns.length===0?<p style={{color:"#8a8078",fontSize:12,padding:14,textAlign:"center"}}>No campaigns yet. Create your first one above!</p>:
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {campaigns.map(c=><div key={c.id} style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
+          <div style={{flex:1,minWidth:180}}>
+            <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:3}}>
+              <span style={{fontSize:14}}>{c.type==="sms"?String.fromCharCode(0xD83D,0xDCF1):String.fromCharCode(0xD83D,0xDCE7)}</span>
+              <p style={{fontSize:13,fontWeight:700}}>{c.name}</p>
+              <span style={{padding:"2px 7px",background:c.status==="sent"?"#d1fae5":c.status==="sending"?"#fef3c7":c.status==="draft"?"#e0e7ff":"#fee2e2",color:c.status==="sent"?"#059669":c.status==="sending"?"#92400e":c.status==="draft"?"#3730a3":"#dc2626",borderRadius:9,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>{c.status}</span>
+            </div>
+            <p style={{fontSize:11,color:"#8a8078"}}>{c.recipient_count||0} recipients {String.fromCharCode(0x2022)} {c.sent_count||0} sent {String.fromCharCode(0x2022)} \u00A3{parseFloat(c.estimated_cost||0).toFixed(2)} cost</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:3}}>{new Date(c.created_at).toLocaleDateString()} {String.fromCharCode(0x2022)} {c.audience_type}</p>
+          </div>
+          {c.status==="draft"&&<button onClick={async()=>{
+            if(!window.confirm("Delete this draft campaign?"))return;
+            await dbDeleteCampaign(c.id);
+            loadData();
+          }} style={{padding:"5px 11px",background:"#fee2e2",color:"#dc2626",border:"1px solid #dc2626",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>Delete</button>}
+        </div>)}
+      </div>}
+    </div>
+    
+    {/* Purchase History */}
+    {purchases.length>0&&<div className="card" style={{padding:16}}>
+      <p style={{fontSize:14,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCB3)} Credit Purchase History</p>
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {purchases.slice(0,5).map(p=><div key={p.id} style={{padding:9,background:"#fafaf5",borderRadius:7,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #ede8de",flexWrap:"wrap",gap:7}}>
+          <div>
+            <p style={{fontSize:13,fontWeight:700}}>{p.amount} {p.type==="sms"?"SMS":"Email"} credits {p.package_name?"("+p.package_name+")":""}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{new Date(p.created_at).toLocaleDateString()} {String.fromCharCode(0x2022)} {p.payment_method||"manual"}</p>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <p style={{fontSize:14,fontWeight:700,color:"#059669"}}>\u00A3{parseFloat(p.price).toFixed(2)}</p>
+            <span style={{padding:"2px 7px",background:p.payment_status==="completed"?"#d1fae5":"#fef3c7",color:p.payment_status==="completed"?"#059669":"#92400e",borderRadius:9,fontSize:9,fontWeight:700,textTransform:"uppercase"}}>{p.payment_status}</span>
+          </div>
+        </div>)}
+      </div>
+    </div>}
+    
+    {/* BUY CREDITS MODAL */}
+    {showBuyModal&&<BuyCreditsModal type={showBuyModal} onClose={()=>setShowBuyModal(null)} onSuccess={()=>{setShowBuyModal(null);loadData();}} push={push}/>}
+    
+    {/* CAMPAIGN BUILDER */}
+    {showCampaignBuilder&&<CampaignBuilder type={campaignType} credits={credits} restaurant={restaurant} branch={branch} push={push} onClose={()=>{setShowCampaignBuilder(false);loadData();}}/>}
+  </div>;
+}
+
+// ============================================================
+// BUY CREDITS MODAL
+// ============================================================
+function BuyCreditsModal({type,onClose,onSuccess,push}){
+  var packages=type==="sms"?SMS_PACKAGES:EMAIL_PACKAGES;
+  var [buying,setBuying]=useState(false);
+  
+  var handleBuy=async(pkg)=>{
+    if(!window.confirm("Purchase "+pkg.credits+" "+(type==="sms"?"SMS":"email")+" credits for \u00A3"+pkg.price+"?\n\nNote: Stripe payment integration coming soon. For now this creates a pending order."))return;
+    setBuying(true);
+    var result=await dbBuyCredits(pkg.id);
+    if(result.error){
+      alert("Failed: "+result.error.message);
+      setBuying(false);
+      return;
+    }
+    // For now, auto-complete the purchase (in production, this would happen after Stripe payment)
+    await dbCompletePurchase(result.data.id,"manual","TEST-"+Date.now());
+    push&&push({title:"Credits added!",body:pkg.credits+" "+type+" credits ready to use",color:"#059669"});
+    setBuying(false);
+    onSuccess();
+  };
+  
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:22,maxWidth:680,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <div>
+          <h2 style={{fontSize:22,fontWeight:700}}>{type==="sms"?String.fromCharCode(0xD83D,0xDCF1)+" Buy SMS Credits":String.fromCharCode(0xD83D,0xDCE7)+" Buy Email Credits"}</h2>
+          <p style={{fontSize:12,color:"#8a8078"}}>Choose a package that fits your needs</p>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#8a8078"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:9}}>
+        {packages.map(pkg=><div key={pkg.id} style={{padding:16,background:pkg.recommended?"linear-gradient(135deg,#fef3c7,#fde68a)":"#fafaf5",borderRadius:11,border:"2px solid "+(pkg.recommended?"#f59e0b":"#ede8de"),position:"relative"}}>
+          {pkg.recommended&&<div style={{position:"absolute",top:-9,right:9,background:"#f59e0b",color:"#fff",fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:9}}>BEST VALUE</div>}
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>{pkg.name.toUpperCase()}</p>
+          <p style={{fontSize:24,fontWeight:700,marginBottom:3}}>{pkg.credits.toLocaleString()}</p>
+          <p style={{fontSize:11,color:"#8a8078",marginBottom:11}}>{type==="sms"?"SMS messages":"emails"}</p>
+          <p style={{fontSize:20,fontWeight:700,color:"#bf4626",marginBottom:3}}>\u00A3{pkg.price}</p>
+          <p style={{fontSize:10,color:"#8a8078",marginBottom:11}}>\u00A3{(pkg.perUnit*100).toFixed(1)}p per {type==="sms"?"SMS":"email"}</p>
+          <button onClick={()=>handleBuy(pkg)} disabled={buying} style={{width:"100%",padding:"9px",background:pkg.recommended?"linear-gradient(135deg,#bf4626,#7c2d12)":"#1a1208",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:buying?"not-allowed":"pointer"}}>{buying?"Processing...":"Choose"}</button>
+        </div>)}
+      </div>
+      
+      <div style={{marginTop:14,padding:11,background:"#dbeafe",borderRadius:7,fontSize:11,color:"#1e40af"}}>
+        <strong>{String.fromCharCode(0xD83D,0xDCA1)} About credits:</strong> Credits never expire. Bulk discounts available on larger packages. Stripe payment integration coming soon - for now purchases are auto-completed for testing.
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// CAMPAIGN BUILDER
+// ============================================================
+function CampaignBuilder({type,credits,restaurant,branch,push,onClose}){
+  var [step,setStep]=useState(1); // 1=name, 2=audience, 3=message, 4=review
+  var [name,setName]=useState("");
+  var [subject,setSubject]=useState("");
+  var [message,setMessage]=useState("");
+  var [audienceType,setAudienceType]=useState("all");
+  var [audienceCount,setAudienceCount]=useState(0);
+  var [audienceList,setAudienceList]=useState([]);
+  var [sending,setSending]=useState(false);
+  
+  // Load audience count when type changes
+  useEffect(()=>{
+    dbGetAudienceCount(audienceType,{}).then(c=>setAudienceCount(c||0));
+    dbGetAudienceCustomers(audienceType,{},type).then(list=>setAudienceList(list||[]));
+  },[audienceType,type]);
+  
+  var balance=type==="sms"?credits.sms_credits:credits.email_credits;
+  var unitCost=type==="sms"?0.10:0.005;
+  var totalCost=audienceList.length*unitCost;
+  var canSend=audienceList.length>0&&audienceList.length<=balance&&message.trim()&&name.trim();
+  
+  var handleSend=async()=>{
+    if(!canSend)return;
+    if(!window.confirm("Send to "+audienceList.length+" recipients?\nThis will use "+audienceList.length+" credits."))return;
+    
+    setSending(true);
+    
+    // Create campaign
+    var campResult=await dbCreateCampaign({
+      name,
+      type,
+      subject:type==="email"?subject:null,
+      message,
+      audience_type:audienceType,
+      recipient_count:audienceList.length,
+      estimated_cost:totalCost,
+    });
+    
+    if(campResult.error){
+      alert("Failed to create campaign: "+campResult.error.message);
+      setSending(false);
+      return;
+    }
+    
+    // Send to recipients
+    var sendResult=await dbSendCampaign(campResult.data.id,audienceList);
+    
+    setSending(false);
+    
+    if(sendResult.error){
+      alert("Failed to send: "+sendResult.error.message);
+      return;
+    }
+    
+    push&&push({title:"Campaign sent!",body:audienceList.length+" "+type+"s sending now",color:"#059669"});
+    onClose();
+  };
+  
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:22,maxWidth:580,width:"100%",maxHeight:"90vh",overflow:"auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:11}}>
+        <h2 style={{fontSize:20,fontWeight:700}}>{type==="sms"?String.fromCharCode(0xD83D,0xDCF1)+" New SMS Campaign":String.fromCharCode(0xD83D,0xDCE7)+" New Email Campaign"}</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#8a8078"}}>{String.fromCharCode(0x00D7)}</button>
+      </div>
+      
+      {/* Step indicator */}
+      <div style={{display:"flex",gap:5,marginBottom:18}}>
+        {[1,2,3,4].map(s=><div key={s} style={{flex:1,height:5,borderRadius:3,background:step>=s?"#bf4626":"#ede8de"}}></div>)}
+      </div>
+      
+      {/* Step 1: Name */}
+      {step===1&&<div>
+        <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>STEP 1 OF 4</p>
+        <h3 style={{fontSize:16,fontWeight:700,marginBottom:11}}>What's the campaign name?</h3>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Weekend Special, New Menu Launch" autoFocus style={{width:"100%",padding:13,border:"2px solid #ede8de",borderRadius:7,fontSize:14,boxSizing:"border-box",marginBottom:14}}/>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:18}}>This is just for your records. Customers won't see this.</p>
+        <button onClick={()=>setStep(2)} disabled={!name.trim()} style={{width:"100%",padding:13,background:name.trim()?"linear-gradient(135deg,#bf4626,#7c2d12)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:name.trim()?"pointer":"not-allowed"}}>Next: Choose Audience {String.fromCharCode(0x2192)}</button>
+      </div>}
+      
+      {/* Step 2: Audience */}
+      {step===2&&<div>
+        <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>STEP 2 OF 4</p>
+        <h3 style={{fontSize:16,fontWeight:700,marginBottom:11}}>Who should receive this?</h3>
+        <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+          {[
+            {id:"all",label:"All customers",desc:"Send to everyone who has registered"},
+            {id:"recent",label:"Recent customers",desc:"Customers who ordered in last 30 days"},
+            {id:"vip",label:"VIP customers",desc:"Customers with 10+ orders"},
+          ].map(a=><label key={a.id} style={{padding:11,background:audienceType===a.id?"#fef3c7":"#fafaf5",borderRadius:7,border:"2px solid "+(audienceType===a.id?"#f59e0b":"#ede8de"),cursor:"pointer",display:"flex",alignItems:"center",gap:9}}>
+            <input type="radio" checked={audienceType===a.id} onChange={()=>setAudienceType(a.id)} style={{width:18,height:18}}/>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:13}}>{a.label}</p>
+              <p style={{fontSize:11,color:"#8a8078"}}>{a.desc}</p>
+            </div>
+          </label>)}
+        </div>
+        <div style={{padding:11,background:"#dbeafe",borderRadius:7,marginBottom:14}}>
+          <p style={{fontSize:12,fontWeight:700,color:"#1e40af"}}>{String.fromCharCode(0xD83D,0xDCCA)} Audience preview</p>
+          <p style={{fontSize:11,color:"#1e40af"}}>{audienceList.length} customers will receive this ({audienceCount} total in this group, but some may not have {type==="sms"?"phone":"email"})</p>
+        </div>
+        <div style={{display:"flex",gap:9}}>
+          <button onClick={()=>setStep(1)} style={{flex:1,padding:13,background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,fontSize:14,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2190)} Back</button>
+          <button onClick={()=>setStep(3)} disabled={audienceList.length===0} style={{flex:2,padding:13,background:audienceList.length>0?"linear-gradient(135deg,#bf4626,#7c2d12)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:audienceList.length>0?"pointer":"not-allowed"}}>Next: Write Message {String.fromCharCode(0x2192)}</button>
+        </div>
+      </div>}
+      
+      {/* Step 3: Message */}
+      {step===3&&<div>
+        <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>STEP 3 OF 4</p>
+        <h3 style={{fontSize:16,fontWeight:700,marginBottom:11}}>Write your {type==="sms"?"SMS":"email"}</h3>
+        
+        {type==="email"&&<div style={{marginBottom:11}}>
+          <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>SUBJECT</p>
+          <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Subject line" style={{width:"100%",padding:11,border:"2px solid #ede8de",borderRadius:7,fontSize:13,boxSizing:"border-box"}}/>
+        </div>}
+        
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>MESSAGE</p>
+        <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder={type==="sms"?"Hey [Name]! Get 20% off this weekend at "+(restaurant?.name||"our restaurant")+". Show this SMS to claim. Reply STOP to opt out.":"Write your email content here..."} rows={type==="sms"?4:8} style={{width:"100%",padding:11,border:"2px solid #ede8de",borderRadius:7,fontSize:13,boxSizing:"border-box",resize:"vertical",fontFamily:"inherit"}}/>
+        <p style={{fontSize:10,color:"#8a8078",marginTop:5,marginBottom:14}}>{message.length}{type==="sms"?"/160 characters":" characters"} {type==="sms"&&message.length>160?String.fromCharCode(0x26A0,0xFE0F)+" Will be split into "+Math.ceil(message.length/160)+" messages":""}</p>
+        
+        <div style={{padding:11,background:"#dbeafe",borderRadius:7,marginBottom:14,fontSize:11,color:"#1e40af"}}>
+          <strong>{String.fromCharCode(0xD83D,0xDCA1)} Tip:</strong> Use <code>[Name]</code> to personalize. Always include opt-out instructions for legal compliance ({type==="sms"?"\"Reply STOP\"":"\"Unsubscribe\""}).
+        </div>
+        
+        <div style={{display:"flex",gap:9}}>
+          <button onClick={()=>setStep(2)} style={{flex:1,padding:13,background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,fontSize:14,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2190)} Back</button>
+          <button onClick={()=>setStep(4)} disabled={!message.trim()} style={{flex:2,padding:13,background:message.trim()?"linear-gradient(135deg,#bf4626,#7c2d12)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:message.trim()?"pointer":"not-allowed"}}>Next: Review {String.fromCharCode(0x2192)}</button>
+        </div>
+      </div>}
+      
+      {/* Step 4: Review & Send */}
+      {step===4&&<div>
+        <p style={{fontSize:12,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>STEP 4 OF 4 - REVIEW</p>
+        <h3 style={{fontSize:16,fontWeight:700,marginBottom:14}}>Review & Send</h3>
+        
+        <div style={{display:"flex",flexDirection:"column",gap:9,marginBottom:14}}>
+          <div style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de"}}>
+            <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>CAMPAIGN NAME</p>
+            <p style={{fontSize:13,fontWeight:700}}>{name}</p>
+          </div>
+          
+          <div style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de"}}>
+            <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>RECIPIENTS</p>
+            <p style={{fontSize:13,fontWeight:700}}>{audienceList.length} customers ({audienceType})</p>
+          </div>
+          
+          {type==="email"&&subject&&<div style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de"}}>
+            <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>SUBJECT</p>
+            <p style={{fontSize:13,fontWeight:700}}>{subject}</p>
+          </div>}
+          
+          <div style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de"}}>
+            <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:3}}>MESSAGE</p>
+            <p style={{fontSize:12,whiteSpace:"pre-wrap"}}>{message}</p>
+          </div>
+          
+          <div style={{padding:14,background:"linear-gradient(135deg,#fef3c7,#fde68a)",borderRadius:9,border:"2px solid #f59e0b"}}>
+            <p style={{fontSize:11,color:"#92400e",fontWeight:700,letterSpacing:1,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDCB0)} COST SUMMARY</p>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+              <span style={{fontSize:13}}>{audienceList.length} {type==="sms"?"SMS":"emails"} \u00D7 \u00A3{unitCost.toFixed(3)}</span>
+              <span style={{fontSize:14,fontWeight:700}}>\u00A3{totalCost.toFixed(2)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#92400e"}}>
+              <span>Credits after sending</span>
+              <span style={{fontWeight:700}}>{balance-audienceList.length} {type==="sms"?"SMS":"emails"}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div style={{display:"flex",gap:9}}>
+          <button onClick={()=>setStep(3)} disabled={sending} style={{flex:1,padding:13,background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:9,fontSize:14,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2190)} Edit</button>
+          <button onClick={handleSend} disabled={!canSend||sending} style={{flex:2,padding:13,background:canSend&&!sending?"linear-gradient(135deg,#059669,#10b981)":"#9ca3af",color:"#fff",border:"none",borderRadius:9,fontSize:14,fontWeight:700,cursor:canSend&&!sending?"pointer":"not-allowed"}}>{sending?"Sending...":String.fromCharCode(0xD83D,0xDE80)+" Send Campaign"}</button>
+        </div>
+      </div>}
+    </div>
+  </div>;
+}
+
 function StaffManagementTab({restaurant, branch, push}){
   var [view, setView] = useState("list"); // "list", "schedule", "timeclock", "payroll"
   var [staff, setStaff] = useState([]);
@@ -5350,7 +5717,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS_ALL=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS_ALL=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["marketing","Marketing"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   
   // STAFF PIN: Filter tabs based on permissions
   var activeStaff = (typeof window!=="undefined")?dbGetActiveStaff():null;
@@ -5547,7 +5914,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     <div style={{background:"#fff",borderRadius:11,padding:7,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)",overflow:"hidden"}}>
       <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:2}}>
         {TABS.map(([k,l])=>{
-          var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
+          var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),marketing:String.fromCharCode(0xD83D,0xDCE3),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
           return <button key={k} onClick={()=>setTab(k)} style={{padding:"8px 13px",borderRadius:8,fontWeight:600,fontSize:11.5,whiteSpace:"nowrap",border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"transparent",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:5,boxShadow:tab===k?"0 2px 8px rgba(26,18,8,.25)":"none"}} onMouseEnter={e=>{if(tab!==k){e.target.style.background="#f7f3ee";e.target.style.color="#1a1208";}}} onMouseLeave={e=>{if(tab!==k){e.target.style.background="transparent";e.target.style.color="#5d4e3e";}}}>
             <span style={{fontSize:13}}>{tabIcons[k]||String.fromCharCode(0x2022)}</span>
             <span>{l}</span>
@@ -6283,6 +6650,8 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         <button className="btn btn-r" onClick={save} style={{width:"100%",padding:"13px",fontSize:14}}>Save Delivery Settings</button>
       </div>;
     })()}
+
+    {tab==="marketing"&&<MarketingCenter restaurant={restaurant} branch={branch} push={push}/>}
 
     {tab==="codes"&&<div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>

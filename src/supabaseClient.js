@@ -3577,3 +3577,355 @@ export function calculateSignupCommission(rep, planPrice) {
   }
 }
 
+
+// ===========================================================
+// MARKETING SYSTEM - SMS & Email Credits + Campaigns
+// ===========================================================
+
+// === CREDIT PACKAGES (server-side truth) ===
+export const SMS_PACKAGES = [
+  { id: 'sms_starter', name: 'Starter', credits: 100, price: 10, perUnit: 0.10 },
+  { id: 'sms_popular', name: 'Popular', credits: 500, price: 45, perUnit: 0.09, recommended: true },
+  { id: 'sms_business', name: 'Business', credits: 1000, price: 85, perUnit: 0.085 },
+  { id: 'sms_enterprise', name: 'Enterprise', credits: 5000, price: 400, perUnit: 0.08 },
+];
+
+export const EMAIL_PACKAGES = [
+  { id: 'email_starter', name: 'Starter', credits: 1000, price: 5, perUnit: 0.005 },
+  { id: 'email_popular', name: 'Popular', credits: 5000, price: 20, perUnit: 0.004, recommended: true },
+  { id: 'email_business', name: 'Business', credits: 10000, price: 35, perUnit: 0.0035 },
+  { id: 'email_enterprise', name: 'Enterprise', credits: 50000, price: 150, perUnit: 0.003 },
+];
+
+// === FETCH CREDITS ===
+export async function fetchCredits() {
+  const { data, error } = await supabase
+    .from('marketing_credits')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .maybeSingle();
+  if (error) console.error('fetchCredits:', error);
+  if (!data) {
+    // Create initial credit record
+    await supabase.from('marketing_credits').insert({
+      restaurant_id: _rid(),
+      sms_credits: 0,
+      email_credits: 0,
+    });
+    return { sms_credits: 0, email_credits: 0 };
+  }
+  return data;
+}
+
+// === BUY CREDITS (no payment integration yet - records intent) ===
+export async function buyCredits(packageId) {
+  let pkg = SMS_PACKAGES.find(p => p.id === packageId) || EMAIL_PACKAGES.find(p => p.id === packageId);
+  if (!pkg) return { error: { message: 'Invalid package' } };
+  
+  const type = packageId.startsWith('sms_') ? 'sms' : 'email';
+  
+  // Record purchase
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('credit_purchases')
+    .insert({
+      restaurant_id: _rid(),
+      type,
+      amount: pkg.credits,
+      price: pkg.price,
+      payment_status: 'pending', // Will be 'completed' after Stripe payment
+      package_name: pkg.name,
+    })
+    .select()
+    .single();
+  
+  if (purchaseError) return { error: purchaseError };
+  
+  return { data: purchase, package: pkg };
+}
+
+// === COMPLETE PURCHASE (after payment confirmed) ===
+export async function completePurchase(purchaseId, paymentMethod, paymentReference) {
+  // Get the purchase
+  const { data: purchase, error: pErr } = await supabase
+    .from('credit_purchases')
+    .select('*')
+    .eq('id', purchaseId)
+    .single();
+  
+  if (pErr || !purchase) return { error: pErr || { message: 'Purchase not found' } };
+  
+  // Update purchase status
+  await supabase
+    .from('credit_purchases')
+    .update({
+      payment_status: 'completed',
+      payment_method: paymentMethod,
+      payment_reference: paymentReference,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', purchaseId);
+  
+  // Add credits to restaurant
+  const { data: currentCredits } = await supabase
+    .from('marketing_credits')
+    .select('*')
+    .eq('restaurant_id', purchase.restaurant_id)
+    .single();
+  
+  const updates = currentCredits ? {
+    sms_credits: purchase.type === 'sms' ? currentCredits.sms_credits + purchase.amount : currentCredits.sms_credits,
+    email_credits: purchase.type === 'email' ? currentCredits.email_credits + purchase.amount : currentCredits.email_credits,
+    sms_purchased: purchase.type === 'sms' ? currentCredits.sms_purchased + purchase.amount : currentCredits.sms_purchased,
+    email_purchased: purchase.type === 'email' ? currentCredits.email_purchased + purchase.amount : currentCredits.email_purchased,
+    updated_at: new Date().toISOString(),
+  } : {
+    restaurant_id: purchase.restaurant_id,
+    sms_credits: purchase.type === 'sms' ? purchase.amount : 0,
+    email_credits: purchase.type === 'email' ? purchase.amount : 0,
+    sms_purchased: purchase.type === 'sms' ? purchase.amount : 0,
+    email_purchased: purchase.type === 'email' ? purchase.amount : 0,
+  };
+  
+  if (currentCredits) {
+    await supabase
+      .from('marketing_credits')
+      .update(updates)
+      .eq('restaurant_id', purchase.restaurant_id);
+  } else {
+    await supabase
+      .from('marketing_credits')
+      .insert(updates);
+  }
+  
+  return { success: true };
+}
+
+// === FETCH PURCHASES (history) ===
+export async function fetchPurchases() {
+  const { data, error } = await supabase
+    .from('credit_purchases')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchPurchases:', error);
+  return data || [];
+}
+
+// === CAMPAIGNS ===
+export async function fetchCampaigns() {
+  const { data, error } = await supabase
+    .from('marketing_campaigns')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchCampaigns:', error);
+  return data || [];
+}
+
+export async function fetchCampaign(campaignId) {
+  const { data, error } = await supabase
+    .from('marketing_campaigns')
+    .select('*, campaign_recipients(*)')
+    .eq('id', campaignId)
+    .single();
+  if (error) console.error('fetchCampaign:', error);
+  return data;
+}
+
+export async function createCampaign(campaign) {
+  const { data, error } = await supabase
+    .from('marketing_campaigns')
+    .insert({
+      restaurant_id: _rid(),
+      name: campaign.name,
+      type: campaign.type,
+      subject: campaign.subject || null,
+      message: campaign.message,
+      html_body: campaign.html_body || null,
+      audience_type: campaign.audience_type || 'all',
+      audience_filters: campaign.audience_filters || {},
+      recipient_count: campaign.recipient_count || 0,
+      estimated_cost: campaign.estimated_cost || 0,
+      scheduled_at: campaign.scheduled_at || null,
+      created_by: campaign.created_by || null,
+    })
+    .select()
+    .single();
+  if (error) console.error('createCampaign:', error);
+  return { data, error };
+}
+
+export async function deleteCampaign(campaignId) {
+  const { error } = await supabase
+    .from('marketing_campaigns')
+    .delete()
+    .eq('id', campaignId);
+  return { error };
+}
+
+// === SEND CAMPAIGN (simulated for now - no real Twilio/SendGrid yet) ===
+export async function sendCampaign(campaignId, recipients) {
+  // Get campaign
+  const { data: campaign } = await supabase
+    .from('marketing_campaigns')
+    .select('*')
+    .eq('id', campaignId)
+    .single();
+  
+  if (!campaign) return { error: { message: 'Campaign not found' } };
+  
+  // Check credits
+  const credits = await fetchCredits();
+  const needed = recipients.length;
+  const balance = campaign.type === 'sms' ? credits.sms_credits : credits.email_credits;
+  
+  if (balance < needed) {
+    return { error: { message: `Not enough credits. Need ${needed}, have ${balance}` } };
+  }
+  
+  // Update campaign status
+  await supabase
+    .from('marketing_campaigns')
+    .update({
+      status: 'sending',
+      started_at: new Date().toISOString(),
+      recipient_count: recipients.length,
+    })
+    .eq('id', campaignId);
+  
+  // Insert all recipients
+  const recipientRecords = recipients.map(r => ({
+    campaign_id: campaignId,
+    customer_id: r.id || null,
+    phone: r.phone || null,
+    email: r.email || null,
+    name: r.name || 'Customer',
+    status: 'pending',
+  }));
+  
+  await supabase.from('campaign_recipients').insert(recipientRecords);
+  
+  // SIMULATE SENDING (in production, this would call Twilio/SendGrid)
+  // For now, mark all as sent after 1 second
+  setTimeout(async () => {
+    // Mark all as sent
+    await supabase
+      .from('campaign_recipients')
+      .update({ status: 'sent', sent_at: new Date().toISOString() })
+      .eq('campaign_id', campaignId);
+    
+    // Mark campaign as complete
+    await supabase
+      .from('marketing_campaigns')
+      .update({
+        status: 'sent',
+        completed_at: new Date().toISOString(),
+        sent_count: recipients.length,
+        delivered_count: recipients.length,
+        credits_used: recipients.length,
+        estimated_cost: recipients.length * (campaign.type === 'sms' ? 0.10 : 0.005),
+      })
+      .eq('id', campaignId);
+  }, 2000);
+  
+  // Deduct credits
+  const newCredits = balance - needed;
+  await supabase
+    .from('marketing_credits')
+    .update({
+      [campaign.type === 'sms' ? 'sms_credits' : 'email_credits']: newCredits,
+      [campaign.type === 'sms' ? 'sms_used' : 'email_used']: (campaign.type === 'sms' ? credits.sms_used : credits.email_used) + needed,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('restaurant_id', _rid());
+  
+  return { success: true, count: recipients.length };
+}
+
+// === OPT-OUTS ===
+export async function fetchOptouts() {
+  const { data, error } = await supabase
+    .from('marketing_optouts')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('created_at', { ascending: false });
+  if (error) console.error('fetchOptouts:', error);
+  return data || [];
+}
+
+export async function addOptout(phone, email, type, reason) {
+  const { data, error } = await supabase
+    .from('marketing_optouts')
+    .insert({
+      restaurant_id: _rid(),
+      phone: phone || null,
+      email: email || null,
+      type: type || 'both',
+      reason: reason || 'Customer requested',
+    })
+    .select()
+    .single();
+  return { data, error };
+}
+
+// === AUDIENCE BUILDING ===
+// Get customers matching audience filters
+export async function getAudienceCount(audienceType, filters) {
+  let query = supabase
+    .from('customers')
+    .select('*', { count: 'exact', head: true })
+    .eq('restaurant_id', _rid());
+  
+  switch (audienceType) {
+    case 'recent':
+      // Customers who ordered in last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      query = query.gte('last_order_date', thirtyDaysAgo.toISOString());
+      break;
+    case 'vip':
+      query = query.gte('total_orders', 10);
+      break;
+    case 'birthday':
+      // Customers with birthday this month
+      const currentMonth = new Date().getMonth() + 1;
+      // Would need a birthday column with proper indexing
+      break;
+    case 'all':
+    default:
+      break;
+  }
+  
+  const { count } = await query;
+  return count || 0;
+}
+
+export async function getAudienceCustomers(audienceType, filters, type) {
+  let query = supabase
+    .from('customers')
+    .select('*')
+    .eq('restaurant_id', _rid());
+  
+  // Filter by required contact info
+  if (type === 'sms') {
+    query = query.not('phone', 'is', null);
+  } else if (type === 'email') {
+    query = query.not('email', 'is', null);
+  }
+  
+  switch (audienceType) {
+    case 'recent':
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      query = query.gte('last_order_date', thirtyDaysAgo.toISOString());
+      break;
+    case 'vip':
+      query = query.gte('total_orders', 10);
+      break;
+  }
+  
+  const { data, error } = await query;
+  if (error) console.error('getAudienceCustomers:', error);
+  return data || [];
+}
+
