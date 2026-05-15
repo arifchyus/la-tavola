@@ -8641,15 +8641,44 @@ function DriverV({orders,setOrders,push,user,branch}){
     setCollectInput(c=>({...c,[o.id]:""}));
   };
 
+  // Calculate today's stats for driver
+  var todayDelivered2=todayDelivered.length;
+  var todayEarnings=todayDelivered.reduce((s,o)=>{
+    if(o.payMethod==="cash"&&o.paid)return s+(o.cashCollected||o.total||0);
+    return s+(o.total||0);
+  },0);
+  var pendingCount=myDeliveries.filter(o=>o.status==="ready").length;
+  var enRouteCount=myDeliveries.filter(o=>o.status==="out_for_delivery").length;
+
   return <div className="page">
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
-      <div>
-        <h2 style={{fontSize:22,marginBottom:2}}>Driver View</h2>
-        <p style={{color:"#8a8078",fontSize:12}}>{driverName} - {branch?.name}</p>
+    {/* Beautiful Driver Header */}
+    <div style={{background:"linear-gradient(135deg,#1e3a8a,#2563eb,#0891b2)",borderRadius:14,padding:"18px",marginBottom:14,color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,rgba(255,255,255,.15),transparent 70%)"}}></div>
+      <div style={{position:"relative",zIndex:1}}>
+        <p style={{fontSize:10,letterSpacing:2.5,fontWeight:700,opacity:.85,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDEF5)} DRIVER VIEW</p>
+        <h2 style={{fontSize:22,fontWeight:700,fontFamily:"Georgia,serif",marginBottom:3}}>Hi {driverName}!</h2>
+        <p style={{fontSize:12,opacity:.85}}>{branch?.name||"Restaurant"}</p>
       </div>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        <div style={{padding:"8px 12px",background:"#dbeafe",color:"#1e40af",borderRadius:9,fontSize:12,fontWeight:700}}>{myDeliveries.length} active</div>
-        <div style={{padding:"8px 12px",background:cashOwed>0?"#fef3c7":"#d1fae5",color:cashOwed>0?"#92400e":"#065f46",borderRadius:9,fontSize:12,fontWeight:700}}>Cash owed: {fmt(cashOwed)}</div>
+    </div>
+    
+    {/* STATS CARDS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:9,marginBottom:14}}>
+      <div style={{padding:"11px 14px",background:"linear-gradient(135deg,#fef3c7,#fde68a)",borderRadius:11,border:"2px solid #f59e0b"}}>
+        <p style={{fontSize:10,color:"#92400e",letterSpacing:1,fontWeight:700}}>READY TO PICKUP</p>
+        <p style={{fontSize:24,fontWeight:700,color:"#92400e"}}>{pendingCount}</p>
+      </div>
+      <div style={{padding:"11px 14px",background:"linear-gradient(135deg,#dbeafe,#bfdbfe)",borderRadius:11,border:"2px solid #3b82f6"}}>
+        <p style={{fontSize:10,color:"#1e40af",letterSpacing:1,fontWeight:700}}>EN ROUTE</p>
+        <p style={{fontSize:24,fontWeight:700,color:"#1e40af"}}>{enRouteCount}</p>
+      </div>
+      <div style={{padding:"11px 14px",background:"linear-gradient(135deg,#d1fae5,#a7f3d0)",borderRadius:11,border:"2px solid #10b981"}}>
+        <p style={{fontSize:10,color:"#065f46",letterSpacing:1,fontWeight:700}}>DELIVERED TODAY</p>
+        <p style={{fontSize:24,fontWeight:700,color:"#065f46"}}>{todayDelivered2}</p>
+      </div>
+      <div style={{padding:"11px 14px",background:cashOwed>0?"linear-gradient(135deg,#fee2e2,#fecaca)":"linear-gradient(135deg,#d1fae5,#a7f3d0)",borderRadius:11,border:"2px solid "+(cashOwed>0?"#dc2626":"#10b981")}}>
+        <p style={{fontSize:10,color:cashOwed>0?"#991b1b":"#065f46",letterSpacing:1,fontWeight:700}}>CASH IN HAND</p>
+        <p style={{fontSize:24,fontWeight:700,color:cashOwed>0?"#991b1b":"#065f46"}}>{fmt(cashOwed)}</p>
+        {cashOwed>0&&<p style={{fontSize:9,color:"#991b1b",marginTop:3}}>{String.fromCharCode(0x26A0,0xFE0F)} Hand to manager</p>}
       </div>
     </div>
 
@@ -8665,23 +8694,37 @@ function DriverV({orders,setOrders,push,user,branch}){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
           <div style={{flex:1,minWidth:0}}>
             <p style={{fontWeight:700,fontSize:16,marginBottom:3}}>{o.customer||"Guest"}</p>
-            <p style={{fontSize:11,color:"#8a8078"}}>{o.id} - {fmt(o.total)} - {o.payMethod==="cod"?"COD":o.paid?"PAID":"UNPAID"}</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{o.id} - {fmt(o.total)} - {o.payMethod==="cod"?String.fromCharCode(0xD83D,0xDCB5)+" CASH ON DELIVERY":o.paid?String.fromCharCode(0x2705)+" PAID ONLINE":String.fromCharCode(0x26A0,0xFE0F)+" UNPAID"}</p>
             <p style={{fontSize:13,marginTop:6,fontWeight:600}}>{EM.pin} {addrLine}</p>
             {o.address?.notes&&<p style={{fontSize:11,color:"#8a8078",marginTop:2,fontStyle:"italic"}}>Note: {o.address.notes}</p>}
-            {o.phone&&<p style={{fontSize:13,marginTop:4}}>{EM.phone} <a href={"tel:"+o.phone} style={{color:"#2563eb",fontWeight:700}}>{o.phone}</a></p>}
           </div>
           <span style={{padding:"3px 9px",background:fullyDone?"#d1fae5":needsCashStep?"#fef3c7":o.status==="out_for_delivery"?"#dbeafe":"#fee2e2",color:fullyDone?"#065f46":needsCashStep?"#92400e":o.status==="out_for_delivery"?"#1e40af":"#991b1b",borderRadius:5,fontSize:10,fontWeight:700}}>{fullyDone?"DONE":needsCashStep?"COLLECT CASH":o.status==="out_for_delivery"?"EN ROUTE":"READY TO PICKUP"}</span>
         </div>
+        
+        {/* QUICK ACTION BUTTONS - Call + Maps */}
+        {(o.phone||addrLine!=="No address")&&!fullyDone&&<div style={{display:"flex",gap:7,marginBottom:11}}>
+          {o.phone&&<a href={"tel:"+o.phone} style={{flex:1,padding:"11px",background:"linear-gradient(135deg,#2563eb,#1e40af)",color:"#fff",borderRadius:9,fontWeight:700,fontSize:13,textAlign:"center",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+            <span style={{fontSize:16}}>{String.fromCharCode(0xD83D,0xDCDE)}</span>
+            <span>Call</span>
+          </a>}
+          {addrLine!=="No address"&&<a href={"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(addrLine)} target="_blank" rel="noopener noreferrer" style={{flex:1,padding:"11px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",borderRadius:9,fontWeight:700,fontSize:13,textAlign:"center",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+            <span style={{fontSize:16}}>{String.fromCharCode(0xD83D,0xDDFA,0xFE0F)}</span>
+            <span>Navigate</span>
+          </a>}
+          {o.phone&&<a href={"sms:"+o.phone+"?body="+encodeURIComponent("Hi! Your order from "+(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"the restaurant")+" is on the way!")} style={{padding:"11px 14px",background:"#7c3aed",color:"#fff",borderRadius:9,fontWeight:700,fontSize:13,textAlign:"center",textDecoration:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+            <span style={{fontSize:16}}>{String.fromCharCode(0xD83D,0xDCAC)}</span>
+          </a>}
+        </div>}
 
         <div style={{background:"#fafaf5",borderRadius:6,padding:"7px 10px",marginBottom:10,fontSize:11}}>
           {(o.items||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><span>{it.name} x{it.qty}</span><span>{fmt((+it.price||0)*it.qty)}</span></div>)}
           <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid #ede8de",marginTop:5,paddingTop:5,fontWeight:700}}><span>Total</span><span>{fmt(o.total)}</span></div>
         </div>
 
-        {o.status==="ready"&&<button className="btn btn-r" onClick={()=>pickup(o)} style={{width:"100%",padding:"12px",fontSize:14}}>Pick Up Order - Set Out for Delivery</button>}
+        {o.status==="ready"&&<button className="btn btn-r" onClick={()=>pickup(o)} style={{width:"100%",padding:"14px",fontSize:14,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDEF5)} Pick Up Order - Start Delivery</button>}
 
         {o.status==="out_for_delivery"&&<div style={{padding:"12px",background:"#fff7ed",borderRadius:9,border:"2px dashed #f59e0b"}}>
-          <p style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>At customer's door? Ask for delivery code</p>
+          <p style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDCCD)} At customer's door? Ask for delivery code</p>
           <div style={{display:"flex",gap:6}}>
             <input value={codeInput[o.id]||""} onChange={e=>setCodeInput(c=>({...c,[o.id]:e.target.value.replace(/[^0-9]/g,"").slice(0,4)}))} placeholder="0000" maxLength={4} style={{flex:1,padding:"14px",fontSize:24,fontWeight:700,textAlign:"center",letterSpacing:8,fontFamily:"'Courier New',monospace",border:"2px solid #f59e0b",borderRadius:8}}/>
             <button onClick={()=>verifyCode(o)} style={{padding:"14px 16px",background:"#059669",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>{EM.check} Verify</button>
