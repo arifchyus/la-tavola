@@ -4301,7 +4301,11 @@ function MarketingCenter({restaurant, branch, push}){
     {/* Campaign History */}
     <div className="card" style={{padding:16,marginBottom:14}}>
       <p style={{fontSize:14,fontWeight:700,marginBottom:11}}>{String.fromCharCode(0xD83D,0xDCCB)} Campaign History</p>
-      {campaigns.length===0?<p style={{color:"#8a8078",fontSize:12,padding:14,textAlign:"center"}}>No campaigns yet. Create your first one above!</p>:
+      {campaigns.length===0?<div style={{padding:30,textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCE3)}</div>
+        <p style={{fontSize:14,fontWeight:700,marginBottom:5}}>No campaigns yet</p>
+        <p style={{fontSize:12,color:"#8a8078"}}>Create your first SMS or Email campaign above to start engaging customers!</p>
+      </div>:
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {campaigns.map(c=><div key={c.id} style={{padding:11,background:"#fafaf5",borderRadius:7,border:"1px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
           <div style={{flex:1,minWidth:180}}>
@@ -7892,7 +7896,7 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
               var win=window.open("","","width=300,height=500");
               if(!win)return;
               var rows=allItems.map(i=>"<tr><td>"+i.name+" x"+i.qty+"</td><td style='text-align:right'>"+fmt((+i.price||0)*i.qty)+"</td></tr>").join("");
-              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>"+((branch?.name||(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase())+"</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+tablesDeliv.serviceChargePercent+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
+              win.document.write("<html><head><title>Bill - Table "+t.id+"</title><style>body{font-family:monospace;padding:12px;max-width:280px}h3{text-align:center}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px dashed #ccc}.tot{font-weight:700;font-size:16px;border-top:2px solid #000;padding-top:8px;margin-top:8px}</style></head><body><h3>"+((branch?.name||(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase())+"</h3><p style='text-align:center'>"+(branch?.name||"")+"</p><p>Table "+t.id+" - "+(t.guests||"?")+" guests</p><p>"+new Date().toLocaleString("en-GB")+"</p><hr/><table>"+rows+"</table><div class='tot'>Subtotal: "+fmt(subtotal)+"</div>"+(totalDiscount>0?"<div>Discount: -"+fmt(totalDiscount)+"</div>":"")+(serviceChargeT>0?"<div>Service ("+(tablesDeliv?.serviceChargePercent||0)+"%): "+fmt(serviceChargeT)+"</div>":"")+"<div>VAT: "+fmt(vat)+"</div><div class='tot'>TOTAL: "+fmt(total)+"</div><p style='text-align:center;margin-top:20px'>Thank you!</p></body></html>");
               win.document.close();
               setTimeout(()=>win.print(),200);
             }} style={{padding:"11px",fontSize:13}}>Print Bill</button>
@@ -11238,7 +11242,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
             var color=getCatColor(idx);
             return <button key={item.dbId||item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{padding:"10px 6px",background:inCart?"#fff":color,color:"#1a1208",border:"3px solid "+(inCart?"#bf4626":color),borderRadius:7,fontWeight:700,fontSize:11,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,position:"relative",minHeight:62,boxShadow:"0 2px 4px rgba(0,0,0,.15)"}}>
               {inCart&&<div style={{position:"absolute",top:-7,right:-7,background:"#bf4626",color:"#fff",borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,border:"2px solid #fff"}}>{inCart.qty}</div>}
-              <div style={{fontWeight:700,marginBottom:2,lineHeight:1.1}}>{item.name.toUpperCase()}</div>
+              <div style={{fontWeight:700,marginBottom:2,lineHeight:1.1}}>{(item.name||"").toUpperCase()}</div>
               <div style={{fontSize:11,fontWeight:700,color:"#7c2d12"}}>{fmt(price)}</div>
             </button>;
           })}
@@ -14006,6 +14010,90 @@ function RestaurantSwitcher({currentRestaurant,onSwitch,onClose}){
 }
 
 
+// =================================================================
+// PRETTY ALERT / CONFIRM SYSTEM
+// Replaces ugly window.alert() with beautiful modals
+// =================================================================
+function PrettyAlertProvider(){
+  var [alertData,setAlertData]=useState(null);
+  var [confirmData,setConfirmData]=useState(null);
+  
+  // Register global functions
+  useEffect(()=>{
+    window.showAlert=(title,message,type)=>{
+      return new Promise(resolve=>{
+        setAlertData({title,message,type:type||"info",onClose:()=>{setAlertData(null);resolve();}});
+      });
+    };
+    
+    window.showConfirm=(title,message,confirmText,cancelText,type)=>{
+      return new Promise(resolve=>{
+        setConfirmData({
+          title,
+          message,
+          type:type||"warning",
+          confirmText:confirmText||"OK",
+          cancelText:cancelText||"Cancel",
+          onConfirm:()=>{setConfirmData(null);resolve(true);},
+          onCancel:()=>{setConfirmData(null);resolve(false);},
+        });
+      });
+    };
+    
+    // Also intercept window.alert and window.confirm
+    var origAlert=window.alert.bind(window);
+    window.alert=(message)=>{
+      window.showAlert("Notice",message,"info");
+    };
+    
+    return ()=>{
+      delete window.showAlert;
+      delete window.showConfirm;
+      window.alert=origAlert;
+    };
+  },[]);
+  
+  var colors={
+    info:{bg:"#dbeafe",border:"#3b82f6",text:"#1e40af",icon:String.fromCharCode(0x2139,0xFE0F)},
+    success:{bg:"#d1fae5",border:"#22c55e",text:"#065f46",icon:String.fromCharCode(0x2705)},
+    warning:{bg:"#fef3c7",border:"#f59e0b",text:"#92400e",icon:String.fromCharCode(0x26A0,0xFE0F)},
+    error:{bg:"#fee2e2",border:"#dc2626",text:"#991b1b",icon:String.fromCharCode(0x274C)},
+  };
+  
+  return <>
+    {alertData&&<div onClick={alertData.onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:0,maxWidth:440,width:"100%",overflow:"hidden",boxShadow:"0 18px 50px rgba(0,0,0,.25)"}}>
+        <div style={{padding:"18px 22px",background:colors[alertData.type].bg,borderBottom:"2px solid "+colors[alertData.type].border,display:"flex",alignItems:"center",gap:11}}>
+          <span style={{fontSize:24}}>{colors[alertData.type].icon}</span>
+          <h3 style={{fontSize:16,fontWeight:700,color:colors[alertData.type].text,flex:1}}>{alertData.title}</h3>
+        </div>
+        <div style={{padding:18}}>
+          <p style={{fontSize:13,color:"#1a1208",whiteSpace:"pre-wrap",lineHeight:1.5}}>{alertData.message}</p>
+        </div>
+        <div style={{padding:"11px 18px 18px",display:"flex",justifyContent:"flex-end"}}>
+          <button onClick={alertData.onClose} style={{padding:"9px 22px",background:colors[alertData.type].border,color:"#fff",border:"none",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer"}}>OK</button>
+        </div>
+      </div>
+    </div>}
+    
+    {confirmData&&<div onClick={confirmData.onCancel} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:0,maxWidth:440,width:"100%",overflow:"hidden",boxShadow:"0 18px 50px rgba(0,0,0,.25)"}}>
+        <div style={{padding:"18px 22px",background:colors[confirmData.type].bg,borderBottom:"2px solid "+colors[confirmData.type].border,display:"flex",alignItems:"center",gap:11}}>
+          <span style={{fontSize:24}}>{colors[confirmData.type].icon}</span>
+          <h3 style={{fontSize:16,fontWeight:700,color:colors[confirmData.type].text,flex:1}}>{confirmData.title}</h3>
+        </div>
+        <div style={{padding:18}}>
+          <p style={{fontSize:13,color:"#1a1208",whiteSpace:"pre-wrap",lineHeight:1.5}}>{confirmData.message}</p>
+        </div>
+        <div style={{padding:"11px 18px 18px",display:"flex",gap:9,justifyContent:"flex-end"}}>
+          <button onClick={confirmData.onCancel} style={{padding:"9px 18px",background:"#fff",color:"#1a1208",border:"2px solid #ede8de",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer"}}>{confirmData.cancelText}</button>
+          <button onClick={confirmData.onConfirm} style={{padding:"9px 22px",background:colors[confirmData.type].border,color:"#fff",border:"none",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer"}}>{confirmData.confirmText}</button>
+        </div>
+      </div>
+    </div>}
+  </>;
+}
+
 export default function App(){
   var [view,setView]=useState("menu"),[orders,setOrders]=useState([]),[menu,setMenu]=useState([]);
   var [discs,setDiscs]=useState([]),[users,setUsers]=useState(USERS);
@@ -14968,6 +15056,9 @@ export default function App(){
   </>;
 
   return <div style={{minHeight:"100vh",background:"#f7f3ee"}}>
+    {/* Pretty Alert/Confirm System */}
+    <PrettyAlertProvider/>
+    
     {/* SUPER ADMIN: Impersonation banner */}
     {impersonating&&<div style={{background:"#7c3aed",color:"#fff",padding:"9px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:11,fontSize:12,fontWeight:700,position:"sticky",top:0,zIndex:9999,flexWrap:"wrap"}}>
       <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>

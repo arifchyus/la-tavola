@@ -116,17 +116,28 @@ export async function fetchOrders() {
     .select('*')
     .eq('restaurant_id', _rid())
     .order('created_at', { ascending: false })
-    .limit(200);
+    .limit(1000);
   if (error) console.error('fetchOrders error:', error);
   return data || [];
 }
 
 export async function updateOrderStatus(orderId, newStatus) {
-  const { error } = await supabase
+  // Try by order_number first, then by id
+  let result = await supabase
     .from('orders')
     .update({ status: newStatus })
     .eq('order_number', orderId);
-  if (error) console.error('updateOrderStatus error:', error);
+  
+  // If no rows affected, try by UUID id
+  if (result.error || (result.count !== null && result.count === 0)) {
+    result = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId);
+  }
+  
+  if (result.error) console.error('updateOrderStatus error:', result.error);
+  return result;
 }
 
 export async function updateOrderPayment(orderId, paid, payMethod) {
