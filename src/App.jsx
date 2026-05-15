@@ -8643,10 +8643,6 @@ function DriverV({orders,setOrders,push,user,branch}){
 
   // Calculate today's stats for driver
   var todayDelivered2=todayDelivered.length;
-  var todayEarnings=todayDelivered.reduce((s,o)=>{
-    if(o.payMethod==="cash"&&o.paid)return s+(o.cashCollected||o.total||0);
-    return s+(o.total||0);
-  },0);
   var pendingCount=myDeliveries.filter(o=>o.status==="ready").length;
   var enRouteCount=myDeliveries.filter(o=>o.status==="out_for_delivery").length;
 
