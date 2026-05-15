@@ -8596,7 +8596,10 @@ function StaffBookingsV({branch,push}){
 function DriverV({orders,setOrders,push,user,branch}){
   var [codeInput,setCodeInput]=useState({});
   var [collectInput,setCollectInput]=useState({});
-  var driverName=user?.name||"Driver";
+  
+  // Use active staff name (PIN login) if available, otherwise user name
+  var activeStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+  var driverName=activeStaff?.full_name||user?.name||"Driver";
 
   // Active deliveries: ready or out for delivery, type=delivery
   var myDeliveries=orders.filter(o=>{
@@ -14935,9 +14938,34 @@ export default function App(){
     setMenu(ms=>ms.map(m=>{var f=o.items.find(i=>i.id===m.id);if(!f)return m;var ns=Math.max(0,m.stock-f.qty);if(ns===0)push({title:"Out of stock!",body:m.name,color:"#dc2626"});else if(ns<=5)push({title:"Low stock",body:m.name+" - "+ns+" left",color:"#d97706"});return{...m,stock:ns};}));
     if(o.discCode)setDiscs(ds=>ds.map(d=>d.code===o.discCode?{...d,uses:d.uses+1}:d));
   };
-  useEffect(()=>{if(user?.role==="kitchen")setView("kitchen");else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");},[user]);
+  useEffect(()=>{
+    if(user?.role==="kitchen")setView("kitchen");
+    else if(user?.role==="driver")setView("driver");
+    else if(user?.role==="owner"||user?.role==="manager"||user?.role==="waiter")setView("pos");
+  },[user]);
+  
+  // ALSO check active staff (PIN login) for role-based redirect
+  useEffect(()=>{
+    var activeStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+    if(activeStaff?.position==="driver")setView("driver");
+    else if(activeStaff?.position==="kitchen")setView("kitchen");
+  },[]);
+  
   var isStaff=user&&user.role!=="customer";
-  var allTabs=isStaff?["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"]:["menu","track","book","reviews","account","chat"];
+  
+  // Check if logged in user OR active PIN staff is a driver
+  var activeStaffData=(typeof window!=="undefined")?dbGetActiveStaff():null;
+  var isDriver=user?.role==="driver"||activeStaffData?.position==="driver";
+  
+  // DRIVERS only see driver tab + account
+  var allTabs;
+  if(isDriver){
+    allTabs=["driver","account"];
+  }else if(isStaff){
+    allTabs=["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"];
+  }else{
+    allTabs=["menu","track","book","reviews","account","chat"];
+  }
   
   // FILTER nav based on restaurant service types
   var tabs=allTabs.filter(t=>{
