@@ -4227,3 +4227,65 @@ export async function rejectManualPayment(purchaseId, reason) {
   return { error };
 }
 
+
+// === DRIVER LOGIN - Login from anywhere (drivers can be at any restaurant) ===
+export async function loginDriverByEmail(email, password) {
+  // Find staff member by email + password where position = driver
+  // Note: PIN serves as password for now
+  const { data, error } = await supabase
+    .from('staff_members')
+    .select('*, restaurants(*)')
+    .eq('email', email.toLowerCase().trim())
+    .eq('pin', password) // Using PIN as password
+    .eq('position', 'driver')
+    .eq('status', 'active')
+    .maybeSingle();
+  
+  if (error || !data) {
+    return { error: { message: 'Invalid email or PIN. Make sure your account is set up.' } };
+  }
+  
+  return { data };
+}
+
+export async function loginDriverByPin(pin) {
+  // Find driver by PIN
+  const { data, error } = await supabase
+    .from('staff_members')
+    .select('*, restaurants(*)')
+    .eq('pin', pin)
+    .eq('position', 'driver')
+    .eq('status', 'active')
+    .maybeSingle();
+  
+  if (error || !data) {
+    return { error: { message: 'Invalid PIN' } };
+  }
+  
+  return { data };
+}
+
+// Save current driver session
+export function saveCurrentDriver(driver) {
+  try {
+    localStorage.setItem('latavola_current_driver', JSON.stringify(driver));
+    if (driver?.restaurants) {
+      setCurrentRestaurantId(driver.restaurants.id);
+    }
+  } catch (e) {}
+}
+
+export function getCurrentDriver() {
+  try {
+    const raw = localStorage.getItem('latavola_current_driver');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+export function logoutDriver() {
+  try {
+    localStorage.removeItem('latavola_current_driver');
+  } catch (e) {}
+}
+

@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -12335,6 +12335,162 @@ function RepFormModal({rep,onClose,onSave}){
 // =================================================================
 // SALES REP LOGIN SCREEN
 // =================================================================
+// =================================================================
+// DRIVER LOGIN SCREEN - Email/Password OR PIN
+// =================================================================
+function DriverLoginScreen({onLogin}){
+  var [mode,setMode]=useState("email"); // 'email' or 'pin'
+  var [email,setEmail]=useState("");
+  var [password,setPassword]=useState("");
+  var [pin,setPin]=useState("");
+  var [loading,setLoading]=useState(false);
+  var [error,setError]=useState("");
+  
+  var doEmailLogin=async()=>{
+    if(!email||!password){setError("Email and PIN required");return;}
+    setLoading(true);
+    setError("");
+    var result=await dbDriverEmail(email,password);
+    setLoading(false);
+    if(result.error){
+      setError(result.error.message);
+      return;
+    }
+    dbSaveDriver(result.data);
+    onLogin(result.data);
+  };
+  
+  var doPinLogin=async()=>{
+    if(!pin||pin.length<4){setError("Enter your 4+ digit PIN");return;}
+    setLoading(true);
+    setError("");
+    var result=await dbDriverPin(pin);
+    setLoading(false);
+    if(result.error){
+      setError(result.error.message);
+      return;
+    }
+    dbSaveDriver(result.data);
+    onLogin(result.data);
+  };
+  
+  return <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0c4a6e,#0e7490,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",padding:18,fontFamily:"-apple-system,sans-serif"}}>
+    <div style={{maxWidth:420,width:"100%",background:"#fff",borderRadius:18,padding:32,boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+      <div style={{textAlign:"center",marginBottom:22}}>
+        <div style={{fontSize:54,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDEF5)}</div>
+        <h2 style={{fontSize:24,fontWeight:700,color:"#1a1208",fontFamily:"Georgia,serif",marginBottom:5}}>Driver Portal</h2>
+        <p style={{color:"#8a8078",fontSize:12}}>Sign in to start your deliveries</p>
+      </div>
+      
+      {/* Mode Tabs */}
+      <div style={{display:"flex",gap:5,marginBottom:18,padding:5,background:"#f7f3ee",borderRadius:9}}>
+        <button onClick={()=>{setMode("email");setError("");}} style={{flex:1,padding:"9px",background:mode==="email"?"#fff":"transparent",color:mode==="email"?"#1a1208":"#8a8078",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:mode==="email"?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{String.fromCharCode(0xD83D,0xDCE7)} Email Login</button>
+        <button onClick={()=>{setMode("pin");setError("");}} style={{flex:1,padding:"9px",background:mode==="pin"?"#fff":"transparent",color:mode==="pin"?"#1a1208":"#8a8078",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer",boxShadow:mode==="pin"?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{String.fromCharCode(0xD83D,0xDD12)} Quick PIN</button>
+      </div>
+      
+      {mode==="email"?<>
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>EMAIL ADDRESS</p>
+        <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="rumu@example.com" autoFocus style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:11,boxSizing:"border-box"}}/>
+        
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PIN (PASSWORD)</p>
+        <input value={password} onChange={e=>setPassword(e.target.value)} onKeyPress={e=>e.key==="Enter"&&doEmailLogin()} type="password" inputMode="numeric" pattern="[0-9]*" placeholder="****" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:14,boxSizing:"border-box",letterSpacing:4}}/>
+      </>:<>
+        <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>YOUR 4-DIGIT PIN</p>
+        <input value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} onKeyPress={e=>e.key==="Enter"&&doPinLogin()} type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="****" autoFocus style={{width:"100%",padding:"18px",border:"2px solid #ede8de",borderRadius:7,fontSize:28,marginBottom:14,boxSizing:"border-box",letterSpacing:11,textAlign:"center",fontWeight:700}}/>
+        <p style={{fontSize:11,color:"#8a8078",textAlign:"center",marginTop:-7,marginBottom:14}}>{String.fromCharCode(0xD83D,0xDCA1)} Ask your manager for your PIN</p>
+      </>}
+      
+      {error&&<div style={{background:"#fee2e2",color:"#991b1b",padding:11,borderRadius:7,marginBottom:11,fontSize:12,textAlign:"center",fontWeight:600}}>{error}</div>}
+      
+      <button onClick={mode==="email"?doEmailLogin:doPinLogin} disabled={loading} style={{width:"100%",padding:"15px",background:loading?"#9ca3af":"linear-gradient(135deg,#0891b2,#0e7490)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:loading?"not-allowed":"pointer"}}>{loading?"Signing in...":String.fromCharCode(0xD83D,0xDEF5)+" Sign In"}</button>
+      
+      <button onClick={()=>{window.location.href="/";}} style={{width:"100%",marginTop:11,padding:"11px",background:"transparent",color:"#8a8078",border:"none",cursor:"pointer",fontSize:11}}>{String.fromCharCode(0x2190)} Back to Main Site</button>
+    </div>
+  </div>;
+}
+
+// =================================================================
+// DRIVER STANDALONE VIEW - just DriverV with logout, no other tabs
+// =================================================================
+function DriverStandaloneView({driver, onLogout}){
+  var [orders,setOrders]=useState([]);
+  var [push,setPush]=useState(null);
+  var [toasts,setToasts]=useState([]);
+  
+  var pushNotif=(t)=>{
+    var id=Date.now();
+    setToasts(ts=>[...ts,{...t,id}]);
+    setTimeout(()=>setToasts(ts=>ts.filter(x=>x.id!==id)),4000);
+  };
+  
+  // Set restaurant context  
+  useEffect(()=>{
+    if(driver?.restaurants){
+      try{window.__currentRestaurant=driver.restaurants;}catch(e){}
+    }
+  },[driver]);
+  
+  // Fetch orders periodically
+  useEffect(()=>{
+    if(!driver?.restaurants?.id)return;
+    
+    var fetchOrders=async()=>{
+      try{
+        var data=await dbFetchOrders();
+        setOrders(data||[]);
+      }catch(e){console.error("Fetch orders error:",e);}
+    };
+    
+    fetchOrders();
+    var interval=setInterval(fetchOrders,15000); // refresh every 15s
+    return()=>clearInterval(interval);
+  },[driver]);
+  
+  // Setup user object for DriverV
+  var user={
+    id:driver.id,
+    name:driver.full_name,
+    email:driver.email,
+    role:"driver",
+  };
+  
+  var branch={
+    id:driver.branch_id||"main",
+    name:driver.restaurants?.name||"Restaurant",
+  };
+  
+  return <div style={{minHeight:"100vh",background:"#f7f3ee",fontFamily:"-apple-system,sans-serif"}}>
+    {/* Driver Header Bar */}
+    <div style={{background:"linear-gradient(135deg,#0c4a6e,#0e7490)",color:"#fff",padding:"11px 18px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 8px rgba(0,0,0,.15)"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
+        <div style={{display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700}}>
+            {(driver.full_name||"D").charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p style={{fontSize:13,fontWeight:700}}>{driver.full_name}</p>
+            <p style={{fontSize:10,opacity:.85}}>{String.fromCharCode(0xD83D,0xDEF5)} {driver.restaurants?.name||"Restaurant"}</p>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{padding:"7px 14px",background:"rgba(220,38,38,.3)",color:"#fee2e2",border:"1px solid rgba(220,38,38,.5)",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700}}>{String.fromCharCode(0x21AA,0xFE0F)} Logout</button>
+      </div>
+    </div>
+    
+    {/* Toasts */}
+    <div style={{position:"fixed",top:80,right:18,zIndex:9999,display:"flex",flexDirection:"column",gap:7,maxWidth:300}}>
+      {toasts.map(t=><div key={t.id} style={{padding:"11px 14px",background:t.color||"#1a1208",color:"#fff",borderRadius:9,fontSize:12,boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
+        <p style={{fontWeight:700,marginBottom:3}}>{t.title}</p>
+        {t.body&&<p style={{fontSize:11,opacity:.9}}>{t.body}</p>}
+      </div>)}
+    </div>
+    
+    {/* Main Driver View */}
+    <div style={{padding:"18px",maxWidth:768,margin:"0 auto"}}>
+      <DriverV orders={orders} setOrders={setOrders} push={pushNotif} user={user} branch={branch}/>
+    </div>
+  </div>;
+}
+
 function SalesRepLogin({onLogin}){
   var [email,setEmail]=useState("");
   var [password,setPassword]=useState("");
@@ -14228,6 +14384,15 @@ export default function App(){
     }catch(e){return false;}
   });
   var [currentRep,setCurrentRep]=useState(()=>dbGetRep());
+  
+  // DRIVER PORTAL routing
+  var [showDriverPortal,setShowDriverPortal]=useState(()=>{
+    try{
+      var p=new URLSearchParams(window.location.search);
+      return p.get("driver")==="1"||window.location.pathname==="/driver";
+    }catch(e){return false;}
+  });
+  var [currentDriver,setCurrentDriver]=useState(()=>dbGetDriver());
   var [isAdmin,setIsAdmin]=useState(false);
   var [impersonating,setImpersonating]=useState(()=>dbIsImpersonating());
   
@@ -15026,6 +15191,20 @@ export default function App(){
     // Rep is logged in - show dashboard
     return <><style>{CSS}</style>
       <SalesRepDashboard rep={currentRep} onLogout={()=>{dbLogoutRep();setCurrentRep(null);setShowRepPortal(false);window.history.replaceState({},"","/");}}/>
+    </>;
+  }
+  
+  // DRIVER PORTAL
+  if(showDriverPortal){
+    if(!currentDriver){
+      // Show driver login
+      return <><style>{CSS}</style>
+        <DriverLoginScreen onLogin={d=>{setCurrentDriver(d);}}/>
+      </>;
+    }
+    // Driver is logged in - show standalone driver view (no other tabs)
+    return <><style>{CSS}</style>
+      <DriverStandaloneView driver={currentDriver} onLogout={()=>{dbLogoutDriver();setCurrentDriver(null);setShowDriverPortal(false);window.history.replaceState({},"","/");}}/>
     </>;
   }
   
