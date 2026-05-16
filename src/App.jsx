@@ -12414,7 +12414,6 @@ function DriverLoginScreen({onLogin}){
 // =================================================================
 function DriverStandaloneView({driver, onLogout}){
   var [orders,setOrders]=useState([]);
-  var [push,setPush]=useState(null);
   var [toasts,setToasts]=useState([]);
   
   var pushNotif=(t)=>{
@@ -12434,15 +12433,15 @@ function DriverStandaloneView({driver, onLogout}){
   useEffect(()=>{
     if(!driver?.restaurants?.id)return;
     
-    var fetchOrders=async()=>{
+    var loadOrders=async()=>{
       try{
-        var data=await dbFetchOrders();
+        var data=await fetchOrders();
         setOrders(data||[]);
       }catch(e){console.error("Fetch orders error:",e);}
     };
     
-    fetchOrders();
-    var interval=setInterval(fetchOrders,15000); // refresh every 15s
+    loadOrders();
+    var interval=setInterval(loadOrders,15000); // refresh every 15s
     return()=>clearInterval(interval);
   },[driver]);
   
