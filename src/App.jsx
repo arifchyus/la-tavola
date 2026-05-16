@@ -12346,6 +12346,13 @@ function DriverLoginScreen({onLogin}){
   var [loading,setLoading]=useState(false);
   var [error,setError]=useState("");
   
+  // Check URL for restaurant slug (e.g. ?driver=1&r=latavola)
+  var restaurantSlug=null;
+  try{
+    var p=new URLSearchParams(window.location.search);
+    restaurantSlug=p.get("r")||null;
+  }catch(e){}
+  
   var doEmailLogin=async()=>{
     if(!email||!password){setError("Email and PIN required");return;}
     setLoading(true);
@@ -12364,10 +12371,14 @@ function DriverLoginScreen({onLogin}){
     if(!pin||pin.length<4){setError("Enter your 4+ digit PIN");return;}
     setLoading(true);
     setError("");
-    var result=await dbDriverPin(pin);
+    var result=await dbDriverPin(pin,restaurantSlug);
     setLoading(false);
     if(result.error){
       setError(result.error.message);
+      // If PIN is ambiguous, suggest email login
+      if(result.error.multiple){
+        setMode("email");
+      }
       return;
     }
     dbSaveDriver(result.data);
@@ -12394,10 +12405,15 @@ function DriverLoginScreen({onLogin}){
         
         <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>PIN (PASSWORD)</p>
         <input value={password} onChange={e=>setPassword(e.target.value)} onKeyPress={e=>e.key==="Enter"&&doEmailLogin()} type="password" inputMode="numeric" pattern="[0-9]*" placeholder="****" style={{width:"100%",padding:"13px",border:"2px solid #ede8de",borderRadius:7,fontSize:14,marginBottom:14,boxSizing:"border-box",letterSpacing:4}}/>
+        <p style={{fontSize:11,color:"#0891b2",marginTop:-7,marginBottom:14,textAlign:"center"}}>{String.fromCharCode(0x2705)} Recommended - works for all restaurants</p>
       </>:<>
         <p style={{fontSize:11,color:"#8a8078",fontWeight:700,letterSpacing:1,marginBottom:5}}>YOUR 4-DIGIT PIN</p>
         <input value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,""))} onKeyPress={e=>e.key==="Enter"&&doPinLogin()} type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="****" autoFocus style={{width:"100%",padding:"18px",border:"2px solid #ede8de",borderRadius:7,fontSize:28,marginBottom:14,boxSizing:"border-box",letterSpacing:11,textAlign:"center",fontWeight:700}}/>
-        <p style={{fontSize:11,color:"#8a8078",textAlign:"center",marginTop:-7,marginBottom:14}}>{String.fromCharCode(0xD83D,0xDCA1)} Ask your manager for your PIN</p>
+        {restaurantSlug?
+          <p style={{fontSize:11,color:"#059669",textAlign:"center",marginTop:-7,marginBottom:14,fontWeight:600}}>{String.fromCharCode(0x2705)} Restaurant: {restaurantSlug}</p>
+          :
+          <p style={{fontSize:11,color:"#d97706",textAlign:"center",marginTop:-7,marginBottom:14}}>{String.fromCharCode(0x26A0,0xFE0F)} If PIN doesn't work, use Email Login</p>
+        }
       </>}
       
       {error&&<div style={{background:"#fee2e2",color:"#991b1b",padding:11,borderRadius:7,marginBottom:11,fontSize:12,textAlign:"center",fontWeight:600}}>{error}</div>}

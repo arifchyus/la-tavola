@@ -4251,25 +4251,46 @@ export async function loginDriverByEmail(email, password) {
   return { data };
 }
 
-export async function loginDriverByPin(pin) {
-  // Find driver by PIN in employees table
-  const { data, error } = await supabase
+export async function loginDriverByPin(pin, restaurantSlug) {
+  // PIN alone is NOT unique across restaurants!
+  // Must also know which restaurant.
+  let query = supabase
     .from('employees')
     .select('*, restaurants(*)')
     .eq('pin', pin)
     .eq('position', 'driver')
-    .eq('status', 'active')
-    .maybeSingle();
+    .eq('status', 'active');
+  
+  const { data, error } = await query;
   
   if (error) {
     console.error('loginDriverByPin error:', error);
     return { error: { message: 'Login error: ' + error.message } };
   }
-  if (!data) {
+  
+  if (!data || data.length === 0) {
     return { error: { message: 'Invalid PIN. Ask your manager for your PIN.' } };
   }
   
-  return { data };
+  // If restaurant slug provided, filter by it
+  if (restaurantSlug) {
+    const match = data.find(d => d.restaurants?.slug === restaurantSlug);
+    if (match) return { data: match };
+    return { error: { message: 'PIN not found for this restaurant.' } };
+  }
+  
+  // Multiple drivers with same PIN at different restaurants - ambiguous!
+  if (data.length > 1) {
+    return { 
+      error: { 
+        message: 'This PIN is used at multiple restaurants. Please use Email Login instead.',
+        multiple: true,
+      } 
+    };
+  }
+  
+  // Exactly one match - safe to login
+  return { data: data[0] };
 }
 
 // Save current driver session
