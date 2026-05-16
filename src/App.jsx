@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -12429,8 +12429,16 @@ function DriverLoginScreen({onLogin}){
 // DRIVER STANDALONE VIEW - just DriverV with logout, no other tabs
 // =================================================================
 function DriverStandaloneView({driver, onLogout}){
-  var [orders,setOrders]=useState([]);
+  var [available,setAvailable]=useState([]);
+  var [mine,setMine]=useState([]);
+  var [completed,setCompleted]=useState([]);
   var [toasts,setToasts]=useState([]);
+  var [loading,setLoading]=useState(true);
+  var [codeInput,setCodeInput]=useState({});
+  var [collectInput,setCollectInput]=useState({});
+  var [soundOn,setSoundOn]=useState(true);
+  var prevAvailCount=useRef(0);
+  var [showCompleted,setShowCompleted]=useState(false);
   
   var pushNotif=(t)=>{
     var id=Date.now();
@@ -12438,70 +12446,273 @@ function DriverStandaloneView({driver, onLogout}){
     setTimeout(()=>setToasts(ts=>ts.filter(x=>x.id!==id)),4000);
   };
   
-  // Set restaurant context  
+  // Play notification sound
+  var playDing=()=>{
+    if(!soundOn)return;
+    try{
+      var ctx=new(window.AudioContext||window.webkitAudioContext)();
+      var osc=ctx.createOscillator();
+      var gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=880;
+      gain.gain.setValueAtTime(0.3,ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+      osc.start();osc.stop(ctx.currentTime+0.5);
+    }catch(e){}
+  };
+  
   useEffect(()=>{
     if(driver?.restaurants){
       try{window.__currentRestaurant=driver.restaurants;}catch(e){}
     }
   },[driver]);
   
-  // Fetch orders periodically
-  useEffect(()=>{
-    if(!driver?.restaurants?.id)return;
-    
-    var loadOrders=async()=>{
-      try{
-        var data=await fetchOrders();
-        setOrders(data||[]);
-      }catch(e){console.error("Fetch orders error:",e);}
-    };
-    
-    loadOrders();
-    var interval=setInterval(loadOrders,15000); // refresh every 15s
-    return()=>clearInterval(interval);
-  },[driver]);
-  
-  // Setup user object for DriverV
-  var user={
-    id:driver.id,
-    name:driver.full_name,
-    email:driver.email,
-    role:"driver",
+  // Load orders periodically
+  var loadOrders=async()=>{
+    if(!driver?.id)return;
+    try{
+      var result=await dbFetchDriverOrders(driver.id);
+      // Detect new available orders for sound alert
+      if(result.available.length>prevAvailCount.current&&prevAvailCount.current>=0&&!loading){
+        playDing();
+        pushNotif({title:String.fromCharCode(0xD83D,0xDD14)+" New order ready!",body:"An order is available for delivery",color:"#0891b2"});
+      }
+      prevAvailCount.current=result.available.length;
+      setAvailable(result.available||[]);
+      setMine(result.mine||[]);
+      setCompleted(result.completed||[]);
+      setLoading(false);
+    }catch(e){console.error("Load orders error:",e);setLoading(false);}
   };
   
-  var branch={
-    id:driver.branch_id||"main",
-    name:driver.restaurants?.name||"Restaurant",
+  useEffect(()=>{
+    loadOrders();
+    var interval=setInterval(loadOrders,10000); // refresh every 10s
+    return()=>clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[driver]);
+  
+  var fmt=(n)=>"\u00A3"+parseFloat(n||0).toFixed(2);
+  
+  // Claim an order
+  var claim=async(order)=>{
+    var result=await dbClaimOrder(order.id,driver.id,driver.full_name);
+    if(result.error){
+      pushNotif({title:"Couldn't claim",body:result.error.message,color:"#dc2626"});
+      loadOrders(); // refresh to show current state
+      return;
+    }
+    pushNotif({title:String.fromCharCode(0x2705)+" Order claimed!",body:"Added to your deliveries",color:"#059669"});
+    loadOrders();
+  };
+  
+  // Release an order
+  var release=async(order)=>{
+    if(!window.confirm("Release this order back to the pool? Another driver can take it."))return;
+    var result=await dbUnclaimOrder(order.id,driver.id);
+    if(result.error){
+      pushNotif({title:"Couldn't release",body:result.error.message,color:"#dc2626"});
+      return;
+    }
+    pushNotif({title:"Order released",body:"Back in available pool",color:"#d97706"});
+    loadOrders();
+  };
+  
+  // Start delivery (picked up)
+  var pickup=async(order)=>{
+    var result=await dbStartDelivery(order.id,driver.id);
+    if(result.error){
+      pushNotif({title:"Error",body:result.error.message,color:"#dc2626"});
+      return;
+    }
+    pushNotif({title:String.fromCharCode(0xD83D,0xDEF5)+" On your way!",body:"Drive safely",color:"#0891b2"});
+    loadOrders();
+  };
+  
+  // Verify delivery code
+  var verifyCode=async(order)=>{
+    var entered=(codeInput[order.id]||"").trim();
+    var expected=String(order.delivery_code||order.deliveryCode||"");
+    if(!expected){
+      // No code set - just mark delivered
+      await markDelivered(order);
+      return;
+    }
+    if(entered!==expected){
+      pushNotif({title:"Wrong code",body:"Ask customer for correct code",color:"#dc2626"});
+      return;
+    }
+    await markDelivered(order);
+  };
+  
+  // Mark delivered
+  var markDelivered=async(order)=>{
+    try{
+      await dbUpdateOrderStatus(order.id,"delivered");
+      // If paid online, fully done. If COD, needs cash collection
+      if(order.pay_method!=="cod"||order.paid){
+        pushNotif({title:String.fromCharCode(0x2705)+" Delivered!",body:"Great job",color:"#059669"});
+      }else{
+        pushNotif({title:"Delivered - collect cash",body:fmt(order.total),color:"#d97706"});
+      }
+      loadOrders();
+    }catch(e){
+      pushNotif({title:"Error",body:"Could not mark delivered",color:"#dc2626"});
+    }
+  };
+  
+  // Collect cash
+  var collectCash=async(order)=>{
+    try{
+      await dbUpdateOrderPayment(order.id,true,"cash");
+      pushNotif({title:String.fromCharCode(0xD83D,0xDCB0)+" Cash collected!",body:fmt(order.total),color:"#059669"});
+      loadOrders();
+    }catch(e){
+      pushNotif({title:"Error",body:"Could not record payment",color:"#dc2626"});
+    }
+  };
+  
+  // Cash in hand calculation
+  var cashOwed=completed.reduce((s,o)=>{
+    if(o.pay_method==="cod"&&o.paid)return s+parseFloat(o.total||0);
+    return s;
+  },0);
+  
+  // Render an order card
+  var renderOrderCard=(o,section)=>{
+    var addr=o.address||{};
+    var addrLine=[addr.line1,addr.city,addr.postcode].filter(Boolean).join(", ")||o.delivery_address||"No address";
+    var needsCash=o.status==="delivered"&&o.pay_method==="cod"&&!o.paid;
+    var customerName=o.customer_name||o.customer||"Customer";
+    
+    return <div key={o.id} style={{background:"#fff",borderRadius:11,padding:14,marginBottom:9,boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"5px solid "+(section==="available"?"#0891b2":section==="completed"?"#10b981":needsCash?"#f59e0b":o.status==="out_for_delivery"?"#2563eb":"#bf4626")}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7,gap:7}}>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{fontWeight:700,fontSize:15}}>{customerName}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>{o.order_number||o.id} {String.fromCharCode(0x2022)} {fmt(o.total)} {String.fromCharCode(0x2022)} {o.pay_method==="cod"?String.fromCharCode(0xD83D,0xDCB5)+" CASH":o.paid?String.fromCharCode(0x2705)+" PAID":String.fromCharCode(0x26A0,0xFE0F)+" UNPAID"}</p>
+          <p style={{fontSize:13,marginTop:5,fontWeight:600}}>{String.fromCharCode(0xD83D,0xDCCD)} {addrLine}</p>
+          {addr.notes&&<p style={{fontSize:11,color:"#8a8078",fontStyle:"italic",marginTop:2}}>Note: {addr.notes}</p>}
+        </div>
+      </div>
+      
+      {/* Items */}
+      <div style={{background:"#fafaf5",borderRadius:7,padding:"7px 10px",marginBottom:9,fontSize:11}}>
+        {(o.items||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><span>{it.name} x{it.qty}</span><span>{fmt((+it.price||0)*it.qty)}</span></div>)}
+      </div>
+      
+      {/* AVAILABLE - Claim button */}
+      {section==="available"&&<button onClick={()=>claim(o)} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0891b2,#0e7490)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:"pointer"}}>{String.fromCharCode(0x270B)} Claim This Order</button>}
+      
+      {/* MINE - Action buttons */}
+      {section==="mine"&&<>
+        {/* Call / Navigate / SMS */}
+        <div style={{display:"flex",gap:6,marginBottom:9}}>
+          {o.phone&&<a href={"tel:"+o.phone} style={{flex:1,padding:"10px",background:"#2563eb",color:"#fff",borderRadius:8,fontWeight:700,fontSize:12,textAlign:"center",textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDCDE)} Call</a>}
+          {addrLine!=="No address"&&<a href={"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(addrLine)} target="_blank" rel="noopener noreferrer" style={{flex:1,padding:"10px",background:"#059669",color:"#fff",borderRadius:8,fontWeight:700,fontSize:12,textAlign:"center",textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDDFA,0xFE0F)} Navigate</a>}
+          {o.phone&&<a href={"sms:"+o.phone+"?body="+encodeURIComponent("Hi! Your order from "+(driver.restaurants?.name||"the restaurant")+" is on the way!")} style={{padding:"10px 13px",background:"#7c3aed",color:"#fff",borderRadius:8,fontWeight:700,fontSize:12,textAlign:"center",textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDCAC)}</a>}
+        </div>
+        
+        {o.status==="ready"&&<div style={{display:"flex",gap:6}}>
+          <button onClick={()=>release(o)} style={{padding:"12px 14px",background:"#fff",color:"#dc2626",border:"2px solid #fecaca",borderRadius:9,fontWeight:700,fontSize:12,cursor:"pointer"}}>Release</button>
+          <button onClick={()=>pickup(o)} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDEF5)} Pick Up - Start Delivery</button>
+        </div>}
+        
+        {o.status==="out_for_delivery"&&<div style={{padding:"11px",background:"#fff7ed",borderRadius:9,border:"2px dashed #f59e0b"}}>
+          <p style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDCCD)} At customer's door? Enter delivery code</p>
+          <div style={{display:"flex",gap:6}}>
+            <input value={codeInput[o.id]||""} onChange={e=>setCodeInput(c=>({...c,[o.id]:e.target.value.replace(/\D/g,"").slice(0,4)}))} placeholder="0000" maxLength={4} style={{flex:1,padding:"12px",fontSize:22,fontWeight:700,textAlign:"center",letterSpacing:7,border:"2px solid #f59e0b",borderRadius:8}}/>
+            <button onClick={()=>verifyCode(o)} style={{padding:"12px 15px",background:"#059669",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>{String.fromCharCode(0x2713)} Done</button>
+          </div>
+        </div>}
+        
+        {needsCash&&<div style={{padding:"11px",background:"#fef3c7",borderRadius:9,border:"2px solid #f59e0b"}}>
+          <p style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDCB5)} COLLECT {fmt(o.total)} CASH</p>
+          <button onClick={()=>collectCash(o)} style={{width:"100%",padding:"12px",background:"#059669",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>{String.fromCharCode(0x2713)} Confirm Cash Collected</button>
+        </div>}
+      </>}
+      
+      {/* COMPLETED - just show status */}
+      {section==="completed"&&<p style={{fontSize:11,color:"#059669",fontWeight:700,textAlign:"center"}}>{String.fromCharCode(0x2705)} Delivered {o.delivered_at?new Date(o.delivered_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</p>}
+    </div>;
   };
   
   return <div style={{minHeight:"100vh",background:"#f7f3ee",fontFamily:"-apple-system,sans-serif"}}>
-    {/* Driver Header Bar */}
+    {/* Header */}
     <div style={{background:"linear-gradient(135deg,#0c4a6e,#0e7490)",color:"#fff",padding:"11px 18px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 8px rgba(0,0,0,.15)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:9}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:9}}>
         <div style={{display:"flex",alignItems:"center",gap:9}}>
-          <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700}}>
-            {(driver.full_name||"D").charAt(0).toUpperCase()}
-          </div>
+          <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700}}>{(driver.full_name||"D").charAt(0).toUpperCase()}</div>
           <div>
             <p style={{fontSize:13,fontWeight:700}}>{driver.full_name}</p>
             <p style={{fontSize:10,opacity:.85}}>{String.fromCharCode(0xD83D,0xDEF5)} {driver.restaurants?.name||"Restaurant"}</p>
           </div>
         </div>
-        <button onClick={onLogout} style={{padding:"7px 14px",background:"rgba(220,38,38,.3)",color:"#fee2e2",border:"1px solid rgba(220,38,38,.5)",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700}}>{String.fromCharCode(0x21AA,0xFE0F)} Logout</button>
+        <div style={{display:"flex",gap:5}}>
+          <button onClick={()=>setSoundOn(s=>!s)} title="Toggle sound" style={{padding:"7px 10px",background:soundOn?"rgba(255,255,255,.25)":"rgba(0,0,0,.2)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:14}}>{soundOn?String.fromCharCode(0xD83D,0xDD14):String.fromCharCode(0xD83D,0xDD15)}</button>
+          <button onClick={onLogout} style={{padding:"7px 12px",background:"rgba(220,38,38,.3)",color:"#fee2e2",border:"1px solid rgba(220,38,38,.5)",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:700}}>Logout</button>
+        </div>
       </div>
     </div>
     
     {/* Toasts */}
-    <div style={{position:"fixed",top:80,right:18,zIndex:9999,display:"flex",flexDirection:"column",gap:7,maxWidth:300}}>
-      {toasts.map(t=><div key={t.id} style={{padding:"11px 14px",background:t.color||"#1a1208",color:"#fff",borderRadius:9,fontSize:12,boxShadow:"0 4px 12px rgba(0,0,0,.2)"}}>
-        <p style={{fontWeight:700,marginBottom:3}}>{t.title}</p>
-        {t.body&&<p style={{fontSize:11,opacity:.9}}>{t.body}</p>}
+    <div style={{position:"fixed",top:70,right:14,zIndex:9999,display:"flex",flexDirection:"column",gap:7,maxWidth:280}}>
+      {toasts.map(t=><div key={t.id} style={{padding:"11px 14px",background:t.color||"#1a1208",color:"#fff",borderRadius:9,fontSize:12,boxShadow:"0 4px 12px rgba(0,0,0,.25)"}}>
+        <p style={{fontWeight:700}}>{t.title}</p>
+        {t.body&&<p style={{fontSize:11,opacity:.9,marginTop:2}}>{t.body}</p>}
       </div>)}
     </div>
     
-    {/* Main Driver View */}
-    <div style={{padding:"18px",maxWidth:768,margin:"0 auto"}}>
-      <DriverV orders={orders} setOrders={setOrders} push={pushNotif} user={user} branch={branch}/>
+    <div style={{padding:"14px",maxWidth:600,margin:"0 auto"}}>
+      {loading?<div style={{padding:40,textAlign:"center",color:"#8a8078"}}>Loading deliveries...</div>:<>
+      
+      {/* Stats Row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,marginBottom:14}}>
+        <div style={{padding:"9px",background:"linear-gradient(135deg,#cffafe,#a5f3fc)",borderRadius:9,textAlign:"center",border:"2px solid #0891b2"}}>
+          <p style={{fontSize:20,fontWeight:700,color:"#0e7490"}}>{available.length}</p>
+          <p style={{fontSize:9,color:"#0e7490",fontWeight:700}}>AVAILABLE</p>
+        </div>
+        <div style={{padding:"9px",background:"linear-gradient(135deg,#fed7aa,#fdba74)",borderRadius:9,textAlign:"center",border:"2px solid #ea580c"}}>
+          <p style={{fontSize:20,fontWeight:700,color:"#c2410c"}}>{mine.length}</p>
+          <p style={{fontSize:9,color:"#c2410c",fontWeight:700}}>MY DELIVERIES</p>
+        </div>
+        <div style={{padding:"9px",background:cashOwed>0?"linear-gradient(135deg,#fee2e2,#fecaca)":"linear-gradient(135deg,#d1fae5,#a7f3d0)",borderRadius:9,textAlign:"center",border:"2px solid "+(cashOwed>0?"#dc2626":"#10b981")}}>
+          <p style={{fontSize:16,fontWeight:700,color:cashOwed>0?"#991b1b":"#065f46"}}>{fmt(cashOwed)}</p>
+          <p style={{fontSize:9,color:cashOwed>0?"#991b1b":"#065f46",fontWeight:700}}>CASH IN HAND</p>
+        </div>
+      </div>
+      
+      {/* AVAILABLE ORDERS */}
+      <div style={{marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
+          <h3 style={{fontSize:15,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDD14)} Available Orders</h3>
+          {available.length>0&&<span style={{padding:"2px 9px",background:"#0891b2",color:"#fff",borderRadius:11,fontSize:11,fontWeight:700}}>{available.length}</span>}
+        </div>
+        {available.length===0?<div style={{padding:22,textAlign:"center",background:"#fff",borderRadius:11,color:"#8a8078",fontSize:12}}>No orders waiting. New orders will appear here when ready.</div>:
+          available.map(o=>renderOrderCard(o,"available"))}
+      </div>
+      
+      {/* MY DELIVERIES */}
+      <div style={{marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
+          <h3 style={{fontSize:15,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDEF5)} My Deliveries</h3>
+          {mine.length>0&&<span style={{padding:"2px 9px",background:"#ea580c",color:"#fff",borderRadius:11,fontSize:11,fontWeight:700}}>{mine.length}</span>}
+        </div>
+        {mine.length===0?<div style={{padding:22,textAlign:"center",background:"#fff",borderRadius:11,color:"#8a8078",fontSize:12}}>Claim an order above to start delivering</div>:
+          mine.map(o=>renderOrderCard(o,"mine"))}
+      </div>
+      
+      {/* COMPLETED TODAY */}
+      <div>
+        <button onClick={()=>setShowCompleted(s=>!s)} style={{width:"100%",padding:"11px",background:"#fff",border:"1px solid #ede8de",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>{String.fromCharCode(0x2705)} Completed Today ({completed.length})</span>
+          <span>{showCompleted?String.fromCharCode(0x25B2):String.fromCharCode(0x25BC)}</span>
+        </button>
+        {showCompleted&&<div style={{marginTop:9}}>
+          {completed.length===0?<p style={{padding:14,textAlign:"center",color:"#8a8078",fontSize:12}}>No completed deliveries yet today</p>:
+            completed.map(o=>renderOrderCard(o,"completed"))}
+        </div>}
+      </div>
+      </>}
     </div>
   </div>;
 }

@@ -4317,3 +4317,110 @@ export function logoutDriver() {
   } catch (e) {}
 }
 
+
+// ===========================================================
+// DRIVER CLAIM SYSTEM - Multiple drivers claim orders
+// ===========================================================
+
+// Fetch orders for driver view: available (unclaimed) + my claimed orders
+export async function fetchDriverOrders(driverId) {
+  const restaurantId = _rid();
+  
+  // Get all delivery orders that are ready or being delivered
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .eq('type', 'delivery')
+    .in('status', ['ready', 'out_for_delivery', 'delivered'])
+    .order('created_at', { ascending: false })
+    .limit(100);
+  
+  if (error) {
+    console.error('fetchDriverOrders:', error);
+    return { available: [], mine: [], completed: [] };
+  }
+  
+  const orders = data || [];
+  
+  // Categorize
+  const available = orders.filter(o => 
+    o.status === 'ready' && !o.assigned_driver_id
+  );
+  
+  const mine = orders.filter(o => 
+    o.assigned_driver_id === driverId && 
+    (o.status === 'ready' || o.status === 'out_for_delivery' || 
+     (o.status === 'delivered' && o.pay_method === 'cod' && !o.paid))
+  );
+  
+  const completed = orders.filter(o => 
+    o.assigned_driver_id === driverId && 
+    o.status === 'delivered' && 
+    (o.paid || o.pay_method !== 'cod')
+  );
+  
+  return { available, mine, completed };
+}
+
+// Driver claims an order - PROTECTED against double-claim
+export async function claimOrder(orderId, driverId, driverName) {
+  // Only claim if NOT already assigned (prevents two drivers claiming same)
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      assigned_driver_id: driverId,
+      assigned_driver_name: driverName,
+      claimed_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+    .is('assigned_driver_id', null)  // CRITICAL: only if unclaimed
+    .select();
+  
+  if (error) {
+    console.error('claimOrder:', error);
+    return { error: { message: 'Failed to claim order' } };
+  }
+  
+  // If no rows updated, someone else claimed it first
+  if (!data || data.length === 0) {
+    return { error: { message: 'This order was just claimed by another driver' } };
+  }
+  
+  return { data: data[0] };
+}
+
+// Driver releases an order back to the pool
+export async function unclaimOrder(orderId, driverId) {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({
+      assigned_driver_id: null,
+      assigned_driver_name: null,
+      claimed_at: null,
+    })
+    .eq('id', orderId)
+    .eq('assigned_driver_id', driverId)  // Only unclaim own orders
+    .eq('status', 'ready')  // Can only release if not yet out for delivery
+    .select();
+  
+  if (error) return { error };
+  if (!data || data.length === 0) {
+    return { error: { message: 'Cannot release this order' } };
+  }
+  return { data: data[0] };
+}
+
+// Mark order as out for delivery (driver picked it up)
+export async function startDelivery(orderId, driverId) {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status: 'out_for_delivery' })
+    .eq('id', orderId)
+    .eq('assigned_driver_id', driverId)
+    .select();
+  
+  if (error) return { error };
+  return { data: data?.[0] };
+}
+
