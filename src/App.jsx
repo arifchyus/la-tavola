@@ -442,9 +442,9 @@ var ORDERS0=[
   {id:"ORD-1002",branchId:"b1",userId:"u2",customer:"John Smith",items:[{id:5,name:"Beef Burger",qty:1,price:14.99},{id:12,name:"Soft Drink",qty:2,price:2.99}],total:20.97,status:"ready",time:"12:50",type:"takeaway",paid:true,slot:null},
   {id:"ORD-1003",branchId:"b2",userId:"u1",customer:"Table 7",items:[{id:6,name:"Grilled Salmon",qty:1,price:18.99}],total:18.99,status:"pending",time:"13:02",type:"collection",paid:false,slot:"13:30"},
 ];
-var SL={pending:"Pending",preparing:"Preparing",ready:"Ready",delivered:"Delivered",collected:"Collected",cancelled:"Cancelled"};
-var SC={pending:"#d97706",preparing:"#2563eb",ready:"#059669",delivered:"#6b7280",collected:"#7c3aed",cancelled:"#dc2626"};
-var SB={pending:"#fef3c7",preparing:"#eff6ff",ready:"#d1fae5",delivered:"#f3f4f6",collected:"#f5f3ff",cancelled:"#fee2e2"};
+var SL={pending:"Pending",preparing:"Preparing",ready:"Ready",out_for_delivery:"Out for Delivery",delivered:"Delivered",collected:"Collected",cancelled:"Cancelled"};
+var SC={pending:"#d97706",preparing:"#2563eb",ready:"#059669",out_for_delivery:"#0891b2",delivered:"#6b7280",collected:"#7c3aed",cancelled:"#dc2626"};
+var SB={pending:"#fef3c7",preparing:"#eff6ff",ready:"#d1fae5",out_for_delivery:"#cffafe",delivered:"#f3f4f6",collected:"#f5f3ff",cancelled:"#fee2e2"};
 var TIERS=[{name:"Bronze",min:0,color:"#b45309",bg:"#fef3c7"},{name:"Silver",min:200,color:"#6b7280",bg:"#f3f4f6"},{name:"Gold",min:500,color:"#d4952a",bg:"#fffbeb"},{name:"Platinum",min:1000,color:"#7c3aed",bg:"#f5f3ff"}];
 var getTier=pts=>[...TIERS].reverse().find(t=>pts>=t.min)||TIERS[0];
 var getSlots=()=>{var s=[],now=new Date(),st=new Date(now);st.setMinutes(Math.ceil(st.getMinutes()/15)*15+15,0,0);for(var i=0;i<10;i++){var t=new Date(st.getTime()+i*15*60000);s.push(("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2));}return s;};
@@ -5671,7 +5671,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     });
   },[]);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),rev=fil.filter(o=>o.status!=="cancelled"&&o.status!=="refunded").reduce((s,o)=>s+parseFloat(o.total||0),0);
-  var allSt=["pending","preparing","ready","delivered","collected","cancelled"];
+  var allSt=["pending","preparing","ready","out_for_delivery","delivered","collected","cancelled"];
   var upSt=(id,st)=>{
     setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
     push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});
@@ -6071,6 +6071,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
               <option value="pending">Pending</option>
               <option value="preparing">Preparing</option>
               <option value="ready">Ready</option>
+              <option value="out_for_delivery">Out for Delivery</option>
               <option value="delivered">Delivered</option>
               <option value="collected">Collected</option>
               <option value="cancelled">Cancelled</option>
@@ -6151,6 +6152,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
                   {" - "+(o.type||"")}
                   {o.takenBy?" - by "+o.takenBy:""}
                 </p>
+                {o.assignedDriverName&&<p style={{fontSize:10,color:"#0891b2",fontWeight:700,marginTop:2}}>{String.fromCharCode(0xD83D,0xDEF5)} Driver: {o.assignedDriverName}</p>}
               </div>
               <div style={{textAlign:"right"}}>
                 <p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p>
@@ -8869,6 +8871,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
+            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,
             created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
@@ -15086,6 +15089,7 @@ export default function App(){
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
+            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,
             created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
