@@ -4230,36 +4230,43 @@ export async function rejectManualPayment(purchaseId, reason) {
 
 // === DRIVER LOGIN - Login from anywhere (drivers can be at any restaurant) ===
 export async function loginDriverByEmail(email, password) {
-  // Find staff member by email + password where position = driver
-  // Note: PIN serves as password for now
+  // Find driver by email + PIN. Table is 'employees', PIN serves as password.
   const { data, error } = await supabase
-    .from('staff_members')
+    .from('employees')
     .select('*, restaurants(*)')
     .eq('email', email.toLowerCase().trim())
-    .eq('pin', password) // Using PIN as password
+    .eq('pin', password)
     .eq('position', 'driver')
     .eq('status', 'active')
     .maybeSingle();
   
-  if (error || !data) {
-    return { error: { message: 'Invalid email or PIN. Make sure your account is set up.' } };
+  if (error) {
+    console.error('loginDriverByEmail error:', error);
+    return { error: { message: 'Login error: ' + error.message } };
+  }
+  if (!data) {
+    return { error: { message: 'Invalid email or PIN. Check your details or ask your manager.' } };
   }
   
   return { data };
 }
 
 export async function loginDriverByPin(pin) {
-  // Find driver by PIN
+  // Find driver by PIN in employees table
   const { data, error } = await supabase
-    .from('staff_members')
+    .from('employees')
     .select('*, restaurants(*)')
     .eq('pin', pin)
     .eq('position', 'driver')
     .eq('status', 'active')
     .maybeSingle();
   
-  if (error || !data) {
-    return { error: { message: 'Invalid PIN' } };
+  if (error) {
+    console.error('loginDriverByPin error:', error);
+    return { error: { message: 'Login error: ' + error.message } };
+  }
+  if (!data) {
+    return { error: { message: 'Invalid PIN. Ask your manager for your PIN.' } };
   }
   
   return { data };
