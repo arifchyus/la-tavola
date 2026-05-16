@@ -122,18 +122,20 @@ export async function fetchOrders() {
 }
 
 export async function updateOrderStatus(orderId, newStatus) {
-  // Try by order_number first, then by id
+  // Try by id (UUID) first
   let result = await supabase
     .from('orders')
     .update({ status: newStatus })
-    .eq('order_number', orderId);
+    .eq('id', orderId)
+    .select();
   
-  // If no rows affected, try by UUID id
-  if (result.error || (result.count !== null && result.count === 0)) {
+  // If no rows matched, try by order_number
+  if (!result.data || result.data.length === 0) {
     result = await supabase
       .from('orders')
       .update({ status: newStatus })
-      .eq('id', orderId);
+      .eq('order_number', orderId)
+      .select();
   }
   
   if (result.error) console.error('updateOrderStatus error:', result.error);
@@ -141,11 +143,24 @@ export async function updateOrderStatus(orderId, newStatus) {
 }
 
 export async function updateOrderPayment(orderId, paid, payMethod) {
-  const { error } = await supabase
+  // Try by id (UUID) first
+  let result = await supabase
     .from('orders')
     .update({ paid: paid, pay_method: payMethod })
-    .eq('order_number', orderId);
-  if (error) console.error('updateOrderPayment error:', error);
+    .eq('id', orderId)
+    .select();
+  
+  // If no rows matched, try by order_number
+  if (!result.data || result.data.length === 0) {
+    result = await supabase
+      .from('orders')
+      .update({ paid: paid, pay_method: payMethod })
+      .eq('order_number', orderId)
+      .select();
+  }
+  
+  if (result.error) console.error('updateOrderPayment error:', result.error);
+  return result;
 }
 
 // ---- CUSTOMER HELPERS -------------------------------------------------------
@@ -4422,5 +4437,69 @@ export async function startDelivery(orderId, driverId) {
   
   if (error) return { error };
   return { data: data?.[0] };
+}
+
+
+// === DRIVER: Record cash collection with driver attribution ===
+export async function recordDriverCashCollection(orderId, amount, driverId, driverName) {
+  // Update order: mark paid, record cash amount + which driver collected
+  let result = await supabase
+    .from('orders')
+    .update({
+      paid: true,
+      pay_method: 'cash',
+      cash_collected: amount,
+      delivered_by: driverName,
+      assigned_driver_id: driverId,
+      assigned_driver_name: driverName,
+    })
+    .eq('id', orderId)
+    .select();
+  
+  if (!result.data || result.data.length === 0) {
+    result = await supabase
+      .from('orders')
+      .update({
+        paid: true,
+        pay_method: 'cash',
+        cash_collected: amount,
+        delivered_by: driverName,
+        assigned_driver_id: driverId,
+        assigned_driver_name: driverName,
+      })
+      .eq('order_number', orderId)
+      .select();
+  }
+  
+  if (result.error) console.error('recordDriverCashCollection error:', result.error);
+  return result;
+}
+
+// === DRIVER: Mark order delivered with driver attribution ===
+export async function markOrderDelivered(orderId, driverId, driverName) {
+  let result = await supabase
+    .from('orders')
+    .update({
+      status: 'delivered',
+      delivered_at: new Date().toISOString(),
+      delivered_by: driverName,
+    })
+    .eq('id', orderId)
+    .select();
+  
+  if (!result.data || result.data.length === 0) {
+    result = await supabase
+      .from('orders')
+      .update({
+        status: 'delivered',
+        delivered_at: new Date().toISOString(),
+        delivered_by: driverName,
+      })
+      .eq('order_number', orderId)
+      .select();
+  }
+  
+  if (result.error) console.error('markOrderDelivered error:', result.error);
+  return result;
 }
 
