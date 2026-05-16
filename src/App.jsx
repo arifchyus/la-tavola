@@ -12435,7 +12435,6 @@ function DriverStandaloneView({driver, onLogout}){
   var [toasts,setToasts]=useState([]);
   var [loading,setLoading]=useState(true);
   var [codeInput,setCodeInput]=useState({});
-  var [collectInput,setCollectInput]=useState({});
   var [soundOn,setSoundOn]=useState(true);
   var prevAvailCount=useRef(0);
   var [showCompleted,setShowCompleted]=useState(false);
