@@ -6152,7 +6152,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
                   {" - "+(o.type||"")}
                   {o.takenBy?" - by "+o.takenBy:""}
                 </p>
-                {o.assignedDriverName&&<p style={{fontSize:10,color:"#0891b2",fontWeight:700,marginTop:2}}>{String.fromCharCode(0xD83D,0xDEF5)} Driver: {o.assignedDriverName}</p>}
+                {o.assignedDriverName&&<p style={{fontSize:10,color:o.status==="out_for_delivery"?"#2563eb":"#0891b2",fontWeight:700,marginTop:2}}>{o.status==="out_for_delivery"?String.fromCharCode(0xD83D,0xDEF5)+" "+o.assignedDriverName+" - on the way":String.fromCharCode(0x270B)+" Claimed by "+o.assignedDriverName}</p>}
               </div>
               <div style={{textAlign:"right"}}>
                 <p style={{fontWeight:700,color:"#bf4626",fontSize:13}}>{fmt(o.total)}</p>
@@ -8692,6 +8692,18 @@ function DriverV({orders,setOrders,push,user,branch}){
       var needsCashStep=o.status==="delivered"&&isCOD;
       var fullyDone=o.status==="delivered"&&!isCOD;
       return <div key={o.id} className="card" style={{marginBottom:11,padding:14,borderLeft:"5px solid "+(fullyDone?"#10b981":needsCashStep?"#f59e0b":o.status==="out_for_delivery"?"#2563eb":"#bf4626")}}>
+        {/* CLAIM STATUS BANNER - shows who has this order */}
+        {o.assignedDriverName?
+          <div style={{margin:"-14px -14px 11px -14px",padding:"7px 14px",background:o.status==="out_for_delivery"?"linear-gradient(135deg,#2563eb,#1d4ed8)":"linear-gradient(135deg,#0891b2,#0e7490)",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:14}}>{o.status==="out_for_delivery"?String.fromCharCode(0xD83D,0xDEF5):String.fromCharCode(0x270B)}</span>
+            <span>{o.status==="out_for_delivery"?o.assignedDriverName+" is delivering this now":o.assignedDriverName+" claimed this order"}</span>
+          </div>
+          :
+          (o.status==="ready"&&<div style={{margin:"-14px -14px 11px -14px",padding:"7px 14px",background:"linear-gradient(135deg,#d97706,#b45309)",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:14}}>{String.fromCharCode(0x23F3)}</span>
+            <span>Waiting for a driver to claim</span>
+          </div>)
+        }
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
           <div style={{flex:1,minWidth:0}}>
             <p style={{fontWeight:700,fontSize:16,marginBottom:3}}>{o.customer||"Guest"}</p>
@@ -8722,7 +8734,11 @@ function DriverV({orders,setOrders,push,user,branch}){
           <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid #ede8de",marginTop:5,paddingTop:5,fontWeight:700}}><span>Total</span><span>{fmt(o.total)}</span></div>
         </div>
 
-        {o.status==="ready"&&<button className="btn btn-r" onClick={()=>pickup(o)} style={{width:"100%",padding:"14px",fontSize:14,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDEF5)} Pick Up Order - Start Delivery</button>}
+        {o.status==="ready"&&!o.assignedDriverName&&<button className="btn btn-r" onClick={()=>pickup(o)} style={{width:"100%",padding:"14px",fontSize:14,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDEF5)} Pick Up Order - Start Delivery</button>}
+        
+        {o.status==="ready"&&o.assignedDriverName&&<div style={{padding:"11px",background:"#ecfeff",borderRadius:9,textAlign:"center",border:"1px solid #0891b2"}}>
+          <p style={{fontSize:12,color:"#0e7490",fontWeight:700}}>{String.fromCharCode(0x270B)} {o.assignedDriverName} claimed this - waiting for pickup</p>
+        </div>}
 
         {o.status==="out_for_delivery"&&<div style={{padding:"12px",background:"#fff7ed",borderRadius:9,border:"2px dashed #f59e0b"}}>
           <p style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:7,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDCCD)} At customer's door? Ask for delivery code</p>
