@@ -4271,6 +4271,18 @@ function ActiveStaffBanner({activeStaff, onSwitchUser, onLogout}){
   
   var posColor = {manager:"#7c3aed",waiter:"#0891b2",chef:"#d97706",driver:"#059669",kitchen:"#dc2626",bar:"#ec4899",cleaner:"#6b7280"}[activeStaff.position] || "#1a1208";
   
+  // Build a readable list of what this staff CAN do
+  var p=activeStaff.permissions||{};
+  var allowed=[];
+  if(p.take_orders!==false)allowed.push("Orders");
+  if(p.view_reports===true)allowed.push("Reports");
+  if(p.view_finance===true)allowed.push("Finance");
+  if(p.manage_menu===true)allowed.push("Menu");
+  if(p.manage_staff===true)allowed.push("Staff");
+  if(p.manage_settings===true)allowed.push("Settings");
+  if(p.process_refunds===true)allowed.push("Refunds");
+  var accessText=allowed.length>0?allowed.join(", "):"No access set";
+  
   return <div style={{background:posColor,color:"#fff",padding:"7px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,fontWeight:700,flexWrap:"wrap",gap:7}}>
     <div style={{display:"flex",alignItems:"center",gap:9}}>
       <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>
@@ -4278,7 +4290,7 @@ function ActiveStaffBanner({activeStaff, onSwitchUser, onLogout}){
       </div>
       <div>
         <p>{activeStaff.full_name}</p>
-        <p style={{fontSize:10,opacity:.85,textTransform:"capitalize"}}>{activeStaff.position}</p>
+        <p style={{fontSize:10,opacity:.85}}><span style={{textTransform:"capitalize"}}>{activeStaff.position}</span> {String.fromCharCode(0x2022)} Access: {accessText}</p>
       </div>
     </div>
     <div style={{display:"flex",gap:5}}>
@@ -15715,8 +15727,8 @@ export default function App(){
     
     // STAFF PERMISSION FILTERING (when a staff member is PIN-logged-in)
     // No active staff = restaurant owner = full access
-    if(activeStaffData){
-      var perms=activeStaffData.permissions||{};
+    if(activeStaff){
+      var perms=activeStaff.permissions||{};
       // "account" and "chat" always allowed
       if(t==="account"||t==="chat")return true;
       // POS / phone / tables / bookings / incoming = need take_orders
