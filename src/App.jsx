@@ -13170,11 +13170,11 @@ function DriverStandaloneView({driver, onLogout}){
         pushNotif({title:"Error",body:"Could not mark delivered: "+result.error.message,color:"#dc2626"});
         return;
       }
-      // If paid online, fully done. If COD, needs cash collection
-      if(order.pay_method!=="cod"||order.paid){
+      // If already paid (online) - fully done. If NOT paid - needs cash collection
+      if(order.paid){
         pushNotif({title:String.fromCharCode(0x2705)+" Delivered!",body:"Great job",color:"#059669"});
       }else{
-        pushNotif({title:"Delivered - now collect cash",body:fmt(order.total),color:"#d97706"});
+        pushNotif({title:String.fromCharCode(0xD83D,0xDCB5)+" Now collect cash",body:fmt(order.total)+" - tap Confirm Cash",color:"#d97706"});
       }
       loadOrders();
     }catch(e){
@@ -13198,9 +13198,10 @@ function DriverStandaloneView({driver, onLogout}){
     }
   };
   
-  // Cash in hand calculation
+  // Cash in hand calculation - cash collected from completed COD orders
   var cashOwed=completed.reduce((s,o)=>{
-    if(o.pay_method==="cod"&&o.paid)return s+parseFloat(o.total||0);
+    // Order is paid + was cash (collected by driver) = driver holds this cash
+    if(o.paid&&(o.pay_method==="cash"||o.pay_method==="cod"))return s+parseFloat(o.cash_collected||o.total||0);
     return s;
   },0);
   
@@ -13248,7 +13249,7 @@ function DriverStandaloneView({driver, onLogout}){
   var renderOrderCard=(o,section)=>{
     var addr=o.address||{};
     var addrLine=[addr.line1,addr.city,addr.postcode].filter(Boolean).join(", ")||o.delivery_address||"No address";
-    var needsCash=o.status==="delivered"&&o.pay_method==="cod"&&!o.paid;
+    var needsCash=o.status==="delivered"&&!o.paid;
     var customerName=o.customer_name||o.customer||"Customer";
     
     return <div key={o.id} style={{background:"#fff",borderRadius:11,padding:14,marginBottom:9,boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"5px solid "+(section==="available"?"#0891b2":section==="completed"?"#10b981":needsCash?"#f59e0b":o.status==="out_for_delivery"?"#2563eb":"#bf4626")}}>

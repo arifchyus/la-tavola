@@ -4398,6 +4398,10 @@ export async function fetchDriverOrders(driverId) {
   
   const orders = data || [];
   
+  // An order needs cash collection if it's delivered but still NOT paid
+  // (regardless of whether pay_method is 'cod', 'cash', or null)
+  const needsCash = (o) => o.status === 'delivered' && !o.paid;
+  
   // Categorize
   const available = orders.filter(o => 
     o.status === 'ready' && !o.assigned_driver_id
@@ -4405,14 +4409,14 @@ export async function fetchDriverOrders(driverId) {
   
   const mine = orders.filter(o => 
     o.assigned_driver_id === driverId && 
-    (o.status === 'ready' || o.status === 'out_for_delivery' || 
-     (o.status === 'delivered' && o.pay_method === 'cod' && !o.paid))
+    (o.status === 'ready' || o.status === 'out_for_delivery' || needsCash(o))
   );
   
+  // Completed = delivered AND paid (cash collected, or was paid online)
   const completed = orders.filter(o => 
     o.assigned_driver_id === driverId && 
     o.status === 'delivered' && 
-    (o.paid || o.pay_method !== 'cod')
+    o.paid
   );
   
   return { available, mine, completed };
