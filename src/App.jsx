@@ -6539,7 +6539,6 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{cq?"No matching customers":"No customers yet"}</p>
             <p style={{fontSize:12,color:"#8a8078"}}>{cq?"Try a different name or phone number":"Customers appear here automatically as orders come in"}</p>
           </div>
-          </div>
           :
           <div style={{display:"grid",gap:9}}>
             {custList.map(function(c,i){
