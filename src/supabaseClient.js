@@ -4503,3 +4503,184 @@ export async function markOrderDelivered(orderId, driverId, driverName) {
   return result;
 }
 
+
+// ===========================================================
+// CASH HANDOVER SYSTEM - Two-step driver -> manager
+// ===========================================================
+
+// DRIVER: Get cash that needs handover (delivered COD orders, paid, not yet in a handover)
+export async function getDriverCashToHandover(driverId) {
+  const restaurantId = _rid();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .eq('type', 'delivery')
+    .eq('status', 'delivered')
+    .eq('pay_method', 'cash')
+    .eq('paid', true)
+    .is('handover_id', null)
+    .eq('assigned_driver_id', driverId);
+  
+  if (error) {
+    console.error('getDriverCashToHandover:', error);
+    return { orders: [], total: 0 };
+  }
+  
+  const orders = data || [];
+  const total = orders.reduce((s, o) => s + parseFloat(o.cash_collected || o.total || 0), 0);
+  return { orders, total };
+}
+
+// DRIVER: Initiate a handover
+export async function initiateHandover(driverId, driverName, amount, orderIds) {
+  const restaurantId = _rid();
+  
+  // Create handover record
+  const { data: handover, error } = await supabase
+    .from('cash_handovers')
+    .insert({
+      restaurant_id: restaurantId,
+      driver_id: driverId,
+      driver_name: driverName,
+      driver_declared_amount: amount,
+      order_ids: orderIds,
+      order_count: orderIds.length,
+      status: 'pending',
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('initiateHandover:', error);
+    return { error };
+  }
+  
+  // Link orders to this handover
+  if (orderIds.length > 0) {
+    await supabase
+      .from('orders')
+      .update({ handover_id: handover.id })
+      .in('id', orderIds);
+  }
+  
+  return { data: handover };
+}
+
+// DRIVER: Check if there's a pending handover
+export async function getDriverPendingHandover(driverId) {
+  const { data, error } = await supabase
+    .from('cash_handovers')
+    .select('*')
+    .eq('driver_id', driverId)
+    .eq('status', 'pending')
+    .order('initiated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('getDriverPendingHandover:', error);
+    return null;
+  }
+  return data;
+}
+
+// DRIVER: Cancel a pending handover (before manager confirms)
+export async function cancelHandover(handoverId, driverId) {
+  // Unlink orders
+  await supabase
+    .from('orders')
+    .update({ handover_id: null })
+    .eq('handover_id', handoverId);
+  
+  // Mark cancelled
+  const { error } = await supabase
+    .from('cash_handovers')
+    .update({ status: 'cancelled' })
+    .eq('id', handoverId)
+    .eq('driver_id', driverId)
+    .eq('status', 'pending');
+  
+  return { error };
+}
+
+// DRIVER/MANAGER: Get handover history
+export async function getHandoverHistory(filters) {
+  let query = supabase
+    .from('cash_handovers')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('initiated_at', { ascending: false })
+    .limit(50);
+  
+  if (filters?.driverId) {
+    query = query.eq('driver_id', filters.driverId);
+  }
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+  
+  const { data, error } = await query;
+  if (error) {
+    console.error('getHandoverHistory:', error);
+    return [];
+  }
+  return data || [];
+}
+
+// MANAGER: Get all pending handovers (drivers waiting for confirmation)
+export async function getPendingHandovers() {
+  const { data, error } = await supabase
+    .from('cash_handovers')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .eq('status', 'pending')
+    .order('initiated_at', { ascending: false });
+  
+  if (error) {
+    console.error('getPendingHandovers:', error);
+    return [];
+  }
+  return data || [];
+}
+
+// MANAGER: Confirm a handover with actual counted amount
+export async function confirmHandover(handoverId, managerId, managerName, confirmedAmount, note) {
+  // Get the handover to calculate discrepancy
+  const { data: handover } = await supabase
+    .from('cash_handovers')
+    .select('driver_declared_amount')
+    .eq('id', handoverId)
+    .single();
+  
+  if (!handover) {
+    return { error: { message: 'Handover not found' } };
+  }
+  
+  const declared = parseFloat(handover.driver_declared_amount || 0);
+  const confirmed = parseFloat(confirmedAmount || 0);
+  const discrepancy = confirmed - declared;
+  
+  const { data, error } = await supabase
+    .from('cash_handovers')
+    .update({
+      manager_confirmed_amount: confirmed,
+      discrepancy: discrepancy,
+      manager_id: managerId || null,
+      manager_name: managerName,
+      status: 'confirmed',
+      confirmed_at: new Date().toISOString(),
+      note: note || null,
+    })
+    .eq('id', handoverId)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('confirmHandover:', error);
+    return { error };
+  }
+  
+  return { data };
+}
+

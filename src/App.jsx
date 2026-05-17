@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -5625,10 +5625,21 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [menuFilterStation,setMenuFilterStation]=useState("all");
   var [menuFilterStatus,setMenuFilterStatus]=useState("all");
   var [handoverAmount,setHandoverAmount]=useState("");
+  var [pendingHandoversList,setPendingHandoversList]=useState([]);
+  var [confirmAmounts,setConfirmAmounts]=useState({});
+  var [newHandoverHistory,setNewHandoverHistory]=useState([]);
 
   // Load cash handover history on mount + when admin tab opened
   useEffect(()=>{
     dbFetchHandovers().then(list=>setCashHandovers(list||[]));
+    // Load new two-step handover system data
+    var loadNewHandovers=()=>{
+      dbGetPendingHandovers().then(list=>setPendingHandoversList(list||[]));
+      dbHandoverHistory({}).then(list=>setNewHandoverHistory(list||[]));
+    };
+    loadNewHandovers();
+    var hi=setInterval(loadNewHandovers,15000);
+    return()=>clearInterval(hi);
   },[]);
   var [delivSettings,setDelivSettings]=useState({});
   var [promoCodes,setPromoCodes]=useState([]);
@@ -6580,6 +6591,44 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           </div>
         </div>
 
+        {/* NEW: PENDING HANDOVERS - drivers waiting for confirmation */}
+        {pendingHandoversList.length>0&&<div style={{marginBottom:18}}>
+          <h4 style={{fontSize:13,fontWeight:700,marginBottom:8,color:"#92400e",letterSpacing:1}}>{String.fromCharCode(0xD83D,0xDD14)} PENDING HANDOVERS - DRIVERS WAITING</h4>
+          {pendingHandoversList.map(h=>{
+            var confirmVal=confirmAmounts[h.id]!==undefined?confirmAmounts[h.id]:h.driver_declared_amount;
+            var doConfirm=async()=>{
+              var amt=parseFloat(confirmVal);
+              if(isNaN(amt)||amt<0){window.showAlert("Invalid amount","Enter the cash amount you counted","warning");return;}
+              var diff=amt-parseFloat(h.driver_declared_amount);
+              var result=await dbConfirmHandover(h.id,user?.id,user?.name||"Manager",amt,diff!==0?(diff<0?"Short":"Over")+" by "+fmt(Math.abs(diff)):"");
+              if(result.error){push({title:"Error",body:"Could not confirm",color:"#dc2626"});return;}
+              push({title:String.fromCharCode(0x2705)+" Handover confirmed",body:"From "+h.driver_name+": "+fmt(amt),color:"#059669"});
+              dbGetPendingHandovers().then(list=>setPendingHandoversList(list||[]));
+              dbHandoverHistory({}).then(list=>setNewHandoverHistory(list||[]));
+            };
+            return <div key={h.id} className="card" style={{padding:14,marginBottom:9,borderLeft:"4px solid #f59e0b"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9,flexWrap:"wrap",gap:6}}>
+                <div>
+                  <p style={{fontWeight:700,fontSize:15}}>{String.fromCharCode(0xD83D,0xDEF5)} {h.driver_name}</p>
+                  <p style={{fontSize:11,color:"#8a8078"}}>{h.order_count} orders {String.fromCharCode(0x2022)} Started {new Date(h.initiated_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</p>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <p style={{fontSize:10,color:"#8a8078"}}>Driver says</p>
+                  <p style={{fontSize:22,fontWeight:700,color:"#92400e"}}>{fmt(h.driver_declared_amount)}</p>
+                </div>
+              </div>
+              <div style={{padding:"11px 13px",background:"#fffbeb",borderRadius:8,border:"2px solid #fde68a"}}>
+                <p style={{fontSize:11,fontWeight:700,color:"#92400e",marginBottom:7}}>{String.fromCharCode(0xD83D,0xDCB5)} Count the cash, then enter the amount you received:</p>
+                <div style={{display:"flex",gap:6}}>
+                  <input type="number" step="0.01" value={confirmVal} onChange={e=>setConfirmAmounts(c=>({...c,[h.id]:e.target.value}))} style={{flex:1,padding:"11px",fontSize:16,fontWeight:700,textAlign:"center",border:"2px solid #f59e0b",borderRadius:7}}/>
+                  <button onClick={doConfirm} style={{padding:"11px 16px",background:"#059669",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontWeight:700,fontSize:13}}>{EM.check} Confirm Received</button>
+                </div>
+                {parseFloat(confirmVal)!==parseFloat(h.driver_declared_amount)&&<p style={{fontSize:11,fontWeight:700,marginTop:6,color:parseFloat(confirmVal)<parseFloat(h.driver_declared_amount)?"#dc2626":"#d97706"}}>{parseFloat(confirmVal)<parseFloat(h.driver_declared_amount)?String.fromCharCode(0x26A0,0xFE0F)+" Short":String.fromCharCode(0x2B06,0xFE0F)+" Over"} by {fmt(Math.abs(parseFloat(confirmVal||0)-parseFloat(h.driver_declared_amount)))}</p>}
+              </div>
+            </div>;
+          })}
+        </div>}
+
         <h4 style={{fontSize:13,fontWeight:700,marginBottom:8,color:"#8a8078",letterSpacing:1}}>DRIVERS WITH CASH OWED</h4>
         {driverList.length===0?<div className="card" style={{textAlign:"center",padding:24}}>
           <p style={{fontSize:30,marginBottom:6}}>{EM.check}</p>
@@ -6607,6 +6656,29 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             <p style={{fontSize:10,color:"#92400e",marginTop:5}}>Tip: leave blank to confirm exact expected amount</p>
           </div>
         </div>)}
+
+        {/* NEW: Two-step handover history with proof */}
+        {newHandoverHistory.length>0&&<div style={{marginTop:18}}>
+          <h4 style={{fontSize:13,fontWeight:700,marginBottom:8,color:"#8a8078",letterSpacing:1}}>{String.fromCharCode(0xD83D,0xDCCB)} HANDOVER RECORDS (PROOF)</h4>
+          <div style={{display:"grid",gap:6}}>
+            {newHandoverHistory.slice(0,20).map(h=>{
+              var disc=parseFloat(h.discrepancy||0);
+              return <div key={h.id} className="card" style={{padding:"10px 13px",fontSize:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+                  <div>
+                    <p style={{fontWeight:700}}>{String.fromCharCode(0xD83D,0xDEF5)} {h.driver_name} {h.manager_name?String.fromCharCode(0x2192)+" "+h.manager_name:""}</p>
+                    <p style={{fontSize:10,color:"#8a8078"}}>{new Date(h.initiated_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} {String.fromCharCode(0x2022)} {h.order_count} orders</p>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <p style={{fontWeight:700,fontSize:15}}>{fmt(h.manager_confirmed_amount||h.driver_declared_amount)}</p>
+                    <span style={{padding:"2px 8px",borderRadius:10,fontSize:9,fontWeight:700,background:h.status==="confirmed"?"#d1fae5":h.status==="pending"?"#fef3c7":"#fee2e2",color:h.status==="confirmed"?"#065f46":h.status==="pending"?"#92400e":"#991b1b"}}>{h.status==="confirmed"?"CONFIRMED":h.status==="pending"?"PENDING":"CANCELLED"}</span>
+                  </div>
+                </div>
+                {h.status==="confirmed"&&disc!==0&&<p style={{fontSize:10,fontWeight:700,marginTop:4,color:disc<0?"#dc2626":"#d97706"}}>{disc<0?"Driver short":"Driver over"} by {fmt(Math.abs(disc))} - declared {fmt(h.driver_declared_amount)}, received {fmt(h.manager_confirmed_amount)}</p>}
+              </div>;
+            })}
+          </div>
+        </div>}
 
         <h4 style={{fontSize:13,fontWeight:700,marginTop:18,marginBottom:8,color:"#8a8078",letterSpacing:1}}>RECENT HANDOVER HISTORY</h4>
         {cashHandovers.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No handovers recorded yet</p>:<div style={{display:"grid",gap:6}}>
@@ -12457,6 +12529,12 @@ function DriverStandaloneView({driver, onLogout}){
   var [soundOn,setSoundOn]=useState(true);
   var prevAvailCount=useRef(0);
   var [showCompleted,setShowCompleted]=useState(false);
+  // Cash handover state
+  var [cashToHandover,setCashToHandover]=useState({orders:[],total:0});
+  var [pendingHandover,setPendingHandover]=useState(null);
+  var [handoverHistory,setHandoverHistory]=useState([]);
+  var [showHandoverHistory,setShowHandoverHistory]=useState(false);
+  var [handoverBusy,setHandoverBusy]=useState(false);
   
   var pushNotif=(t)=>{
     var id=Date.now();
@@ -12509,7 +12587,24 @@ function DriverStandaloneView({driver, onLogout}){
       setMine(result.mine||[]);
       setCompleted(result.completed||[]);
       setLoading(false);
+      // Load handover data
+      loadHandoverData();
     }catch(e){console.error("Load orders error:",e);setLoading(false);}
+  };
+  
+  var loadHandoverData=async()=>{
+    if(!driver?.id)return;
+    try{
+      var pending=await dbPendingHandover(driver.id);
+      setPendingHandover(pending);
+      if(!pending){
+        // Only show cash-to-handover if no pending handover
+        var cash=await dbCashToHandover(driver.id);
+        setCashToHandover(cash);
+      }
+      var hist=await dbHandoverHistory({driverId:driver.id});
+      setHandoverHistory(hist||[]);
+    }catch(e){console.error("Load handover error:",e);}
   };
   
   useEffect(()=>{
@@ -12622,6 +12717,46 @@ function DriverStandaloneView({driver, onLogout}){
     if(o.pay_method==="cod"&&o.paid)return s+parseFloat(o.total||0);
     return s;
   },0);
+  
+  // HANDOVER: Driver initiates handover
+  var doInitiateHandover=async()=>{
+    if(cashToHandover.total<=0){
+      pushNotif({title:"No cash to hand over",body:"Collect cash from deliveries first",color:"#d97706"});
+      return;
+    }
+    var ok=await window.showConfirm(
+      "Hand Over Cash?",
+      "You are handing over "+fmt(cashToHandover.total)+" from "+cashToHandover.orders.length+" deliveries to your manager.\n\nThe manager will count and confirm the amount.",
+      "Yes, Hand Over","Cancel","info"
+    );
+    if(!ok)return;
+    setHandoverBusy(true);
+    var orderIds=cashToHandover.orders.map(o=>o.id);
+    var result=await dbInitiateHandover(driver.id,driver.full_name,cashToHandover.total,orderIds);
+    setHandoverBusy(false);
+    if(result.error){
+      pushNotif({title:"Error",body:"Could not start handover",color:"#dc2626"});
+      return;
+    }
+    pushNotif({title:String.fromCharCode(0x2705)+" Handover started",body:"Give cash to manager - they will confirm",color:"#059669"});
+    loadHandoverData();
+  };
+  
+  // HANDOVER: Driver cancels pending handover
+  var doCancelHandover=async()=>{
+    if(!pendingHandover)return;
+    var ok=await window.showConfirm(
+      "Cancel Handover?",
+      "This will cancel the pending handover. You can start a new one later.",
+      "Yes, Cancel It","Keep It","warning"
+    );
+    if(!ok)return;
+    setHandoverBusy(true);
+    await dbCancelHandover(pendingHandover.id,driver.id);
+    setHandoverBusy(false);
+    pushNotif({title:"Handover cancelled",body:"",color:"#d97706"});
+    loadHandoverData();
+  };
   
   // Render an order card
   var renderOrderCard=(o,section)=>{
@@ -12747,7 +12882,7 @@ function DriverStandaloneView({driver, onLogout}){
       </div>
       
       {/* COMPLETED TODAY */}
-      <div>
+      <div style={{marginBottom:18}}>
         <button onClick={()=>setShowCompleted(s=>!s)} style={{width:"100%",padding:"11px",background:"#fff",border:"1px solid #ede8de",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span>{String.fromCharCode(0x2705)} Completed Today ({completed.length})</span>
           <span>{showCompleted?String.fromCharCode(0x25B2):String.fromCharCode(0x25BC)}</span>
@@ -12755,6 +12890,66 @@ function DriverStandaloneView({driver, onLogout}){
         {showCompleted&&<div style={{marginTop:9}}>
           {completed.length===0?<p style={{padding:14,textAlign:"center",color:"#8a8078",fontSize:12}}>No completed deliveries yet today</p>:
             completed.map(o=>renderOrderCard(o,"completed"))}
+        </div>}
+      </div>
+      
+      {/* CASH HANDOVER SECTION */}
+      <div style={{marginBottom:18}}>
+        <h3 style={{fontSize:15,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDCB0)} Cash Handover</h3>
+        
+        {pendingHandover?
+          /* PENDING - waiting for manager */
+          <div style={{background:"#fff7ed",borderRadius:11,padding:16,border:"2px solid #f59e0b"}}>
+            <div style={{textAlign:"center",marginBottom:11}}>
+              <div style={{fontSize:36,marginBottom:5}}>{String.fromCharCode(0x23F3)}</div>
+              <p style={{fontSize:14,fontWeight:700,color:"#92400e"}}>Handover Pending</p>
+              <p style={{fontSize:24,fontWeight:700,color:"#92400e",margin:"6px 0"}}>{fmt(pendingHandover.driver_declared_amount)}</p>
+              <p style={{fontSize:11,color:"#92400e"}}>{pendingHandover.order_count} orders {String.fromCharCode(0x2022)} Started {new Date(pendingHandover.initiated_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</p>
+            </div>
+            <div style={{background:"#fff",borderRadius:8,padding:"9px 12px",marginBottom:11}}>
+              <p style={{fontSize:12,color:"#92400e",textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDC4B)} Give the cash to your manager. They will count it and confirm.</p>
+            </div>
+            <button onClick={doCancelHandover} disabled={handoverBusy} style={{width:"100%",padding:"10px",background:"#fff",color:"#dc2626",border:"2px solid #fecaca",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>Cancel This Handover</button>
+          </div>
+          :
+          /* NO PENDING - show cash to hand over */
+          (cashToHandover.total>0?
+            <div style={{background:"linear-gradient(135deg,#ecfdf5,#d1fae5)",borderRadius:11,padding:16,border:"2px solid #10b981"}}>
+              <div style={{textAlign:"center",marginBottom:11}}>
+                <p style={{fontSize:11,color:"#065f46",fontWeight:700,letterSpacing:1}}>CASH TO HAND OVER</p>
+                <p style={{fontSize:32,fontWeight:700,color:"#065f46",margin:"4px 0"}}>{fmt(cashToHandover.total)}</p>
+                <p style={{fontSize:11,color:"#047857"}}>From {cashToHandover.orders.length} cash deliveries</p>
+              </div>
+              <button onClick={doInitiateHandover} disabled={handoverBusy} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:14,cursor:handoverBusy?"wait":"pointer"}}>{String.fromCharCode(0xD83D,0xDCE4)} Hand Over {fmt(cashToHandover.total)} to Manager</button>
+            </div>
+            :
+            <div style={{background:"#fff",borderRadius:11,padding:22,textAlign:"center",border:"1px solid #ede8de"}}>
+              <div style={{fontSize:30,marginBottom:6}}>{String.fromCharCode(0x2705)}</div>
+              <p style={{fontSize:13,color:"#8a8078"}}>No cash to hand over right now</p>
+              <p style={{fontSize:11,color:"#8a8078",marginTop:3}}>Cash from deliveries will appear here</p>
+            </div>
+          )
+        }
+        
+        {/* Handover History */}
+        <button onClick={()=>setShowHandoverHistory(s=>!s)} style={{width:"100%",marginTop:9,padding:"11px",background:"#fff",border:"1px solid #ede8de",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>{String.fromCharCode(0xD83D,0xDCCB)} Handover History ({handoverHistory.length})</span>
+          <span>{showHandoverHistory?String.fromCharCode(0x25B2):String.fromCharCode(0x25BC)}</span>
+        </button>
+        {showHandoverHistory&&<div style={{marginTop:9,display:"flex",flexDirection:"column",gap:7}}>
+          {handoverHistory.length===0?<p style={{padding:14,textAlign:"center",color:"#8a8078",fontSize:12}}>No handovers yet</p>:
+            handoverHistory.map(h=>{
+              var disc=parseFloat(h.discrepancy||0);
+              return <div key={h.id} style={{background:"#fff",borderRadius:9,padding:"11px 13px",border:"1px solid #ede8de"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:13,fontWeight:700}}>{fmt(h.manager_confirmed_amount||h.driver_declared_amount)}</span>
+                  <span style={{padding:"2px 8px",borderRadius:10,fontSize:9,fontWeight:700,background:h.status==="confirmed"?"#d1fae5":h.status==="pending"?"#fef3c7":"#fee2e2",color:h.status==="confirmed"?"#065f46":h.status==="pending"?"#92400e":"#991b1b"}}>{h.status==="confirmed"?"CONFIRMED":h.status==="pending"?"PENDING":"CANCELLED"}</span>
+                </div>
+                <p style={{fontSize:10,color:"#8a8078"}}>{new Date(h.initiated_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} {String.fromCharCode(0x2022)} {h.order_count} orders</p>
+                {h.status==="confirmed"&&h.manager_name&&<p style={{fontSize:10,color:"#059669",marginTop:2}}>{String.fromCharCode(0x2705)} Received by {h.manager_name}</p>}
+                {h.status==="confirmed"&&disc!==0&&<p style={{fontSize:10,color:disc<0?"#dc2626":"#d97706",fontWeight:700,marginTop:2}}>{disc<0?"Short":"Over"} by {fmt(Math.abs(disc))} (you declared {fmt(h.driver_declared_amount)})</p>}
+              </div>;
+            })}
         </div>}
       </div>
       </>}
