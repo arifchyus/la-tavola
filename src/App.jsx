@@ -11297,6 +11297,29 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
     {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
   ];
+  
+  // STAFF PERMISSION FILTERING - hide dashboard tiles staff can't access
+  var dashStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+  if(dashStaff){
+    var dashPerms=dashStaff.permissions||{};
+    tiles=tiles.filter(function(tile){
+      var lbl=tile.label||"";
+      // Always allow: Open POS, Fullscreen, Exit/Logout
+      if(lbl==="Open POS"||lbl.indexOf("Fullscreen")>=0||lbl.indexOf("Exit")>=0)return true;
+      // Reports tile needs view_reports
+      if(lbl==="Reports")return dashPerms.view_reports===true;
+      // Admin tile needs a management permission
+      if(lbl==="Admin")return dashPerms.manage_menu===true||dashPerms.manage_staff===true||dashPerms.manage_settings===true||dashPerms.view_finance===true;
+      // Shift tiles need finance permission
+      if(lbl==="Open Shift"||lbl==="Close Shift")return dashPerms.view_finance===true;
+      // Order-taking tiles need take_orders
+      if(["Dine In","Walk-in Takeaway","Phone Order","Incoming","Kitchen","Tables","Driver","Bookings"].includes(lbl)){
+        return dashPerms.take_orders===true;
+      }
+      // Anything else hidden for staff
+      return false;
+    });
+  }
 
   return <div className="page" style={{padding:14,minHeight:"calc(100vh - 100px)",background:"linear-gradient(135deg,#fafaf5,#f0ede5)"}}>
     <style>{`@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}`}</style>
