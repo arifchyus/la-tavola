@@ -1659,6 +1659,10 @@ export function logoutSaaS() {
   try {
     localStorage.removeItem('latavola_saas_owner');
     localStorage.removeItem('latavola_saas_restaurant');
+    // Also clear staff/user session data so refresh doesn't restore a half-state
+    localStorage.removeItem('latavola_user');
+    localStorage.removeItem('latavola_active_staff');
+    localStorage.removeItem('latavola_current_driver');
   } catch (e) {}
 }
 

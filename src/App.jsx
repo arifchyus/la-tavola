@@ -14721,10 +14721,12 @@ function SaaSAuthScreen({onAuthSuccess}){
         {mode==="login"&&<div>
           <h2 style={{fontSize:22,fontWeight:700,marginBottom:18,textAlign:"center"}}>Sign In</h2>
           
-          {/* OFFLINE LOGIN OPTION - if cached and offline */}
+          {/* OFFLINE LOGIN OPTION - ONLY when actually offline (no Quick Login when online) */}
           {(()=>{
             try{
               var isOffline=navigator.onLine===false;
+              // When ONLINE: no quick login - always use email+password below
+              if(!isOffline)return null;
               var cached=localStorage.getItem("latavola_offline_login");
               if(!cached)return null;
               var data=JSON.parse(cached);
