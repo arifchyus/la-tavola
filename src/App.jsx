@@ -2435,7 +2435,10 @@ function AccountV({user,orders,reviews,reservations,onAuth,branches}){
   var [diet,setDiet]=useState([]);
   var [loyaltyData,setLoyaltyData]=useState({points:0,tier:"bronze"});
   var [loyaltyHistory,setLoyaltyHistory]=useState([]);
-
+  
+  // If a staff member is PIN-logged-in, show THEIR profile instead of the owner's
+  var activeStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+  
   // Load dietary prefs + loyalty data when user logs in
   useEffect(()=>{
     if(!user||!user.id)return;
@@ -2451,6 +2454,50 @@ function AccountV({user,orders,reviews,reservations,onAuth,branches}){
     setDiet(newDiet);
     if(user&&user.id)dbSavePrefs(user.id,newDiet);
   };
+  
+  // STAFF PROFILE VIEW - when a staff is logged in via PIN
+  if(activeStaff){
+    var p=activeStaff.permissions||{};
+    var allowed=[];
+    if(p.take_orders===true)allowed.push("Take Orders");
+    if(p.view_reports===true)allowed.push("View Reports");
+    if(p.view_finance===true)allowed.push("View Finance");
+    if(p.manage_menu===true)allowed.push("Manage Menu");
+    if(p.manage_staff===true)allowed.push("Manage Staff");
+    if(p.manage_settings===true)allowed.push("Manage Settings");
+    if(p.process_refunds===true)allowed.push("Process Refunds");
+    var posColor={manager:"#7c3aed",waiter:"#0891b2",chef:"#d97706",driver:"#059669",kitchen:"#dc2626"}[activeStaff.position]||"#1a1208";
+    
+    return <div className="page" style={{maxWidth:600}}>
+      <div style={{background:"linear-gradient(135deg,"+posColor+",#1a1208)",borderRadius:16,padding:"22px 20px",marginBottom:14,display:"flex",gap:14,alignItems:"center"}}>
+        <div style={{width:60,height:60,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#fff"}}>{(activeStaff.full_name||"S").charAt(0).toUpperCase()}</div>
+        <div style={{flex:1}}>
+          <h2 style={{fontSize:20,color:"#fff",marginBottom:2}}>{activeStaff.full_name}</h2>
+          <p style={{color:"rgba(255,255,255,.7)",fontSize:13,textTransform:"capitalize"}}>{activeStaff.position||"Staff"}</p>
+        </div>
+      </div>
+      
+      <div className="card" style={{marginBottom:12}}>
+        <p style={{fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0xD83D,0xDD11)} My Access</p>
+        {allowed.length===0?
+          <p style={{fontSize:12,color:"#8a8078"}}>No special access assigned. Contact your manager.</p>
+          :
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {allowed.map(a=><span key={a} style={{padding:"5px 11px",background:"#ecfdf5",color:"#065f46",borderRadius:7,fontSize:11,fontWeight:700,border:"1px solid #a7f3d0"}}>{String.fromCharCode(0x2705)} {a}</span>)}
+          </div>
+        }
+      </div>
+      
+      <div className="card">
+        <p style={{fontSize:13,fontWeight:700,marginBottom:9}}>{String.fromCharCode(0x2139,0xFE0F)} Staff Info</p>
+        <div style={{display:"grid",gap:7,fontSize:12}}>
+          {activeStaff.employee_id&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#8a8078"}}>Employee ID</span><span style={{fontWeight:700}}>{activeStaff.employee_id}</span></div>}
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#8a8078"}}>Role</span><span style={{fontWeight:700,textTransform:"capitalize"}}>{activeStaff.position||"Staff"}</span></div>
+        </div>
+        <p style={{fontSize:11,color:"#8a8078",marginTop:11,paddingTop:9,borderTop:"1px solid #ede8de"}}>{String.fromCharCode(0xD83D,0xDCA1)} To switch user or sign out, use the buttons in the colored bar at the top of the screen.</p>
+      </div>
+    </div>;
+  }
 
   if(!user) return <div className="page" style={{maxWidth:360,textAlign:"center",paddingTop:50}}>
     <p style={{fontSize:48,marginBottom:10}}>{EM.person}</p>
