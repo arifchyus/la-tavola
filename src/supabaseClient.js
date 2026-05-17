@@ -789,26 +789,35 @@ export async function recordCashCollected(orderId, amount, driverName) {
 
 export async function fetchCashHandovers(branchId) {
   let q = supabase.from('cash_handovers').select('*').eq('restaurant_id', _rid());
-  if (branchId) q = q.eq('branch_id', branchId);
-  const { data, error } = await q.order('created_at', { ascending: false });
+  const { data, error } = await q.order('initiated_at', { ascending: false });
   if (error) console.error('fetchCashHandovers:', error);
   return data || [];
 }
 
 export async function recordCashHandover(handover) {
+  // Uses the cash_handovers table with the new schema column names.
+  // This is the "manager directly confirms" path (no driver-initiated step).
+  const declared = parseFloat(handover.expectedAmount || handover.amount || 0);
+  const confirmed = parseFloat(handover.amount || 0);
   const { data, error } = await supabase.from('cash_handovers').insert({
     restaurant_id: _rid(),
-    branch_id: handover.branchId || null,
     driver_name: handover.driverName,
     manager_name: handover.managerName,
-    amount: parseFloat(handover.amount),
+    driver_declared_amount: declared,
+    manager_confirmed_amount: confirmed,
+    discrepancy: confirmed - declared,
     order_ids: handover.orderIds || [],
-    expected_amount: parseFloat(handover.expectedAmount || handover.amount),
-    notes: handover.notes || null,
+    order_count: (handover.orderIds || []).length,
+    status: 'confirmed',
+    confirmed_at: new Date().toISOString(),
+    note: handover.notes || null,
   }).select().single();
   // Mark associated orders with handover id
   if (data && handover.orderIds && handover.orderIds.length) {
-    await supabase.from('orders').update({ cash_handover_id: data.id })
+    // orderIds here may be UUIDs or order_numbers - try both
+    await supabase.from('orders').update({ cash_handover_id: data.id, handover_id: data.id })
+      .in('id', handover.orderIds);
+    await supabase.from('orders').update({ cash_handover_id: data.id, handover_id: data.id })
       .in('order_number', handover.orderIds);
   }
   return { data, error };

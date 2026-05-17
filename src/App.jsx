@@ -6588,8 +6588,8 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           </div>
           <div className="card" style={{padding:13,textAlign:"center",background:"#d1fae5"}}>
             <p style={{fontSize:11,color:"#065f46",fontWeight:700}}>RECEIVED TODAY</p>
-            <p style={{fontSize:24,fontWeight:700,color:"#065f46"}}>{fmt(cashHandovers.filter(h=>{var d=new Date(h.created_at);return d.toDateString()===new Date().toDateString();}).reduce((s,h)=>s+parseFloat(h.amount||0),0))}</p>
-            <p style={{fontSize:10,color:"#065f46"}}>{cashHandovers.filter(h=>{var d=new Date(h.created_at);return d.toDateString()===new Date().toDateString();}).length} handovers today</p>
+            <p style={{fontSize:24,fontWeight:700,color:"#065f46"}}>{fmt(cashHandovers.filter(h=>{var d=new Date(h.confirmed_at||h.initiated_at);return d.toDateString()===new Date().toDateString()&&h.status==="confirmed";}).reduce((s,h)=>s+parseFloat(h.manager_confirmed_amount||h.driver_declared_amount||0),0))}</p>
+            <p style={{fontSize:10,color:"#065f46"}}>{cashHandovers.filter(h=>{var d=new Date(h.confirmed_at||h.initiated_at);return d.toDateString()===new Date().toDateString()&&h.status==="confirmed";}).length} handovers today</p>
           </div>
         </div>
 
@@ -6683,22 +6683,6 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           </div>
         </div>}
 
-        <h4 style={{fontSize:13,fontWeight:700,marginTop:18,marginBottom:8,color:"#8a8078",letterSpacing:1}}>RECENT HANDOVER HISTORY</h4>
-        {cashHandovers.length===0?<p style={{fontSize:12,color:"#8a8078",fontStyle:"italic"}}>No handovers recorded yet</p>:<div style={{display:"grid",gap:6}}>
-          {cashHandovers.slice(0,15).map(h=>{
-            var diff=parseFloat(h.amount)-parseFloat(h.expected_amount||h.amount);
-            return <div key={h.id} className="card" style={{padding:"9px 12px",fontSize:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
-              <div>
-                <p style={{fontWeight:700}}>{h.driver_name} {String.fromCharCode(0x2192)} {h.manager_name}</p>
-                <p style={{fontSize:10,color:"#8a8078"}}>{new Date(h.created_at).toLocaleString("en-GB")} - {(h.order_ids||[]).length} orders</p>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <p style={{fontWeight:700,fontSize:14}}>{fmt(parseFloat(h.amount))}</p>
-                {diff!==0&&<p style={{fontSize:10,color:diff>0?"#059669":"#dc2626",fontWeight:700}}>{diff>0?"Over by ":"Short by "}{fmt(Math.abs(diff))}</p>}
-              </div>
-            </div>;
-          })}
-        </div>}
       </div>;
     })()}
 
