@@ -5112,7 +5112,7 @@ function StaffFormModal({staff, onClose, onSave}){
     payment_method: staff?.payment_method || "bank",
     bank_account: staff?.bank_account || "",
     bank_sort_code: staff?.bank_sort_code || "",
-    permissions: staff?.permissions || {take_orders:true,view_reports:false,manage_menu:false,process_refunds:false,manage_staff:false,manage_settings:false,view_finance:false},
+    permissions: staff?.permissions || {take_orders:true,view_reports:false,manage_menu:false,process_refunds:false,manage_staff:false,manage_settings:false,view_finance:false,export_customers:false},
     driver_license_number: staff?.driver_license_number || "",
     driver_license_expiry: staff?.driver_license_expiry || "",
     vehicle_make: staff?.vehicle_make || "",
@@ -5258,7 +5258,7 @@ function StaffFormModal({staff, onClose, onSave}){
       {/* PERMISSIONS */}
       {section==="permissions" && <div style={{display:"grid",gap:11}}>
         <p style={{fontSize:12,color:"#8a8078",padding:9,background:"#fef3c7",borderRadius:7}}>{String.fromCharCode(0xD83D,0xDD11)} Control what this staff member can access</p>
-        {[["take_orders","Take Orders","Place orders for customers"],["view_reports","View Reports","See sales reports & analytics"],["manage_menu","Manage Menu","Add/edit menu items"],["process_refunds","Process Refunds","Issue refunds to customers"],["manage_staff","Manage Staff","Add/edit other staff"],["view_finance","View Finance","See expenses & profit/loss"],["manage_settings","Manage Settings","Change restaurant settings"]].map(p=>
+        {[["take_orders","Take Orders","Place orders for customers"],["view_reports","View Reports","See sales reports & analytics"],["manage_menu","Manage Menu","Add/edit menu items"],["process_refunds","Process Refunds","Issue refunds to customers"],["manage_staff","Manage Staff","Add/edit other staff"],["view_finance","View Finance","See expenses & profit/loss"],["manage_settings","Manage Settings","Change restaurant settings"],["export_customers","Export Customer Data","Download customer contacts as CSV"]].map(p=>
           <label key={p[0]} style={{display:"flex",alignItems:"center",gap:9,padding:11,background:"#fff",border:"2px solid #ede8de",borderRadius:7,cursor:"pointer"}}>
             <input type="checkbox" checked={!!form.permissions[p[0]]} onChange={e=>setPerm(p[0],e.target.checked)}/>
             <div style={{flex:1}}>
@@ -6514,17 +6514,27 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         URL.revokeObjectURL(url);
       };
       
+      // Export: OWNER only by default. Owner can grant a manager access via the 'export_customers' permission.
+      var custActiveStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+      // No active staff = owner is logged in directly = can export
+      // Active staff = only if owner gave them the export_customers permission
+      var canExport=!custActiveStaff || (custActiveStaff.permissions&&custActiveStaff.permissions.export_customers===true);
+      
       return <div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
           <div>
             <h3 style={{fontSize:18,fontWeight:700}}>Customers</h3>
             <p style={{fontSize:12,color:"#8a8078"}}>{custListAll.length} customers from order history</p>
           </div>
-          <button onClick={exportContacts} style={{padding:"10px 16px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+          {canExport&&<button onClick={exportContacts} style={{padding:"10px 16px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:15}}>{String.fromCharCode(0xD83D,0xDCE5)}</span>
             <span>Export CSV</span>
-          </button>
+          </button>}
         </div>
+        
+        {canExport&&<div style={{padding:"8px 12px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,marginBottom:12,fontSize:11,color:"#92400e"}}>
+          {String.fromCharCode(0x26A0,0xFE0F)} Customer data is confidential. Handle exported files securely and in line with GDPR. Do not share customer contact details.
+        </div>}
         
         {/* Search bar */}
         <div style={{marginBottom:14,position:"relative"}}>
