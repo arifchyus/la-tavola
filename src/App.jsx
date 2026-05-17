@@ -616,8 +616,11 @@ button,a,.card{-webkit-tap-highlight-color:transparent}
   try{
     var saved=localStorage.getItem("ui_scale");
     if(saved&&saved!=="100"){
-      // zoom scales the whole UI proportionally - works for touchscreens
-      document.body.style.zoom=(parseInt(saved)/100);
+      var z=parseInt(saved)/100;
+      // Keep within safe range so layouts don't break
+      if(z<0.9)z=0.9;
+      if(z>1.1)z=1.1;
+      document.body.style.zoom=z;
     }
   }catch(e){}
 })();
@@ -7368,19 +7371,18 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       {/* DISPLAY SIZE - touchscreen comfort */}
       <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #0891b2"}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83D,0xDD0D)} Display Size</p>
-        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Adjust how big everything looks. Great for touchscreens - bigger size = easier to tap.</p>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-          {[["90","Small"],["100","Normal"],["115","Large"],["130","Extra Large"]].map(([val,label])=>{
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Adjust text and button size for comfort. The buttons are already touch-friendly - this fine-tunes it.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {[["95","Compact"],["100","Normal"],["108","Large"]].map(([val,label])=>{
             var current=(typeof window!=="undefined"&&localStorage.getItem("ui_scale"))||"100";
             var isActive=current===val;
             return <button key={val} onClick={()=>{
               try{
                 localStorage.setItem("ui_scale",val);
-                document.body.style.zoom=(parseInt(val)/100);
                 window.location.reload();
               }catch(e){}
             }} style={{padding:"16px 10px",borderRadius:11,border:"2px solid "+(isActive?"#0891b2":"#ede8de"),background:isActive?"#ecfeff":"#fff",cursor:"pointer",textAlign:"center"}}>
-              <div style={{fontSize:val==="90"?15:val==="100"?19:val==="115"?23:27,fontWeight:700,marginBottom:4,color:isActive?"#0e7490":"#1a1208"}}>A</div>
+              <div style={{fontSize:val==="95"?16:val==="100"?20:24,fontWeight:700,marginBottom:4,color:isActive?"#0e7490":"#1a1208"}}>A</div>
               <p style={{fontSize:11,fontWeight:700,color:isActive?"#0e7490":"#8a8078"}}>{label}</p>
             </button>;
           })}
@@ -15698,7 +15700,7 @@ export default function App(){
     allTabs=["menu","track","book","reviews","account","chat"];
   }
   
-  // FILTER nav based on restaurant service types
+  // FILTER nav based on restaurant service types AND staff permissions
   var tabs=allTabs.filter(t=>{
     if(!restaurant)return true;
     
@@ -15710,6 +15712,30 @@ export default function App(){
     if(t==="bookings" && !hasService(restaurant,"dine_in"))return false;
     if(t==="driver" && !hasService(restaurant,"delivery"))return false;
     if(t==="phone" && !hasService(restaurant,"phone_orders"))return false;
+    
+    // STAFF PERMISSION FILTERING (when a staff member is PIN-logged-in)
+    // No active staff = restaurant owner = full access
+    if(activeStaffData){
+      var perms=activeStaffData.permissions||{};
+      // "account" and "chat" always allowed
+      if(t==="account"||t==="chat")return true;
+      // POS / phone / tables / bookings / incoming = need take_orders
+      if(["pos","phone","tables","bookings","incoming"].includes(t)){
+        return perms.take_orders!==false;
+      }
+      // Admin tab = need ANY management permission
+      if(t==="admin"){
+        return perms.manage_menu===true||perms.manage_staff===true||perms.manage_settings===true||perms.view_finance===true||perms.view_reports===true;
+      }
+      // Reports tab = need view_reports
+      if(t==="report"){
+        return perms.view_reports===true;
+      }
+      // Kitchen / Driver = need take_orders (operational)
+      if(t==="kitchen"||t==="driver"){
+        return perms.take_orders!==false;
+      }
+    }
     
     return true;
   });
@@ -15917,7 +15943,7 @@ export default function App(){
       {restaurant&&saasOwner&&!activeStaff&&<button onClick={()=>setShowStaffPinModal(true)} title="Switch to staff member" style={{background:"rgba(8,145,178,.2)",color:"#0891b2",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(8,145,178,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDD10)} STAFF</button>}
       {/* SUPER ADMIN: Show admin button only to admins */}
       {isAdmin&&!impersonating&&<button onClick={()=>{setShowSuperAdmin(true);window.history.replaceState({},"","/?admin=lt-secret-2026");}} title="Super Admin Panel" style={{background:"rgba(251,191,36,.2)",color:"#fbbf24",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(251,191,36,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDC51)} ADMIN</button>}
-      {restaurant&&saasOwner&&<button onClick={()=>setShowRestaurantSwitcher(true)} title="Switch restaurant (test)" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</button>}
+      {restaurant&&saasOwner&&<span title="Your plan" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</span>}
       <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
