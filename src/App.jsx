@@ -5619,6 +5619,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   });
   var [menuSearch,setMenuSearch]=useState("");
   var [orderSearch,setOrderSearch]=useState("");
+  var [custSearch,setCustSearch]=useState("");
   var [refundOrder,setRefundOrder]=useState(null);
   var [shiftsList,setShiftsList]=useState([]);
   var [shiftsLoading,setShiftsLoading]=useState(false);
@@ -6467,22 +6468,77 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         var od=o.created_at?new Date(o.created_at):null;
         if(od&&(!c.lastOrder||od>c.lastOrder))c.lastOrder=od;
       });
-      var custList=Object.values(custMap).filter(function(c){return c.phone||c.name!=="Guest";});
-      custList.sort(function(a,b){return b.totalSpent-a.totalSpent;});
+      var custListAll=Object.values(custMap).filter(function(c){return c.phone||c.name!=="Guest";});
+      custListAll.sort(function(a,b){return b.totalSpent-a.totalSpent;});
+      
+      // Apply search filter
+      var cq=custSearch.trim().toLowerCase();
+      var custList=cq?custListAll.filter(function(c){
+        return (c.name||"").toLowerCase().includes(cq)||
+               (c.phone||"").toLowerCase().includes(cq);
+      }):custListAll;
+      
+      // Export function - downloads CSV of contacts
+      var exportContacts=function(){
+        var rows=[["Name","Phone","Address","Orders","Total Spent","Last Order"]];
+        custListAll.forEach(function(c){
+          var addr=c.address||{};
+          var addrLine=[addr.line1,addr.city,addr.postcode].filter(Boolean).join(" ");
+          rows.push([
+            c.name||"",
+            c.phone||"",
+            addrLine,
+            c.orderCount,
+            c.totalSpent.toFixed(2),
+            c.lastOrder?c.lastOrder.toLocaleDateString("en-GB"):"",
+          ]);
+        });
+        var csv=rows.map(function(r){
+          return r.map(function(cell){
+            var s=String(cell);
+            // Escape quotes and wrap if contains comma
+            if(s.includes(",")||s.includes('"')||s.includes("\n")){
+              return '"'+s.replace(/"/g,'""')+'"';
+            }
+            return s;
+          }).join(",");
+        }).join("\n");
+        var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement("a");
+        a.href=url;
+        a.download="customers-"+new Date().toISOString().split("T")[0]+".csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
       
       return <div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
           <div>
             <h3 style={{fontSize:18,fontWeight:700}}>Customers</h3>
-            <p style={{fontSize:12,color:"#8a8078"}}>{custList.length} customers from order history</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>{custListAll.length} customers from order history</p>
           </div>
+          <button onClick={exportContacts} style={{padding:"10px 16px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:15}}>{String.fromCharCode(0xD83D,0xDCE5)}</span>
+            <span>Export CSV</span>
+          </button>
         </div>
+        
+        {/* Search bar */}
+        <div style={{marginBottom:14,position:"relative"}}>
+          <input value={custSearch} onChange={function(e){setCustSearch(e.target.value);}} placeholder={String.fromCharCode(0xD83D,0xDD0D)+" Search by name or phone..."} style={{width:"100%",padding:"12px 14px",border:"2px solid #ede8de",borderRadius:9,fontSize:14,boxSizing:"border-box"}}/>
+          {custSearch&&<button onClick={function(){setCustSearch("");}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,padding:"4px 9px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Clear</button>}
+        </div>
+        {cq&&<p style={{fontSize:12,color:"#8a8078",marginBottom:10}}>Showing {custList.length} of {custListAll.length} customers</p>}
         
         {custList.length===0?
           <div className="card" style={{textAlign:"center",padding:30}}>
-            <div style={{fontSize:40,marginBottom:8}}>{String.fromCharCode(0xD83D,0xDC64)}</div>
-            <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>No customers yet</p>
-            <p style={{fontSize:12,color:"#8a8078"}}>Customers appear here automatically as orders come in</p>
+            <div style={{fontSize:40,marginBottom:8}}>{cq?String.fromCharCode(0xD83D,0xDD0D):String.fromCharCode(0xD83D,0xDC64)}</div>
+            <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{cq?"No matching customers":"No customers yet"}</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>{cq?"Try a different name or phone number":"Customers appear here automatically as orders come in"}</p>
+          </div>
           </div>
           :
           <div style={{display:"grid",gap:9}}>
