@@ -6471,11 +6471,14 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       var custListAll=Object.values(custMap).filter(function(c){return c.phone||c.name!=="Guest";});
       custListAll.sort(function(a,b){return b.totalSpent-a.totalSpent;});
       
-      // Apply search filter
+      // Apply search filter - name, phone, address, postcode
       var cq=custSearch.trim().toLowerCase();
       var custList=cq?custListAll.filter(function(c){
+        var addr=c.address||{};
+        var addrStr=[addr.line1,addr.line2,addr.city,addr.postcode].filter(Boolean).join(" ").toLowerCase();
         return (c.name||"").toLowerCase().includes(cq)||
-               (c.phone||"").toLowerCase().includes(cq);
+               (c.phone||"").toLowerCase().includes(cq)||
+               addrStr.includes(cq);
       }):custListAll;
       
       // Export function - downloads CSV of contacts
@@ -6538,7 +6541,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         
         {/* Search bar */}
         <div style={{marginBottom:14,position:"relative"}}>
-          <input value={custSearch} onChange={function(e){setCustSearch(e.target.value);}} placeholder={String.fromCharCode(0xD83D,0xDD0D)+" Search by name or phone..."} style={{width:"100%",padding:"12px 14px",border:"2px solid #ede8de",borderRadius:9,fontSize:14,boxSizing:"border-box"}}/>
+          <input value={custSearch} onChange={function(e){setCustSearch(e.target.value);}} placeholder={String.fromCharCode(0xD83D,0xDD0D)+" Search by name, phone, address or postcode..."} style={{width:"100%",padding:"12px 14px",border:"2px solid #ede8de",borderRadius:9,fontSize:14,boxSizing:"border-box"}}/>
           {custSearch&&<button onClick={function(){setCustSearch("");}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,padding:"4px 9px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Clear</button>}
         </div>
         {cq&&<p style={{fontSize:12,color:"#8a8078",marginBottom:10}}>Showing {custList.length} of {custListAll.length} customers</p>}
@@ -6547,7 +6550,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           <div className="card" style={{textAlign:"center",padding:30}}>
             <div style={{fontSize:40,marginBottom:8}}>{cq?String.fromCharCode(0xD83D,0xDD0D):String.fromCharCode(0xD83D,0xDC64)}</div>
             <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>{cq?"No matching customers":"No customers yet"}</p>
-            <p style={{fontSize:12,color:"#8a8078"}}>{cq?"Try a different name or phone number":"Customers appear here automatically as orders come in"}</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>{cq?"Try a different name, phone, address or postcode":"Customers appear here automatically as orders come in"}</p>
           </div>
           :
           <div style={{display:"grid",gap:9}}>
