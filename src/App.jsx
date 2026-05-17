@@ -548,6 +548,67 @@ input,select,textarea{font-family:inherit;font-size:14px}
   .pos-cart{max-width:280px;min-width:260px;max-height:none;border-top:none;border-left:1px solid #ede8de}
   .pos-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px}
 }
+
+/* ============================================================ */
+/* TOUCH-FRIENDLY UI - bigger buttons, inputs, spacing           */
+/* Optimised for touchscreen EPOS terminals                     */
+/* ============================================================ */
+
+/* Bigger base buttons */
+.btn{padding:14px 26px;font-size:15px;border-radius:11px;min-height:50px}
+
+/* Bigger form fields - easier to tap */
+.field{padding:14px 16px;font-size:15px;border-radius:11px;min-height:50px}
+.lbl{font-size:12px;margin-bottom:7px}
+
+/* Bigger cards with more breathing room */
+.card{padding:18px;border-radius:16px}
+
+/* Bigger nav tabs - easier to hit */
+.ntab{padding:10px 18px;font-size:13px;border-radius:9px;min-height:42px}
+.nav{height:64px;padding:0 18px}
+.nlogo{font-size:21px}
+
+/* Bigger avatar */
+.av{width:36px;height:36px;font-size:13px}
+
+/* Bigger badges */
+.bdg{padding:5px 12px;font-size:12px}
+
+/* All buttons get a minimum touch target of 44px (Apple/Google guideline) */
+button{min-height:44px}
+.btn-g{min-height:44px;padding:10px 16px}
+
+/* Selects easier to tap */
+select{min-height:48px;font-size:15px;padding:10px 14px}
+
+/* Inputs easier to tap */
+input[type=text],input[type=number],input[type=email],input[type=tel],input[type=password],input[type=search],textarea{
+  min-height:46px;font-size:15px
+}
+
+/* Generic small action buttons in admin - make them bigger */
+.touch-btn{padding:12px 18px!important;font-size:14px!important;min-height:48px!important;border-radius:10px!important}
+
+/* Mobile bottom nav - bigger touch targets */
+@media(max-width:680px){
+  .mbtn{padding:10px 18px;font-size:11px}
+  .mico{font-size:25px}
+}
+
+/* On large touchscreens (EPOS), make everything even more generous */
+@media(min-width:1025px){
+  .btn{padding:16px 30px;font-size:16px;min-height:54px}
+  .field{padding:15px 18px;font-size:16px;min-height:54px}
+  .ntab{padding:11px 20px;font-size:14px}
+}
+
+/* Smooth tap feedback - buttons press down slightly */
+button:active{transform:scale(0.97)}
+.btn:active{transform:scale(0.97)}
+
+/* Remove tap highlight flash on mobile, use our own feedback */
+button,a,.card{-webkit-tap-highlight-color:transparent}
 `;
 
 // Get receipt settings from localStorage
@@ -6041,13 +6102,13 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       </div>)}
     </div>
     
-    {/* BEAUTIFUL TAB NAVIGATION */}
-    <div style={{background:"#fff",borderRadius:11,padding:7,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)",overflow:"hidden"}}>
-      <div style={{display:"flex",gap:3,overflowX:"auto",paddingBottom:2}}>
+    {/* BEAUTIFUL TAB NAVIGATION - touch-friendly */}
+    <div style={{background:"#fff",borderRadius:13,padding:9,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)",overflow:"hidden"}}>
+      <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:3}}>
         {TABS.map(([k,l])=>{
           var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),marketing:String.fromCharCode(0xD83D,0xDCE3),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
-          return <button key={k} onClick={()=>setTab(k)} style={{padding:"8px 13px",borderRadius:8,fontWeight:600,fontSize:11.5,whiteSpace:"nowrap",border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"transparent",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:5,boxShadow:tab===k?"0 2px 8px rgba(26,18,8,.25)":"none"}} onMouseEnter={e=>{if(tab!==k){e.target.style.background="#f7f3ee";e.target.style.color="#1a1208";}}} onMouseLeave={e=>{if(tab!==k){e.target.style.background="transparent";e.target.style.color="#5d4e3e";}}}>
-            <span style={{fontSize:13}}>{tabIcons[k]||String.fromCharCode(0x2022)}</span>
+          return <button key={k} onClick={()=>setTab(k)} style={{padding:"13px 18px",borderRadius:10,fontWeight:700,fontSize:13.5,whiteSpace:"nowrap",border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"#f7f3ee",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:7,boxShadow:tab===k?"0 3px 10px rgba(26,18,8,.25)":"none",minHeight:50}}>
+            <span style={{fontSize:17}}>{tabIcons[k]||String.fromCharCode(0x2022)}</span>
             <span>{l}</span>
           </button>;
         })}
