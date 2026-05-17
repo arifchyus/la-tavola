@@ -7698,28 +7698,33 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
 function ReportV({orders}){
   // Build last 30 days of REAL revenue from actual orders
   var today=new Date();
+  // First, group orders by date string
+  var revByDate={};
+  var countByDate={};
+  (orders||[]).forEach(function(o){
+    if(o.status==="cancelled"||o.status==="refunded")return;
+    if(!o.created_at)return;
+    var ds=new Date(o.created_at).toDateString();
+    revByDate[ds]=(revByDate[ds]||0)+parseFloat(o.total||0);
+    countByDate[ds]=(countByDate[ds]||0)+1;
+  });
+  // Build the 30-day array
   var days=[];
   for(var i=29;i>=0;i--){
     var d=new Date(today);
     d.setDate(d.getDate()-i);
-    var dayStr=d.toDateString();
-    var dayOrders=(orders||[]).filter(o=>{
-      if(o.status==="cancelled"||o.status==="refunded")return false;
-      var od=o.created_at?new Date(o.created_at):null;
-      return od&&od.toDateString()===dayStr;
-    });
-    var dayRev=dayOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+    var ds2=d.toDateString();
     days.push({
       day:d.toLocaleDateString("en-GB",{month:"short",day:"numeric"}),
-      rev:dayRev,
-      count:dayOrders.length,
+      rev:revByDate[ds2]||0,
+      count:countByDate[ds2]||0,
     });
   }
   var last7=days.slice(-7);
   var last30=days;
-  var totalRev=last30.reduce((s,d)=>s+d.rev,0);
-  var totalOrders=last30.reduce((s,d)=>s+d.count,0);
-  var mx=Math.max(...last7.map(d=>d.rev),1);
+  var totalRev=last30.reduce(function(s,d){return s+d.rev;},0);
+  var totalOrders=last30.reduce(function(s,d){return s+d.count;},0);
+  var mx=Math.max.apply(null,last7.map(function(d){return d.rev;}).concat([1]));
   var todayRev=days[days.length-1].rev;
   var todayOrders=days[days.length-1].count;
   
