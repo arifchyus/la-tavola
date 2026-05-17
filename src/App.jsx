@@ -5969,20 +5969,45 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     if(!activeStaff) return true;
     var perms = activeStaff.permissions || {};
     
-    // Map tabs to required permissions
-    if(t[0]==="orders") return perms.take_orders!==false;
-    if(t[0]==="analytics") return perms.view_reports===true;
-    if(t[0]==="finance") return perms.view_finance===true;
-    if(t[0]==="settings") return perms.manage_settings===true;
+    // Map EVERY tab to a required permission (strict: must be explicitly true)
+    // MENU MANAGEMENT group
     if(t[0]==="menu") return perms.manage_menu===true;
     if(t[0]==="categories") return perms.manage_menu===true;
     if(t[0]==="combos") return perms.manage_menu===true;
-    if(t[0]==="staff") return perms.manage_staff===true;
+    if(t[0]==="stations") return perms.manage_menu===true;
+    if(t[0]==="stock") return perms.manage_menu===true;
+    // PROMOTIONS group (also menu management)
+    if(t[0]==="codes") return perms.manage_menu===true;
+    if(t[0]==="autodisc") return perms.manage_menu===true;
+    if(t[0]==="discounts") return perms.manage_menu===true;
+    // ORDERS group
+    if(t[0]==="orders") return perms.take_orders===true;
+    if(t[0]==="tables") return perms.take_orders===true;
+    // REPORTS group
+    if(t[0]==="analytics") return perms.view_reports===true;
+    // FINANCE group
+    if(t[0]==="finance") return perms.view_finance===true;
+    if(t[0]==="cash") return perms.view_finance===true;
+    if(t[0]==="shifts") return perms.view_finance===true;
+    // SETTINGS group
+    if(t[0]==="settings") return perms.manage_settings===true;
     if(t[0]==="hours") return perms.manage_settings===true;
-    if(t[0]==="discounts"||t[0]==="codes"||t[0]==="autodisc") return perms.manage_menu===true;
-    // Default: allow tables, stations, delivery, cash, shifts, stock for all
-    return true;
+    if(t[0]==="delivery") return perms.manage_settings===true;
+    if(t[0]==="marketing") return perms.manage_settings===true;
+    // STAFF group
+    if(t[0]==="staff") return perms.manage_staff===true;
+    
+    // Anything not explicitly mapped = hidden for staff (safe default)
+    return false;
   });
+  
+  // If current tab is not in allowed TABS (e.g. limited staff), switch to first allowed
+  useEffect(()=>{
+    if(TABS.length>0 && !TABS.some(t=>t[0]===tab)){
+      setTab(TABS[0][0]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[TABS.length]);
   
   // ORDERS SEARCH & FILTERS - applied to fil (already branch-filtered orders)
   var searchedOrders=(()=>{
