@@ -5683,7 +5683,21 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   },[]);
   var fil=bf==="all"?orders:orders.filter(o=>o.branchId===bf),rev=fil.filter(o=>o.status!=="cancelled"&&o.status!=="refunded").reduce((s,o)=>s+parseFloat(o.total||0),0);
   var allSt=["pending","preparing","ready","out_for_delivery","delivered","collected","cancelled"];
-  var upSt=(id,st)=>{
+  // Status order rank for detecting backward movement
+  var statusRank={pending:1,preparing:2,ready:3,out_for_delivery:4,delivered:5,collected:5};
+  var upSt=async(id,st)=>{
+    var order=orders.find(o=>o.id===id);
+    var currentRank=statusRank[order?.status]||0;
+    var newRank=statusRank[st]||0;
+    // Detect backward movement (ignore cancelled - that's always allowed)
+    if(order&&st!=="cancelled"&&currentRank>0&&newRank>0&&newRank<currentRank){
+      var ok=await window.showConfirm(
+        String.fromCharCode(0x26A0,0xFE0F)+" Move Order Backward?",
+        id+" is already \""+SL[order.status]+"\".\n\nMoving it back to \""+SL[st]+"\" will make it appear as an active order again. This can cause confusion.\n\nAre you sure?",
+        "Yes, Move Back","Cancel","warning"
+      );
+      if(!ok)return;
+    }
     setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
     push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});
     dbUpdateOrderStatus(id,st).catch(e=>console.log("Admin status save failed:",e));
