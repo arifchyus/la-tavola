@@ -4720,3 +4720,37 @@ export async function confirmHandover(handoverId, managerId, managerName, confir
   return { data };
 }
 
+
+// ===========================================================
+// TEAM CHAT - Internal staff messaging
+// ===========================================================
+
+export async function sendTeamMessage(senderName, senderRole, message) {
+  const { data, error } = await supabase
+    .from('team_messages')
+    .insert({
+      restaurant_id: _rid(),
+      sender_name: senderName,
+      sender_role: senderRole || 'staff',
+      message: message,
+    })
+    .select()
+    .single();
+  if (error) console.error('sendTeamMessage:', error);
+  return { data, error };
+}
+
+export async function fetchTeamMessages() {
+  const { data, error } = await supabase
+    .from('team_messages')
+    .select('*')
+    .eq('restaurant_id', _rid())
+    .order('created_at', { ascending: true })
+    .limit(100);
+  if (error) {
+    console.error('fetchTeamMessages:', error);
+    return [];
+  }
+  return data || [];
+}
+

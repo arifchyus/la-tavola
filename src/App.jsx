@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,sendTeamMessage as dbSendTeamMsg,fetchTeamMessages as dbFetchTeamMsgs,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -2546,17 +2546,82 @@ function AccountV({user,orders,reviews,reservations,onAuth,branches}){
 }
 
 function ChatV({messages,setMessages,user,onAuth}){
-  var [text,setText]=useState(""),bottom=useRef(null);
-  useEffect(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),[messages]);
-  var send=()=>{if(!text.trim())return;setMessages(ms=>[...ms,{id:"m"+Date.now(),userId:user?.id||"guest",name:user?.name||"Guest",text:text.trim(),time:nowT(),role:user?.role||"customer"}]);setText("");};
-  var rc={owner:"#bf4626",kitchen:"#059669",customer:"#6b7280"};
+  var [text,setText]=useState("");
+  var [msgs,setMsgs]=useState([]);
+  var [loading,setLoading]=useState(true);
+  var [sending,setSending]=useState(false);
+  var bottom=useRef(null);
+  
+  // Who is sending? Active staff (PIN) or owner
+  var activeStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
+  var senderName=activeStaff?.full_name||user?.name||"Staff";
+  var senderRole=activeStaff?.position||user?.role||"staff";
+  
+  var loadMessages=async()=>{
+    try{
+      var data=await dbFetchTeamMsgs();
+      setMsgs(data||[]);
+      setLoading(false);
+    }catch(e){console.error("Load messages:",e);setLoading(false);}
+  };
+  
+  useEffect(()=>{
+    loadMessages();
+    var interval=setInterval(loadMessages,8000); // refresh every 8s
+    return()=>clearInterval(interval);
+  },[]);
+  
+  useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+  
+  var send=async()=>{
+    if(!text.trim()||sending)return;
+    setSending(true);
+    var msgText=text.trim();
+    setText("");
+    var result=await dbSendTeamMsg(senderName,senderRole,msgText);
+    setSending(false);
+    if(result.error){
+      if(window.showAlert)window.showAlert("Couldn't send","Message failed to send. Try again.","error");
+      setText(msgText); // restore
+      return;
+    }
+    loadMessages();
+  };
+  
+  var roleColor={owner:"#bf4626",manager:"#7c3aed",kitchen:"#059669",chef:"#d97706",waiter:"#0891b2",driver:"#ea580c"};
+  
   return <div style={{maxWidth:560,margin:"0 auto",height:"calc(100vh - 130px)",display:"flex",flexDirection:"column",padding:"0 14px"}}>
-    <div style={{padding:"12px 0 8px",borderBottom:"1px solid #ede8de",display:"flex",alignItems:"center",gap:7}}><h2 style={{fontSize:20}}>Live Chat</h2><span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/><span style={{color:"#8a8078",fontSize:12}}>Live</span></div>
-    <div style={{flex:1,overflowY:"auto",padding:"12px 0",display:"flex",flexDirection:"column",gap:7}}>
-      {messages.map(m=>{var isMe=m.userId===user?.id;return <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",gap:2}}>{!isMe&&<span style={{fontSize:11,fontWeight:700,color:rc[m.role]||"#999",paddingLeft:10}}>{m.name}</span>}<div style={{padding:"8px 13px",maxWidth:"76%",fontSize:14,lineHeight:1.4,borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isMe?"#bf4626":"#fff",color:isMe?"#fff":"#1a1208",border:isMe?"none":"1px solid #ede8de"}}>{m.text}</div><span style={{fontSize:10,color:"#bbb",paddingLeft:isMe?0:10,paddingRight:isMe?10:0}}>{m.time}</span></div>;})}
+    <div style={{padding:"12px 0 8px",borderBottom:"1px solid #ede8de",display:"flex",alignItems:"center",gap:7}}>
+      <h2 style={{fontSize:20}}>{String.fromCharCode(0xD83D,0xDCAC)} Team Chat</h2>
+      <span style={{width:7,height:7,borderRadius:"50%",background:"#10b981",display:"inline-block"}}/>
+      <span style={{color:"#8a8078",fontSize:12}}>Staff only</span>
+    </div>
+    
+    <div style={{flex:1,overflowY:"auto",padding:"12px 0",display:"flex",flexDirection:"column",gap:8}}>
+      {loading?
+        <p style={{textAlign:"center",color:"#8a8078",fontSize:12,padding:20}}>Loading messages...</p>
+        :msgs.length===0?
+        <div style={{textAlign:"center",padding:30}}>
+          <div style={{fontSize:40,marginBottom:8}}>{String.fromCharCode(0xD83D,0xDCAC)}</div>
+          <p style={{fontSize:13,fontWeight:700,marginBottom:3}}>No messages yet</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Send the first message to your team!</p>
+        </div>
+        :msgs.map(m=>{
+          var isMe=m.sender_name===senderName;
+          var rc=roleColor[m.sender_role]||"#6b7280";
+          return <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",gap:2}}>
+            {!isMe&&<span style={{fontSize:11,fontWeight:700,color:rc,paddingLeft:10}}>{m.sender_name} <span style={{opacity:.6,textTransform:"capitalize",fontWeight:400}}>{String.fromCharCode(0x2022)} {m.sender_role}</span></span>}
+            <div style={{padding:"9px 13px",maxWidth:"78%",fontSize:14,lineHeight:1.4,borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isMe?"#bf4626":"#fff",color:isMe?"#fff":"#1a1208",border:isMe?"none":"1px solid #ede8de"}}>{m.message}</div>
+            <span style={{fontSize:10,color:"#bbb",paddingLeft:isMe?0:10,paddingRight:isMe?10:0}}>{m.created_at?new Date(m.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</span>
+          </div>;
+        })}
       <div ref={bottom}/>
     </div>
-    {user?<div style={{padding:"9px 0",borderTop:"1px solid #ede8de",display:"flex",gap:7}}><input className="field" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Type a message..." style={{flex:1,borderRadius:50,padding:"9px 15px"}}/><button className="btn btn-r" onClick={send} style={{borderRadius:50,padding:"9px 16px",flexShrink:0}}>Send</button></div>:<div style={{padding:"10px 0",borderTop:"1px solid #ede8de",textAlign:"center"}}><button className="btn btn-o" onClick={onAuth} style={{padding:"9px 22px"}}>Sign in to chat</button></div>}
+    
+    <div style={{padding:"9px 0",borderTop:"1px solid #ede8de",display:"flex",gap:7}}>
+      <input className="field" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Message your team..." style={{flex:1,borderRadius:50,padding:"9px 15px"}}/>
+      <button className="btn btn-r" onClick={send} disabled={sending} style={{borderRadius:50,padding:"9px 16px",flexShrink:0}}>{sending?"...":"Send"}</button>
+    </div>
   </div>;
 }
 
@@ -15868,7 +15933,7 @@ export default function App(){
   }else if(isStaff){
     allTabs=["pos","phone","tables","bookings","incoming","driver","kitchen","admin","report","chat","account"];
   }else{
-    allTabs=["menu","track","book","reviews","account","chat"];
+    allTabs=["menu","track","book","reviews","account"];
   }
   
   // FILTER nav based on restaurant service types AND staff permissions
