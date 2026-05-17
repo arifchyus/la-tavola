@@ -7696,15 +7696,65 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
 }
 
 function ReportV({orders}){
-  var data=Array.from({length:56}).map((_,i)=>{var d=new Date();d.setDate(d.getDate()-i);var we=d.getDay()===0||d.getDay()===6;return{day:d.toLocaleDateString("en-GB",{month:"short",day:"numeric"}),rev:Math.round((we?420:280)+Math.random()*180)};}).reverse();
-  var last7=data.slice(-7),last30=data.slice(-30),tr=last30.reduce((s,d)=>s+d.rev,0),mx=Math.max(...last7.map(d=>d.rev),1);
+  // Build last 30 days of REAL revenue from actual orders
+  var today=new Date();
+  var days=[];
+  for(var i=29;i>=0;i--){
+    var d=new Date(today);
+    d.setDate(d.getDate()-i);
+    var dayStr=d.toDateString();
+    var dayOrders=(orders||[]).filter(o=>{
+      if(o.status==="cancelled"||o.status==="refunded")return false;
+      var od=o.created_at?new Date(o.created_at):null;
+      return od&&od.toDateString()===dayStr;
+    });
+    var dayRev=dayOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+    days.push({
+      day:d.toLocaleDateString("en-GB",{month:"short",day:"numeric"}),
+      rev:dayRev,
+      count:dayOrders.length,
+    });
+  }
+  var last7=days.slice(-7);
+  var last30=days;
+  var totalRev=last30.reduce((s,d)=>s+d.rev,0);
+  var totalOrders=last30.reduce((s,d)=>s+d.count,0);
+  var mx=Math.max(...last7.map(d=>d.rev),1);
+  var todayRev=days[days.length-1].rev;
+  var todayOrders=days[days.length-1].count;
+  
   return <div className="page">
     <h2 style={{fontSize:24,marginBottom:4}}>Sales Reports</h2>
-    <p style={{color:"#8a8078",fontSize:13,marginBottom:18}}>Last 30 days overview</p>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:9,marginBottom:18}}>{[["30-Day Revenue",fmt(tr),"#bf4626"],["30-Day Orders",last30.length,"#2563eb"],["Avg Order",fmt(tr/Math.max(last30.length,1)),"#4a7155"]].map(([l,v,c])=><div key={l} className="card"><div style={{fontSize:20,fontWeight:700,color:c,marginBottom:2}}>{v}</div><div style={{fontSize:11,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}</div>
+    <p style={{color:"#8a8078",fontSize:13,marginBottom:18}}>Real sales data - last 30 days</p>
+    
+    {/* Today's stats */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:9,marginBottom:12}}>
+      <div className="card" style={{background:"linear-gradient(135deg,#fef3c7,#fde68a)"}}>
+        <div style={{fontSize:22,fontWeight:700,color:"#92400e",marginBottom:2}}>{fmt(todayRev)}</div>
+        <div style={{fontSize:11,color:"#92400e",fontWeight:600}}>Today's Revenue</div>
+      </div>
+      <div className="card" style={{background:"linear-gradient(135deg,#dbeafe,#bfdbfe)"}}>
+        <div style={{fontSize:22,fontWeight:700,color:"#1e40af",marginBottom:2}}>{todayOrders}</div>
+        <div style={{fontSize:11,color:"#1e40af",fontWeight:600}}>Today's Orders</div>
+      </div>
+    </div>
+    
+    {/* 30-day stats */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:9,marginBottom:18}}>
+      {[["30-Day Revenue",fmt(totalRev),"#bf4626"],["30-Day Orders",totalOrders,"#2563eb"],["Avg Order",fmt(totalRev/Math.max(totalOrders,1)),"#4a7155"]].map(([l,v,c])=><div key={l} className="card"><div style={{fontSize:20,fontWeight:700,color:c,marginBottom:2}}>{v}</div><div style={{fontSize:11,color:"#8a8078",fontWeight:600}}>{l}</div></div>)}
+    </div>
+    
     <div className="card" style={{marginBottom:14}}>
       <h3 style={{fontSize:16,marginBottom:12}}>Revenue - Last 7 Days</h3>
-      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:72}}>{last7.map((d,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div style={{width:"100%",background:"#bf4626",borderRadius:"3px 3px 0 0",height:Math.round((d.rev/mx)*64)+"px",opacity:.7+.3*(d.rev/mx),minHeight:4}}/><span style={{fontSize:9,color:"#8a8078",textAlign:"center"}}>{d.day}</span></div>)}</div>
+      {totalOrders===0?
+        <p style={{fontSize:13,color:"#8a8078",textAlign:"center",padding:20}}>No sales data yet. Reports will fill in as orders come in.</p>
+        :
+        <div style={{display:"flex",alignItems:"flex-end",gap:4,height:90}}>{last7.map((d,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+          <span style={{fontSize:9,fontWeight:700,color:"#bf4626"}}>{d.rev>0?fmt(d.rev):""}</span>
+          <div style={{width:"100%",background:"#bf4626",borderRadius:"3px 3px 0 0",height:Math.round((d.rev/mx)*60)+"px",opacity:.7+.3*(d.rev/mx),minHeight:d.rev>0?4:2}}/>
+          <span style={{fontSize:9,color:"#8a8078",textAlign:"center"}}>{d.day}</span>
+        </div>)}</div>
+      }
     </div>
   </div>;
 }
@@ -15742,19 +15792,19 @@ export default function App(){
       if(t==="account"||t==="chat")return true;
       // POS / phone / tables / bookings / incoming = need take_orders
       if(["pos","phone","tables","bookings","incoming"].includes(t)){
-        return perms.take_orders!==false;
+        return perms.take_orders===true;
       }
-      // Admin tab = need ANY management permission
+      // Admin tab = need a MANAGEMENT permission (NOT view_reports - that's just for Reports tab)
       if(t==="admin"){
-        return perms.manage_menu===true||perms.manage_staff===true||perms.manage_settings===true||perms.view_finance===true||perms.view_reports===true;
+        return perms.manage_menu===true||perms.manage_staff===true||perms.manage_settings===true||perms.view_finance===true;
       }
-      // Reports tab = need view_reports
+      // Reports tab = need view_reports ONLY
       if(t==="report"){
         return perms.view_reports===true;
       }
       // Kitchen / Driver = need take_orders (operational)
       if(t==="kitchen"||t==="driver"){
-        return perms.take_orders!==false;
+        return perms.take_orders===true;
       }
     }
     
