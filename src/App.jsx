@@ -6056,7 +6056,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       });
     }
   };
-  var TABS_ALL=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["marketing","Marketing"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
+  var TABS_ALL=[["orders","Orders"],["analytics","Analytics"],["finance","Finance"],["customers","Customers"],["settings","Settings"],["menu","Menu"],["categories","Categories"],["combos","Set Meals"],["tables","Tables"],["stations","Stations"],["delivery","Delivery"],["staff","Staff"],["marketing","Marketing"],["codes","Promo Codes"],["autodisc","Auto Offers"],["cash","Cash"],["shifts","Shifts"],["stock","Stock"],["discounts","Legacy Disc"],["hours","Hours"]];
   
   // STAFF PIN: Filter tabs based on permissions
   var activeStaff = (typeof window!=="undefined")?dbGetActiveStaff():null;
@@ -6095,6 +6095,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     // ORDERS group
     if(t[0]==="orders") return perms.take_orders===true;
     if(t[0]==="tables") return perms.take_orders===true;
+    if(t[0]==="customers") return perms.take_orders===true||perms.view_reports===true;
     // REPORTS group
     if(t[0]==="analytics") return perms.view_reports===true;
     // FINANCE group
@@ -6278,7 +6279,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     <div style={{background:"#fff",borderRadius:13,padding:9,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.04)",overflow:"hidden"}}>
       <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:3}}>
         {TABS.map(([k,l])=>{
-          var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),marketing:String.fromCharCode(0xD83D,0xDCE3),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
+          var tabIcons={orders:String.fromCharCode(0xD83D,0xDCE6),analytics:String.fromCharCode(0xD83D,0xDCCA),finance:String.fromCharCode(0xD83D,0xDCB0),customers:String.fromCharCode(0xD83D,0xDC64),settings:String.fromCharCode(0x2699,0xFE0F),menu:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),categories:String.fromCharCode(0xD83D,0xDCC1),combos:String.fromCharCode(0xD83C,0xDF7D,0xFE0F),tables:String.fromCharCode(0xD83E,0xDE91),stations:String.fromCharCode(0xD83D,0xDD25),delivery:String.fromCharCode(0xD83D,0xDEF5),staff:String.fromCharCode(0xD83D,0xDC65),marketing:String.fromCharCode(0xD83D,0xDCE3),codes:String.fromCharCode(0xD83C,0xDFAB),autodisc:String.fromCharCode(0xD83C,0xDF81),cash:String.fromCharCode(0xD83D,0xDCB5),shifts:String.fromCharCode(0xD83D,0xDD52),stock:String.fromCharCode(0xD83D,0xDCE6),discounts:String.fromCharCode(0xD83C,0xDFF7,0xFE0F),hours:String.fromCharCode(0xD83D,0xDD56)};
           return <button key={k} onClick={()=>setTab(k)} style={{padding:"13px 18px",borderRadius:10,fontWeight:700,fontSize:13.5,whiteSpace:"nowrap",border:"none",background:tab===k?"linear-gradient(135deg,#1a1208,#3d2818)":"#f7f3ee",color:tab===k?"#fff":"#5d4e3e",cursor:"pointer",flexShrink:0,transition:"all .15s",display:"flex",alignItems:"center",gap:7,boxShadow:tab===k?"0 3px 10px rgba(26,18,8,.25)":"none",minHeight:50}}>
             <span style={{fontSize:17}}>{tabIcons[k]||String.fromCharCode(0x2022)}</span>
             <span>{l}</span>
@@ -6439,6 +6440,82 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>;
       })}
     </div>}
+    {tab==="customers"&&(()=>{
+      // Build customer list from orders - aggregate by phone/name
+      var custMap={};
+      (orders||[]).forEach(function(o){
+        if(o.status==="cancelled")return;
+        var key=(o.phone||o.customer||"unknown").toLowerCase().trim();
+        if(!custMap[key]){
+          custMap[key]={
+            name:o.customer||"Guest",
+            phone:o.phone||"",
+            address:o.address||null,
+            orderCount:0,
+            totalSpent:0,
+            lastOrder:null,
+            types:{},
+          };
+        }
+        var c=custMap[key];
+        c.orderCount++;
+        c.totalSpent+=parseFloat(o.total||0);
+        if(o.customer&&o.customer!=="Guest")c.name=o.customer;
+        if(o.phone)c.phone=o.phone;
+        if(o.address)c.address=o.address;
+        if(o.type)c.types[o.type]=(c.types[o.type]||0)+1;
+        var od=o.created_at?new Date(o.created_at):null;
+        if(od&&(!c.lastOrder||od>c.lastOrder))c.lastOrder=od;
+      });
+      var custList=Object.values(custMap).filter(function(c){return c.phone||c.name!=="Guest";});
+      custList.sort(function(a,b){return b.totalSpent-a.totalSpent;});
+      
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+          <div>
+            <h3 style={{fontSize:18,fontWeight:700}}>Customers</h3>
+            <p style={{fontSize:12,color:"#8a8078"}}>{custList.length} customers from order history</p>
+          </div>
+        </div>
+        
+        {custList.length===0?
+          <div className="card" style={{textAlign:"center",padding:30}}>
+            <div style={{fontSize:40,marginBottom:8}}>{String.fromCharCode(0xD83D,0xDC64)}</div>
+            <p style={{fontSize:14,fontWeight:700,marginBottom:3}}>No customers yet</p>
+            <p style={{fontSize:12,color:"#8a8078"}}>Customers appear here automatically as orders come in</p>
+          </div>
+          :
+          <div style={{display:"grid",gap:9}}>
+            {custList.map(function(c,i){
+              var addr=c.address||{};
+              var addrLine=[addr.line1,addr.city,addr.postcode].filter(Boolean).join(", ");
+              var typeList=Object.keys(c.types).map(function(t){return t+" ("+c.types[t]+")";}).join(", ");
+              return <div key={i} className="card" style={{padding:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+                  <div style={{flex:1,minWidth:180}}>
+                    <p style={{fontWeight:700,fontSize:15}}>{c.name}</p>
+                    {c.phone&&<p style={{fontSize:13,marginTop:3}}><a href={"tel:"+c.phone} style={{color:"#2563eb",fontWeight:600,textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDCDE)} {c.phone}</a></p>}
+                    {addrLine&&<p style={{fontSize:12,color:"#8a8078",marginTop:3}}>{String.fromCharCode(0xD83D,0xDCCD)} {addrLine}</p>}
+                    {typeList&&<p style={{fontSize:11,color:"#8a8078",marginTop:3}}>{typeList}</p>}
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <p style={{fontSize:18,fontWeight:700,color:"#bf4626"}}>{fmt(c.totalSpent)}</p>
+                    <p style={{fontSize:11,color:"#8a8078"}}>{c.orderCount} order{c.orderCount!==1?"s":""}</p>
+                    {c.lastOrder&&<p style={{fontSize:10,color:"#8a8078",marginTop:2}}>Last: {c.lastOrder.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</p>}
+                  </div>
+                </div>
+                {/* Quick actions */}
+                <div style={{display:"flex",gap:6,marginTop:10}}>
+                  {c.phone&&<a href={"tel:"+c.phone} style={{flex:1,padding:"8px",background:"#2563eb",color:"#fff",borderRadius:7,fontWeight:700,fontSize:12,textAlign:"center",textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDCDE)} Call</a>}
+                  {c.phone&&<a href={"sms:"+c.phone} style={{flex:1,padding:"8px",background:"#7c3aed",color:"#fff",borderRadius:7,fontWeight:700,fontSize:12,textAlign:"center",textDecoration:"none"}}>{String.fromCharCode(0xD83D,0xDCAC)} Text</a>}
+                </div>
+              </div>;
+            })}
+          </div>
+        }
+      </div>;
+    })()}
+    
     {tab==="analytics"&&<div className="g2"><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Revenue</h3><p style={{fontSize:26,fontWeight:700,color:"#bf4626"}}>{fmt(rev)}</p><p style={{fontSize:12,color:"#8a8078",marginTop:4}}>Avg: {fmt(fil.length?rev/fil.length:0)}</p></div><div className="card"><h3 style={{fontSize:15,marginBottom:10}}>Order Types</h3>{[["Dine In","dine-in"],["Takeaway","takeaway"],["Collection","collection"]].map(([l,t])=>{var c=fil.filter(o=>o.type===t).length;return <div key={t} style={{marginBottom:7}}><div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:2}}><span style={{fontWeight:600}}>{l}</span><span style={{color:"#8a8078"}}>{c}</span></div><div style={{height:4,background:"#f7f3ee",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:"#bf4626",width:Math.max(fil.length,1)?Math.round((c/Math.max(fil.length,1))*100)+"%":"0%",borderRadius:2}}/></div></div>;})}</div></div>}
     {tab==="menu"&&(()=>{
       // Apply filters
