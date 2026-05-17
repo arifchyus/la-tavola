@@ -611,6 +611,17 @@ button:active{transform:scale(0.97)}
 button,a,.card{-webkit-tap-highlight-color:transparent}
 `;
 
+// Apply saved UI scale (touchscreen display size preference)
+(function applyUIScale(){
+  try{
+    var saved=localStorage.getItem("ui_scale");
+    if(saved&&saved!=="100"){
+      // zoom scales the whole UI proportionally - works for touchscreens
+      document.body.style.zoom=(parseInt(saved)/100);
+    }
+  }catch(e){}
+})();
+
 // Get receipt settings from localStorage
 function getReceiptSettings(){
   try{
@@ -7354,6 +7365,29 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
 
     {tab==="settings"&&<div>
+      {/* DISPLAY SIZE - touchscreen comfort */}
+      <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #0891b2"}}>
+        <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83D,0xDD0D)} Display Size</p>
+        <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Adjust how big everything looks. Great for touchscreens - bigger size = easier to tap.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          {[["90","Small"],["100","Normal"],["115","Large"],["130","Extra Large"]].map(([val,label])=>{
+            var current=(typeof window!=="undefined"&&localStorage.getItem("ui_scale"))||"100";
+            var isActive=current===val;
+            return <button key={val} onClick={()=>{
+              try{
+                localStorage.setItem("ui_scale",val);
+                document.body.style.zoom=(parseInt(val)/100);
+                window.location.reload();
+              }catch(e){}
+            }} style={{padding:"16px 10px",borderRadius:11,border:"2px solid "+(isActive?"#0891b2":"#ede8de"),background:isActive?"#ecfeff":"#fff",cursor:"pointer",textAlign:"center"}}>
+              <div style={{fontSize:val==="90"?15:val==="100"?19:val==="115"?23:27,fontWeight:700,marginBottom:4,color:isActive?"#0e7490":"#1a1208"}}>A</div>
+              <p style={{fontSize:11,fontWeight:700,color:isActive?"#0e7490":"#8a8078"}}>{label}</p>
+            </button>;
+          })}
+        </div>
+        <p style={{fontSize:10,color:"#8a8078",marginTop:9,textAlign:"center"}}>{String.fromCharCode(0xD83D,0xDCA1)} The page will refresh to apply the new size</p>
+      </div>
+      
       {/* PHASE A: Restaurant Info - critical for delivery */}
       {restaurant&&<div className="card" style={{padding:16,marginBottom:12,borderLeft:"4px solid #bf4626"}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83C,0xDFEA)} Restaurant Information</p>
