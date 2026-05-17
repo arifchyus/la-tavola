@@ -6540,9 +6540,11 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
     {tab==="cash"&&(()=>{
       // Find all delivered orders with cash collected but not yet handed over
+      // Catches both "cash" and "cod" pay methods (COD orders paid in cash)
       var unsettled=orders.filter(o=>{
         if(branch&&o.branchId&&o.branchId!==branch.id)return false;
-        return o.type==="delivery"&&o.status==="delivered"&&o.payMethod==="cash"&&o.paid&&!o.cashHandoverId;
+        var isCashType=o.payMethod==="cash"||o.payMethod==="cod";
+        return o.type==="delivery"&&o.status==="delivered"&&isCashType&&o.paid&&!o.cashHandoverId&&!o.handoverId;
       });
       // Group by driver
       var byDriver={};
@@ -6632,7 +6634,8 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         <h4 style={{fontSize:13,fontWeight:700,marginBottom:8,color:"#8a8078",letterSpacing:1}}>DRIVERS WITH CASH OWED</h4>
         {driverList.length===0?<div className="card" style={{textAlign:"center",padding:24}}>
           <p style={{fontSize:30,marginBottom:6}}>{EM.check}</p>
-          <p style={{fontSize:13,color:"#8a8078"}}>All cash reconciled - no drivers owe money</p>
+          <p style={{fontSize:13,color:"#8a8078",fontWeight:700}}>No outstanding cash right now</p>
+          <p style={{fontSize:11,color:"#8a8078",marginTop:4}}>When drivers collect cash on delivery, it appears here. Drivers can also start a handover from their portal - those show in "Pending Handovers" above.</p>
         </div>:driverList.map(g=><div key={g.driver} className="card" style={{padding:14,marginBottom:9,borderLeft:"4px solid #f59e0b"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9,flexWrap:"wrap",gap:6}}>
             <div>
@@ -8959,7 +8962,7 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
-            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,
+            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,handoverId:o.handover_id,
             created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
@@ -15330,7 +15333,7 @@ export default function App(){
             status:o.status,type:o.type,paid:o.paid,payMethod:o.pay_method,
             address:o.address,slot:o.slot,takenBy:o.taken_by,source:o.source,
             tableId:o.table_id,stationProgress:o.station_progress||{},deliveryCode:o.delivery_code,codeMethod:o.code_method,deliveredAt:o.delivered_at,deliveredBy:o.delivered_by,cashCollected:o.cash_collected?parseFloat(o.cash_collected):null,cashHandoverId:o.cash_handover_id,serviceCharge:parseFloat(o.service_charge||0),discount:parseFloat(o.discount||0),
-            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,
+            assignedDriverId:o.assigned_driver_id,assignedDriverName:o.assigned_driver_name,claimedAt:o.claimed_at,handoverId:o.handover_id,
             created_at:o.created_at,
             time:new Date(o.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),
           }));
