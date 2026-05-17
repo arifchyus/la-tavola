@@ -612,18 +612,19 @@ button,a,.card{-webkit-tap-highlight-color:transparent}
 `;
 
 // Apply saved UI scale (touchscreen display size preference)
-(function applyUIScale(){
+// Note: applied to main content area only (not nav) to avoid layout breaks
+function getUIScale(){
   try{
     var saved=localStorage.getItem("ui_scale");
-    if(saved&&saved!=="100"){
+    if(saved){
       var z=parseInt(saved)/100;
-      // Keep within safe range so layouts don't break
       if(z<0.9)z=0.9;
-      if(z>1.1)z=1.1;
-      document.body.style.zoom=z;
+      if(z>1.15)z=1.15;
+      return z;
     }
   }catch(e){}
-})();
+  return 1;
+}
 
 // Get receipt settings from localStorage
 function getReceiptSettings(){
@@ -4796,19 +4797,27 @@ function StaffManagementTab({restaurant, branch, push}){
   
   var handleSave = async (data)=>{
     var result;
-    if(data.id){
-      result = await dbUpdateStaff(data.id, data);
-    } else {
-      result = await dbCreateStaff(data);
+    try{
+      if(data.id){
+        result = await dbUpdateStaff(data.id, data);
+      } else {
+        result = await dbCreateStaff(data);
+      }
+    }catch(e){
+      console.error("Staff save exception:",e);
+      if(window.showAlert)window.showAlert("Save Failed","Could not save staff: "+(e.message||"unknown error"),"error");
+      return;
     }
     
     if(result.error){
       console.error("Staff save error:", result.error);
-      push&&push({title:"Failed", body:(result.error.message||result.error.details||"Check console for details")});
+      if(window.showAlert)window.showAlert("Save Failed",(result.error.message||result.error.details||"Check the details and try again."),"error");
+      else push&&push({title:"Failed", body:(result.error.message||"error")});
       return;
     }
     
-    push&&push({title:data.id?"Staff updated":"Staff added", color:"#059669"});
+    if(window.showAlert)window.showAlert(data.id?"Staff Updated":"Staff Added",(data.full_name||"Staff member")+" saved successfully.","success");
+    else push&&push({title:data.id?"Staff updated":"Staff added", color:"#059669"});
     setEditingStaff(null);
     setShowAddModal(false);
     loadStaff();
@@ -15997,7 +16006,7 @@ export default function App(){
       Back online - syncing {pendingCount} order{pendingCount>1?"s":""}...
     </div>}
     {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
-    <main style={{paddingBottom:20}}>
+    <main style={{paddingBottom:20,zoom:getUIScale()}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs} restaurant={restaurant}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser} restaurant={restaurant}/>}
       {view==="phone"   &&<PhoneOrderV customers={customers} setCustomers={setCustomers} menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} orders={orders} restaurant={restaurant}/>}

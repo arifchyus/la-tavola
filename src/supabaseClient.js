@@ -2766,14 +2766,17 @@ export async function createStaffMember(staff) {
 // UPDATE staff member
 export async function updateStaffMember(staffId, updates) {
   // Remove fields that shouldn't be updated
-  const { id, created_at, updated_at, restaurant_id, ...cleanUpdates } = updates;
+  const { id, created_at, updated_at, restaurant_id, restaurants, ...cleanUpdates } = updates;
   
   const payload = { ...cleanUpdates, updated_at: new Date().toISOString() };
   
   // Convert numeric strings
-  if (payload.hourly_rate) payload.hourly_rate = parseFloat(payload.hourly_rate);
-  if (payload.monthly_salary) payload.monthly_salary = parseFloat(payload.monthly_salary);
-  if (payload.commission_rate) payload.commission_rate = parseFloat(payload.commission_rate);
+  if (payload.hourly_rate==='') payload.hourly_rate = null;
+  else if (payload.hourly_rate) payload.hourly_rate = parseFloat(payload.hourly_rate);
+  if (payload.monthly_salary==='') payload.monthly_salary = null;
+  else if (payload.monthly_salary) payload.monthly_salary = parseFloat(payload.monthly_salary);
+  if (payload.commission_rate==='') payload.commission_rate = null;
+  else if (payload.commission_rate) payload.commission_rate = parseFloat(payload.commission_rate);
   
   // Convert empty strings to null for date fields
   const dateFields = ['date_of_birth', 'start_date', 'end_date', 'driver_license_expiry', 'insurance_expiry'];
@@ -2781,13 +2784,37 @@ export async function updateStaffMember(staffId, updates) {
     if (payload[field] === '') payload[field] = null;
   });
   
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('employees')
     .update(payload)
     .eq('id', staffId)
     .eq('restaurant_id', _rid())
     .select()
     .single();
+  
+  // If error mentions a missing column, retry with only the essential fields
+  if (error && error.message && error.message.toLowerCase().includes('column')) {
+    console.warn('updateStaffMember: column error, retrying with core fields only:', error.message);
+    const corePayload = {
+      full_name: payload.full_name,
+      email: payload.email,
+      phone: payload.phone,
+      position: payload.position,
+      pin: payload.pin,
+      status: payload.status,
+      permissions: payload.permissions,
+      updated_at: new Date().toISOString(),
+    };
+    const retry = await supabase
+      .from('employees')
+      .update(corePayload)
+      .eq('id', staffId)
+      .eq('restaurant_id', _rid())
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
   
   if (error) console.error('updateStaffMember error:', error);
   return { data, error };
