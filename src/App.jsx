@@ -8685,10 +8685,17 @@ function PhoneOrderV({customers,setCustomers,menu,onOrder,push,user,branch,order
   var placeOrder=(paid)=>{
     if(!cart.length)return;
     if(orderType==="delivery"&&deliveryCheck&&!deliveryCheck.ok){alert(deliveryCheck.reason);return;}
-    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),created_at:new Date().toISOString(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone",notes:orderNotes||""};
+    // Generate 4-digit delivery code for delivery orders (driver verifies it)
+    var deliveryCode=orderType==="delivery"?String(Math.floor(1000+Math.random()*9000)):null;
+    var o={id:uid(),branchId:branch?.id,userId:found.id,customer:found.name+" ("+found.phone+")",phone:found.phone,items:cart,subtotal,deliveryFee,total,status:"preparing",time:nowT(),created_at:new Date().toISOString(),type:orderType==="delivery"?"delivery":orderType==="collection"?"collection":"dine-in",paid,address:orderType==="delivery"?found.address:null,takenBy:user?.name,source:"phone",notes:orderNotes||"",deliveryCode:deliveryCode};
     onOrder(o);
     setCustomers(cs=>cs.map(c=>c.id===found.id?{...c,lastOrder:o.id,totalOrders:c.totalOrders+1,totalSpent:c.totalSpent+total}:c));
-    push({title:"Phone order placed!",body:o.id+" - "+fmt(total),color:"#059669"});
+    if(deliveryCode){
+      push({title:"Phone order placed!",body:o.id+" - Delivery code: "+deliveryCode,color:"#059669"});
+      if(window.showAlert)window.showAlert("Delivery Code: "+deliveryCode,"Tell the customer their delivery code is "+deliveryCode+".\n\nThey must give this code to the driver when paying cash on delivery.","info");
+    }else{
+      push({title:"Phone order placed!",body:o.id+" - "+fmt(total),color:"#059669"});
+    }
     setPhone("");setFound(null);setSearched(false);setStep("search");setCart([]);setNewCust({name:"",line1:"",postcode:"",notes:"",distance:0});setOrderNotes("");
   };
 
