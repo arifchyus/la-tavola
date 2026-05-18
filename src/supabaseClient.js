@@ -4653,12 +4653,15 @@ export async function getHandoverHistory(filters) {
   let query = supabase
     .from('cash_handovers')
     .select('*')
-    .eq('restaurant_id', _rid())
     .order('initiated_at', { ascending: false })
     .limit(50);
   
+  // If filtering by driver, that's specific enough (don't also need restaurant filter)
   if (filters?.driverId) {
     query = query.eq('driver_id', filters.driverId);
+  } else {
+    // No driver filter = manager view = filter by restaurant
+    query = query.eq('restaurant_id', _rid());
   }
   if (filters?.status) {
     query = query.eq('status', filters.status);

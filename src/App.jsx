@@ -13080,6 +13080,10 @@ function DriverStandaloneView({driver, onLogout}){
   
   var loadHandoverData=async()=>{
     if(!driver?.id)return;
+    // Ensure restaurant context is set (critical - history filters by restaurant)
+    if(driver?.restaurants?.id){
+      try{dbSetRestaurantId(driver.restaurants.id);}catch(e){}
+    }
     try{
       var pending=await dbPendingHandover(driver.id);
       setPendingHandover(pending);
