@@ -608,6 +608,13 @@ input[type=text],input[type=number],input[type=email],input[type=tel],input[type
 button:active{transform:scale(0.97)}
 .btn:active{transform:scale(0.97)}
 
+/* Hide controls when printing an invoice */
+@media print{
+  .no-print{display:none!important}
+  body *{visibility:hidden}
+  .print-area,.print-area *{visibility:visible}
+}
+
 /* Remove tap highlight flash on mobile, use our own feedback */
 button,a,.card{-webkit-tap-highlight-color:transparent}
 `;
@@ -13861,9 +13868,119 @@ function MarketingPaymentsTab({loadData}){
 }
 
 // SUPER ADMIN: Commissions tab - restaurants on commission plan
+// Monthly commission invoice for a restaurant
+function CommissionInvoiceModal({restaurant,onClose}){
+  // Month selection - default to last month
+  var now=new Date();
+  var [monthOffset,setMonthOffset]=useState(0); // 0 = this month, -1 = last month
+  
+  var targetDate=new Date(now.getFullYear(),now.getMonth()+monthOffset,1);
+  var monthName=targetDate.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  
+  // Filter this restaurant's commission entries for the selected month
+  var entries=(restaurant.entries||[]).filter(function(e){
+    var d=new Date(e.created_at);
+    return d.getMonth()===targetDate.getMonth()&&d.getFullYear()===targetDate.getFullYear();
+  });
+  var monthTotal=entries.reduce(function(s,e){return s+parseFloat(e.commission_amount||0);},0);
+  var orderTotalSum=entries.reduce(function(s,e){return s+parseFloat(e.order_total||0);},0);
+  var rate=entries.length>0?entries[0].commission_rate:0;
+  
+  // Invoice number: INV-{restaurantshort}-{YYYYMM}
+  var invNum="INV-"+(restaurant.restaurant_name||"R").slice(0,3).toUpperCase()+"-"+targetDate.getFullYear()+String(targetDate.getMonth()+1).padStart(2,"0");
+  
+  var printInvoice=function(){
+    window.print();
+  };
+  
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:14}}>
+    <div onClick={function(e){e.stopPropagation();}} style={{background:"#fff",borderRadius:14,maxWidth:560,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
+      {/* Controls (hidden when printing) */}
+      <div className="no-print" style={{padding:"12px 16px",borderBottom:"1px solid #ede8de",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <button onClick={function(){setMonthOffset(monthOffset-1);}} style={{padding:"6px 11px",borderRadius:6,border:"1px solid #ddd",background:"#fff",cursor:"pointer",fontWeight:700}}>{String.fromCharCode(0x2190)}</button>
+          <span style={{fontSize:13,fontWeight:700,minWidth:120,textAlign:"center"}}>{monthName}</span>
+          <button onClick={function(){if(monthOffset<0)setMonthOffset(monthOffset+1);}} disabled={monthOffset>=0} style={{padding:"6px 11px",borderRadius:6,border:"1px solid #ddd",background:monthOffset>=0?"#f5f5f5":"#fff",cursor:monthOffset>=0?"not-allowed":"pointer",fontWeight:700}}>{String.fromCharCode(0x2192)}</button>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={printInvoice} style={{padding:"7px 14px",background:"#1a1208",color:"#fff",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDDA8,0xFE0F)} Print / Save PDF</button>
+          <button onClick={onClose} style={{padding:"7px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>Close</button>
+        </div>
+      </div>
+      
+      {/* THE INVOICE */}
+      <div style={{padding:28,color:"#1a1208"}}>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24,flexWrap:"wrap",gap:12}}>
+          <div>
+            <p style={{fontSize:24,fontWeight:700,fontFamily:"Georgia,serif"}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} La Tavola</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>Restaurant Management Platform</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:6}}>Arifuzzaman Chowdhury<br/>T/A La Tavola</p>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <p style={{fontSize:20,fontWeight:700}}>INVOICE</p>
+            <p style={{fontSize:11,color:"#8a8078"}}>{invNum}</p>
+            <p style={{fontSize:11,color:"#8a8078",marginTop:4}}>Issued: {now.toLocaleDateString("en-GB")}</p>
+          </div>
+        </div>
+        
+        {/* Bill to */}
+        <div style={{background:"#f7f3ee",borderRadius:9,padding:13,marginBottom:18}}>
+          <p style={{fontSize:10,color:"#8a8078",fontWeight:700,letterSpacing:1}}>BILL TO</p>
+          <p style={{fontSize:15,fontWeight:700,marginTop:3}}>{restaurant.restaurant_name}</p>
+          <p style={{fontSize:11,color:"#8a8078"}}>Commission period: {monthName}</p>
+        </div>
+        
+        {/* Line items */}
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,marginBottom:16}}>
+          <thead>
+            <tr style={{borderBottom:"2px solid #1a1208"}}>
+              <th style={{textAlign:"left",padding:"7px 4px"}}>Description</th>
+              <th style={{textAlign:"right",padding:"7px 4px"}}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{borderBottom:"1px solid #ede8de"}}>
+              <td style={{padding:"9px 4px"}}>
+                Online order commission - {monthName}<br/>
+                <span style={{fontSize:10,color:"#8a8078"}}>{entries.length} online orders {String.fromCharCode(0x2022)} {fmt(orderTotalSum)} total order value {String.fromCharCode(0x2022)} {rate}% commission</span>
+              </td>
+              <td style={{textAlign:"right",padding:"9px 4px",fontWeight:700}}>{fmt(monthTotal)}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        {/* Total */}
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:20}}>
+          <div style={{minWidth:200}}>
+            <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:12}}>
+              <span style={{color:"#8a8078"}}>Subtotal</span>
+              <span>{fmt(monthTotal)}</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderTop:"2px solid #1a1208",fontSize:15,fontWeight:700}}>
+              <span>Total Due</span>
+              <span>{fmt(monthTotal)}</span>
+            </div>
+          </div>
+        </div>
+        
+        {entries.length===0&&<p style={{fontSize:12,color:"#8a8078",textAlign:"center",padding:14,background:"#fffbeb",borderRadius:8}}>No commission charges for {monthName}.</p>}
+        
+        {/* Payment terms */}
+        <div style={{borderTop:"1px solid #ede8de",paddingTop:14,fontSize:10,color:"#8a8078"}}>
+          <p style={{fontWeight:700,marginBottom:3}}>Payment Terms</p>
+          <p>Payment due within 14 days of invoice date. Commission is charged on online orders (delivery & collection) placed through the La Tavola platform.</p>
+          <p style={{marginTop:8}}>Thank you for using La Tavola.</p>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
 function CommissionsTab(){
   var [data,setData]=useState([]);
   var [loading,setLoading]=useState(true);
+  var [invoiceFor,setInvoiceFor]=useState(null); // restaurant to show invoice for
   
   var load=function(){
     setLoading(true);
@@ -13928,11 +14045,16 @@ function CommissionsTab(){
                 <p style={{fontSize:10,color:"#a8956a"}}>owed</p>
               </div>
             </div>
-            {rest.unpaid>0&&<button onClick={function(){markPaid(rest);}} style={{marginTop:11,width:"100%",padding:"10px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2705)} Mark {fmt(rest.unpaid)} as Paid</button>}
+            <div style={{display:"flex",gap:7,marginTop:11,flexWrap:"wrap"}}>
+              <button onClick={function(){setInvoiceFor(rest);}} style={{flex:1,minWidth:120,padding:"10px",background:"#3d2e22",color:"#fbbf24",border:"1px solid #fbbf24",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCC4)} View Invoice</button>
+              {rest.unpaid>0&&<button onClick={function(){markPaid(rest);}} style={{flex:1,minWidth:120,padding:"10px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2705)} Mark {fmt(rest.unpaid)} Paid</button>}
+            </div>
           </div>;
         })}
       </div>
     }
+    
+    {invoiceFor&&<CommissionInvoiceModal restaurant={invoiceFor} onClose={function(){setInvoiceFor(null);}}/>}
   </div>;
 }
 
