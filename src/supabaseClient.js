@@ -4859,7 +4859,7 @@ export async function getAllCommissions() {
 }
 
 // SUPER ADMIN: Mark a restaurant's unpaid commission as paid
-export async function markCommissionPaid(restaurantId) {
+export async function markRestaurantCommissionPaid(restaurantId) {
   const { error } = await supabase
     .from('commission_ledger')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
@@ -4867,7 +4867,7 @@ export async function markCommissionPaid(restaurantId) {
     .eq('status', 'unpaid');
   
   if (error) {
-    console.error('markCommissionPaid:', error);
+    console.error('markRestaurantCommissionPaid:', error);
     return { error };
   }
   return { success: true };
