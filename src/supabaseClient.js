@@ -4765,3 +4765,111 @@ export async function fetchTeamMessages() {
   return data || [];
 }
 
+
+// ===========================================================
+// COMMISSION SYSTEM - Hybrid pricing
+// ===========================================================
+
+// Record commission when an online order is placed (commission-plan restaurants only)
+export async function recordCommission(order, restaurant) {
+  // Only for commission-billing restaurants with a rate set
+  if (!restaurant || restaurant.billing_type !== 'commission') return null;
+  const rate = parseFloat(restaurant.commission_rate || 0);
+  if (rate <= 0) return null;
+  
+  const orderTotal = parseFloat(order.total || 0);
+  const commissionAmount = orderTotal * (rate / 100);
+  if (commissionAmount <= 0) return null;
+  
+  const { data, error } = await supabase
+    .from('commission_ledger')
+    .insert({
+      restaurant_id: restaurant.id,
+      restaurant_name: restaurant.name,
+      order_id: order.dbId || null,
+      order_number: order.id || order.order_number || null,
+      order_total: orderTotal,
+      commission_rate: rate,
+      commission_amount: commissionAmount,
+      status: 'unpaid',
+    })
+    .select()
+    .single();
+  
+  if (error) console.error('recordCommission:', error);
+  return data;
+}
+
+// Get commission summary for one restaurant
+export async function getRestaurantCommission(restaurantId) {
+  const { data, error } = await supabase
+    .from('commission_ledger')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('getRestaurantCommission:', error);
+    return { unpaid: 0, paid: 0, entries: [] };
+  }
+  
+  const entries = data || [];
+  const unpaid = entries.filter(e => e.status === 'unpaid')
+    .reduce((s, e) => s + parseFloat(e.commission_amount || 0), 0);
+  const paid = entries.filter(e => e.status === 'paid')
+    .reduce((s, e) => s + parseFloat(e.commission_amount || 0), 0);
+  
+  return { unpaid, paid, entries };
+}
+
+// SUPER ADMIN: Get commission owed by all restaurants
+export async function getAllCommissions() {
+  const { data, error } = await supabase
+    .from('commission_ledger')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error('getAllCommissions:', error);
+    return [];
+  }
+  
+  // Group by restaurant
+  const byRestaurant = {};
+  (data || []).forEach(e => {
+    const key = e.restaurant_id;
+    if (!byRestaurant[key]) {
+      byRestaurant[key] = {
+        restaurant_id: e.restaurant_id,
+        restaurant_name: e.restaurant_name,
+        unpaid: 0,
+        paid: 0,
+        orderCount: 0,
+        entries: [],
+      };
+    }
+    const r = byRestaurant[key];
+    r.entries.push(e);
+    r.orderCount++;
+    if (e.status === 'unpaid') r.unpaid += parseFloat(e.commission_amount || 0);
+    else r.paid += parseFloat(e.commission_amount || 0);
+  });
+  
+  return Object.values(byRestaurant);
+}
+
+// SUPER ADMIN: Mark a restaurant's unpaid commission as paid
+export async function markCommissionPaid(restaurantId) {
+  const { error } = await supabase
+    .from('commission_ledger')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('restaurant_id', restaurantId)
+    .eq('status', 'unpaid');
+  
+  if (error) {
+    console.error('markCommissionPaid:', error);
+    return { error };
+  }
+  return { success: true };
+}
+
