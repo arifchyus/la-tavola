@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,sendTeamMessage as dbSendTeamMsg,fetchTeamMessages as dbFetchTeamMsgs,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,sendTeamMessage as dbSendTeamMsg,fetchTeamMessages as dbFetchTeamMsgs,recordCommission as dbRecordCommission,getRestaurantCommission as dbGetRestCommission,getAllCommissions as dbGetAllCommissions,markRestaurantCommissionPaid as dbMarkRestCommPaid,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -7335,6 +7335,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
           </div>
         </div>
         
+        {/* Commission widget - only if on commission billing */}
+        <CommissionWidget restaurant={restaurant}/>
+        
         {/* Date Range Picker */}
         <div className="card" style={{padding:13,marginBottom:11}}>
           <div style={{display:"flex",gap:7,alignItems:"end",flexWrap:"wrap",marginBottom:9}}>
@@ -7972,6 +7975,52 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         <p style={{fontSize:11,color:"#92400e"}}>For full feature access, keep "Modern" UI selected. We will build out Classic and Compact in upcoming updates.</p>
       </div>
     </div>}
+  </div>;
+}
+
+// Restaurant's own commission view (shown in Finance tab if on commission plan)
+function CommissionWidget({restaurant}){
+  var [comm,setComm]=useState(null);
+  
+  useEffect(function(){
+    if(!restaurant||restaurant.billing_type!=="commission")return;
+    dbGetRestCommission(restaurant.id).then(function(d){setComm(d);}).catch(function(e){console.error(e);});
+  },[restaurant]);
+  
+  // Only show for commission-plan restaurants
+  if(!restaurant||restaurant.billing_type!=="commission")return null;
+  if(!comm)return null;
+  
+  // This month's charges
+  var now=new Date();
+  var thisMonth=(comm.entries||[]).filter(function(e){
+    var d=new Date(e.created_at);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+  var thisMonthTotal=thisMonth.reduce(function(s,e){return s+parseFloat(e.commission_amount||0);},0);
+  
+  return <div className="card" style={{padding:14,marginBottom:11,borderLeft:"4px solid #7c3aed"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+      <div>
+        <p style={{fontSize:14,fontWeight:700}}>{String.fromCharCode(0xD83D,0xDCB3)} Platform Commission</p>
+        <p style={{fontSize:11,color:"#8a8078",marginTop:2}}>You're on the commission plan ({restaurant.commission_rate||0}% per online order)</p>
+      </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:9,marginTop:11}}>
+      <div style={{background:"#f5f3ff",borderRadius:9,padding:11}}>
+        <p style={{fontSize:19,fontWeight:700,color:"#7c3aed"}}>{fmt(thisMonthTotal)}</p>
+        <p style={{fontSize:10,color:"#8a8078"}}>This month</p>
+      </div>
+      <div style={{background:"#fef3c7",borderRadius:9,padding:11}}>
+        <p style={{fontSize:19,fontWeight:700,color:"#92400e"}}>{fmt(comm.unpaid)}</p>
+        <p style={{fontSize:10,color:"#8a8078"}}>Total owed</p>
+      </div>
+      <div style={{background:"#d1fae5",borderRadius:9,padding:11}}>
+        <p style={{fontSize:19,fontWeight:700,color:"#065f46"}}>{fmt(comm.paid)}</p>
+        <p style={{fontSize:10,color:"#8a8078"}}>Paid to date</p>
+      </div>
+    </div>
+    {comm.unpaid>0&&<p style={{fontSize:11,color:"#8a8078",marginTop:9,paddingTop:9,borderTop:"1px solid #ede8de"}}>{String.fromCharCode(0xD83D,0xDCA1)} Commission is billed monthly. You'll be contacted with payment details.</p>}
   </div>;
 }
 
@@ -13811,6 +13860,82 @@ function MarketingPaymentsTab({loadData}){
   </div>;
 }
 
+// SUPER ADMIN: Commissions tab - restaurants on commission plan
+function CommissionsTab(){
+  var [data,setData]=useState([]);
+  var [loading,setLoading]=useState(true);
+  
+  var load=function(){
+    setLoading(true);
+    dbGetAllCommissions().then(function(d){
+      setData(d||[]);
+      setLoading(false);
+    }).catch(function(e){console.error(e);setLoading(false);});
+  };
+  useEffect(function(){load();},[]);
+  
+  var markPaid=async function(rest){
+    var ok=await window.showConfirm("Mark Commission Paid","Confirm that "+rest.restaurant_name+" has paid "+fmt(rest.unpaid)+" in commission?","Yes, Mark Paid","Cancel","success");
+    if(!ok)return;
+    var result=await dbMarkRestCommPaid(rest.restaurant_id);
+    if(result.error){
+      if(window.showAlert)window.showAlert("Error","Could not update: "+result.error.message,"error");
+      return;
+    }
+    if(window.showAlert)window.showAlert("Done","Commission marked as paid.","success");
+    load();
+  };
+  
+  var totalUnpaid=data.reduce(function(s,r){return s+r.unpaid;},0);
+  var totalPaid=data.reduce(function(s,r){return s+r.paid;},0);
+  
+  if(loading)return <p style={{color:"#a8956a",textAlign:"center",padding:30}}>Loading commissions...</p>;
+  
+  return <div>
+    {/* Summary */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:11,marginBottom:18}}>
+      <div style={{background:"#3d2e22",borderRadius:11,padding:15}}>
+        <p style={{fontSize:24,fontWeight:700,color:"#fbbf24"}}>{fmt(totalUnpaid)}</p>
+        <p style={{fontSize:11,color:"#a8956a",marginTop:3}}>Commission owed to you</p>
+      </div>
+      <div style={{background:"#3d2e22",borderRadius:11,padding:15}}>
+        <p style={{fontSize:24,fontWeight:700,color:"#10b981"}}>{fmt(totalPaid)}</p>
+        <p style={{fontSize:11,color:"#a8956a",marginTop:3}}>Commission collected</p>
+      </div>
+      <div style={{background:"#3d2e22",borderRadius:11,padding:15}}>
+        <p style={{fontSize:24,fontWeight:700,color:"#fff"}}>{data.length}</p>
+        <p style={{fontSize:11,color:"#a8956a",marginTop:3}}>Restaurants on commission</p>
+      </div>
+    </div>
+    
+    {data.length===0?
+      <div style={{background:"#3d2e22",borderRadius:11,padding:30,textAlign:"center"}}>
+        <p style={{fontSize:36,marginBottom:8}}>{String.fromCharCode(0xD83D,0xDCB0)}</p>
+        <p style={{color:"#fff",fontWeight:700,marginBottom:3}}>No commission charges yet</p>
+        <p style={{color:"#a8956a",fontSize:12}}>When restaurants on the commission plan get online orders, charges appear here.</p>
+      </div>
+      :
+      <div style={{display:"grid",gap:10}}>
+        {data.map(function(rest){
+          return <div key={rest.restaurant_id} style={{background:"#3d2e22",borderRadius:11,padding:15}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+              <div>
+                <p style={{fontSize:15,fontWeight:700,color:"#fff"}}>{rest.restaurant_name}</p>
+                <p style={{fontSize:11,color:"#a8956a",marginTop:3}}>{rest.orderCount} commission charge{rest.orderCount!==1?"s":""} {String.fromCharCode(0x2022)} {fmt(rest.paid)} paid to date</p>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{fontSize:22,fontWeight:700,color:rest.unpaid>0?"#fbbf24":"#10b981"}}>{fmt(rest.unpaid)}</p>
+                <p style={{fontSize:10,color:"#a8956a"}}>owed</p>
+              </div>
+            </div>
+            {rest.unpaid>0&&<button onClick={function(){markPaid(rest);}} style={{marginTop:11,width:"100%",padding:"10px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2705)} Mark {fmt(rest.unpaid)} as Paid</button>}
+          </div>;
+        })}
+      </div>
+    }
+  </div>;
+}
+
 function SuperAdminPanel({onExit,saasOwner}){
   var [restaurants,setRestaurants]=useState([]);
   var [stats,setStats]=useState({});
@@ -13934,7 +14059,7 @@ function SuperAdminPanel({onExit,saasOwner}){
     
     {/* Tabs */}
     <div style={{padding:"22px 22px 0 22px",maxWidth:1400,margin:"0 auto",display:"flex",gap:6,borderBottom:"1px solid #3d2e22",flexWrap:"wrap"}}>
-      {[{id:"overview",label:String.fromCharCode(0xD83C,0xDFEA)+" Restaurants"},{id:"reps",label:String.fromCharCode(0xD83D,0xDCBC)+" Sales Reps"},{id:"marketing",label:String.fromCharCode(0xD83D,0xDCE3)+" Marketing Payments"},{id:"activity",label:String.fromCharCode(0xD83D,0xDCDC)+" Activity Log"}].map(t=>
+      {[{id:"overview",label:String.fromCharCode(0xD83C,0xDFEA)+" Restaurants"},{id:"reps",label:String.fromCharCode(0xD83D,0xDCBC)+" Sales Reps"},{id:"commissions",label:String.fromCharCode(0xD83D,0xDCB0)+" Commissions"},{id:"marketing",label:String.fromCharCode(0xD83D,0xDCE3)+" Marketing Payments"},{id:"activity",label:String.fromCharCode(0xD83D,0xDCDC)+" Activity Log"}].map(t=>
         <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{padding:"11px 18px",background:activeTab===t.id?"#3d2e22":"transparent",color:activeTab===t.id?"#fbbf24":"#a8956a",border:"none",borderBottom:"3px solid "+(activeTab===t.id?"#fbbf24":"transparent"),fontSize:13,fontWeight:700,cursor:"pointer"}}>{t.label}</button>
       )}
     </div>
@@ -14121,6 +14246,8 @@ function SuperAdminPanel({onExit,saasOwner}){
       </>}
       
       {/* MARKETING PAYMENTS TAB */}
+      {activeTab==="commissions"&&<CommissionsTab/>}
+      
       {activeTab==="marketing"&&<MarketingPaymentsTab loadData={loadData}/>}
       
       {activeTab==="activity"&&<>
@@ -14379,6 +14506,8 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
   var [lng,setLng]=useState(restaurant.lng||"");
   var [plan,setPlan]=useState(restaurant.plan||"starter");
   var [planPrice,setPlanPrice]=useState(restaurant.plan_price||(restaurant.plan==="pro"?79:restaurant.plan==="enterprise"?149:29));
+  var [billingType,setBillingType]=useState(restaurant.billing_type||"flat");
+  var [commissionRate,setCommissionRate]=useState(restaurant.commission_rate||4);
   var [serviceTypes,setServiceTypes]=useState(restaurant.service_types||{dine_in:true,collection:true,delivery:true,phone_orders:true});
   var [addons,setAddons]=useState(restaurant.addon_features||{marketing:false,loyalty:false,multi_branch:false,custom_domain:false});
   var [locks,setLocks]=useState(restaurant.feature_locks||{dine_in:"allow",collection:"allow",delivery:"allow",phone_orders:"allow",online_ordering:"allow",bookings:"allow",marketing:"allow",loyalty:"allow",multi_branch:"allow",custom_domain:"allow"});
@@ -14416,6 +14545,8 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
       lng:lng||null,
       plan:plan,
       plan_price:parseFloat(planPrice)||0,
+      billing_type:billingType,
+      commission_rate:billingType==="commission"?parseFloat(commissionRate)||0:0,
       assigned_rep_id:assignedRepId||null,
       service_types:serviceTypes,
       addon_features:addons,
@@ -14544,6 +14675,24 @@ function EditRestaurantModal({restaurant,saasOwner,onClose,onSuccess}){
             <label style={labelStyle}>{String.fromCharCode(0xD83D,0xDCB0)} CUSTOM MONTHLY PRICE (£)</label>
             <input type="number" value={planPrice} onChange={e=>setPlanPrice(e.target.value)} step="0.01" min="0" placeholder="29.00" style={inputStyle}/>
             <p style={{fontSize:10,color:"#6b5d3f",marginTop:5,fontStyle:"italic"}}>Override the default plan price (used for commission calculation)</p>
+          </div>
+          
+          {/* BILLING TYPE - flat fee vs commission */}
+          <div style={{marginTop:11,padding:11,background:"#0f0a05",borderRadius:7,border:"1px solid #5d3a1f"}}>
+            <label style={labelStyle}>{String.fromCharCode(0xD83D,0xDCB3)} BILLING MODEL</label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginTop:5}}>
+              <button type="button" onClick={()=>setBillingType("flat")} style={{padding:"10px 8px",borderRadius:7,border:"2px solid "+(billingType==="flat"?"#fbbf24":"#5d3a1f"),background:billingType==="flat"?"#3d2e1a":"transparent",color:billingType==="flat"?"#fbbf24":"#9b8b6f",cursor:"pointer",fontSize:11,fontWeight:700}}>
+                Flat Monthly Fee<br/><span style={{fontSize:9,fontWeight:400}}>0% commission</span>
+              </button>
+              <button type="button" onClick={()=>setBillingType("commission")} style={{padding:"10px 8px",borderRadius:7,border:"2px solid "+(billingType==="commission"?"#fbbf24":"#5d3a1f"),background:billingType==="commission"?"#3d2e1a":"transparent",color:billingType==="commission"?"#fbbf24":"#9b8b6f",cursor:"pointer",fontSize:11,fontWeight:700}}>
+                Commission<br/><span style={{fontSize:9,fontWeight:400}}>% per online order</span>
+              </button>
+            </div>
+            {billingType==="commission"&&<div style={{marginTop:9}}>
+              <label style={labelStyle}>COMMISSION RATE (%)</label>
+              <input type="number" value={commissionRate} onChange={e=>setCommissionRate(e.target.value)} step="0.5" min="0" max="30" placeholder="4" style={inputStyle}/>
+              <p style={{fontSize:10,color:"#6b5d3f",marginTop:5,fontStyle:"italic"}}>Charged on online orders only (delivery & collection placed online). Not on walk-in/phone orders. Typical: 3-5%.</p>
+            </div>}
           </div>
         </div>
         
@@ -16048,6 +16197,14 @@ export default function App(){
           console.log("DB save failed, but order is in memory:",result.error);
         }else{
           console.log("Order saved to database:",o.id);
+          // COMMISSION: record commission for online orders on commission-plan restaurants
+          // Only online orders (not POS walk-in, not phone orders)
+          var isOnlineOrder=o.source!=="phone"&&o.source!=="pos"&&o.source!=="walk-in"&&o.source!=="staff";
+          if(isOnlineOrder&&restaurant&&restaurant.billing_type==="commission"){
+            dbRecordCommission(o,restaurant).then(c=>{
+              if(c)console.log("Commission recorded:",c.commission_amount);
+            }).catch(e=>console.log("Commission record failed:",e));
+          }
           // Award loyalty points if user has account (10 points per pound spent)
           if(o.userId&&o.userId!=="guest"&&o.userId!=="staff"&&o.paid){
             var pts=Math.floor((o.subtotal||o.total||0)*10);
