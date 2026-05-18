@@ -14847,7 +14847,8 @@ function SaaSAuthScreen({onAuthSuccess}){
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",padding:"30px 24px",textAlign:"center"}}>
         <p style={{fontSize:38,marginBottom:5,fontWeight:300,letterSpacing:6,fontFamily:"Georgia,serif"}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} La Tavola</p>
-        <p style={{fontSize:13,opacity:.85,letterSpacing:2}}>RESTAURANT POS PLATFORM</p>
+        <p style={{fontSize:13,opacity:.85,letterSpacing:2}}>RESTAURANT MANAGEMENT PLATFORM</p>
+        <p style={{fontSize:11,opacity:.7,marginTop:6}}>For restaurant owners {String.fromCharCode(0x2022)} POS, online ordering, delivery & more</p>
       </div>
       
       <div style={{padding:24}}>
@@ -16201,18 +16202,22 @@ export default function App(){
     // Customer flow - load restaurant data and show menu
     // (continues to normal flow below with restaurant set)
   }else if(!saasOwner){
-    // Not logged in AND no URL match - show DIRECTORY of all restaurants
-    // OR show signup/login if explicitly requested
+    // Not logged in AND no URL match
     var params;
     try{params=new URLSearchParams(window.location.search);}catch(e){params=null;}
-    var wantSignup=params?(params.get("signup")==="1"):false;
-    var wantLogin=params?(params.get("login")==="1"):false;
+    // Optional: directory still reachable via ?directory=1
+    var wantDirectory=params?(params.get("directory")==="1"):false;
     
-    if(!wantSignup&&!wantLogin&&!restaurant){
-      // No specific request - show directory
+    if(wantDirectory&&!restaurant){
+      // Explicit directory request - show list of all restaurants
       return <><style>{CSS}</style><RestaurantDirectory onSelectRestaurant={r=>{
         window.location.href="/?r="+r.slug;
       }}/></>;
+    }
+    
+    if(!restaurant){
+      // HOMEPAGE = owner signup/login (SaaS landing for restaurant owners)
+      return <><style>{CSS}</style><SaaSAuthScreen onAuthSuccess={handleAuthSuccess}/></>;
     }
     
     // Show auth screen
