@@ -425,6 +425,7 @@ var isOpenNow=id=>{var h=HOURS[id];if(!h)return true;var d=DAYS[new Date().getDa
 // Not used in UI but kept for potential future use
 // eslint-disable-next-line no-unused-vars
 var isOpen=id=>true;
+// eslint-disable-next-line no-unused-vars
 var USERS=[
   {id:"u1",name:"Alex Johnson",email:"alex@example.com",pw:"pass123",avatar:"AJ",role:"customer"},
   {id:"u2",name:"Sarah Lee",email:"sarah@example.com",pw:"pass123",avatar:"SL",role:"customer"},
@@ -1525,16 +1526,13 @@ function ConfirmModal({title,message,confirmText,cancelText,onConfirm,onCancel,t
   </div>;
 }
 
-function Auth({onLogin,onClose,users,setUsers}){
+function Auth({onLogin,onClose}){
   var [tab,setTab]=useState("in"),[em,setEm]=useState(""),[pw,setPw]=useState(""),[nm,setNm]=useState(""),[ph,setPh]=useState(""),[err,setErr]=useState(""),[loading,setLoading]=useState(false);
   var login=async()=>{
     setErr("");setLoading(true);
-    // Try staff first (hardcoded for demo)
-    var staffUser=users.find(u=>u.email===em&&u.pw===pw);
-    if(staffUser){onLogin(staffUser);onClose();setLoading(false);return;}
-    // Try customer DB
+    // Customer login ONLY - staff/owners use the main login screen
     var r=await dbLoginCustomer(em,pw);
-    if(r.error){setErr(r.error.message||"Invalid login");setLoading(false);return;}
+    if(r.error){setErr(r.error.message||"Invalid email or password");setLoading(false);return;}
     var u=r.data;
     onLogin({
       id:u.id,
@@ -1578,7 +1576,7 @@ function Auth({onLogin,onClose,users,setUsers}){
       <div style={{marginBottom:12}}><label className="lbl">Password {tab==="up"&&<span style={{color:"#8a8078",fontWeight:400}}>(min 6 chars)</span>}</label><input type="password" className="field" value={pw} onChange={e=>setPw(e.target.value)} placeholder="password"/></div>
       {err&&<p style={{color:"#dc2626",fontSize:12,marginBottom:9,fontWeight:600,padding:"8px 10px",background:"#fee2e2",borderRadius:6}}>{EM.cross} {err}</p>}
       <button className="btn btn-r" style={{width:"100%",padding:"12px"}} disabled={loading} onClick={tab==="in"?login:reg}>{loading?"Please wait...":(tab==="in"?"Sign In":"Create Account")}</button>
-      {tab==="in"&&<p style={{fontSize:10,color:"#8a8078",marginTop:8,textAlign:"center",lineHeight:1.5}}>Staff demo: marco@staff.com / staff123<br/>Or create your own customer account above</p>}
+      {tab==="in"&&<p style={{fontSize:10,color:"#8a8078",marginTop:8,textAlign:"center",lineHeight:1.5}}>Sign in to track your orders and earn loyalty points.<br/>New here? Create an account above.</p>}
       {tab==="up"&&<p style={{fontSize:10,color:"#8a8078",marginTop:8,textAlign:"center"}}>By signing up you agree to receive order updates</p>}
     </div>
   </div>;
@@ -15254,7 +15252,7 @@ function PrettyAlertProvider(){
 
 export default function App(){
   var [view,setView]=useState("menu"),[orders,setOrders]=useState([]),[menu,setMenu]=useState([]);
-  var [discs,setDiscs]=useState([]),[users,setUsers]=useState(USERS);
+  var [discs,setDiscs]=useState([]);
   // LANGUAGE: re-render when language changes
   // eslint-disable-next-line no-unused-vars
   var [currentLang,setCurrentLang]=useState(getCurrentLanguage());
@@ -16288,7 +16286,7 @@ export default function App(){
         <span className="nlogo">La Tavola</span>
         {!user?<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 11px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>:<div style={{display:"flex",alignItems:"center",gap:7}}><div className="av">{user.avatar}</div><button onClick={()=>setUser(null)} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></div>}
       </div>
-      {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
+      {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)}/>}
       <BranchSel onSelect={setBranch} restaurant={restaurant}/>
     </div>
   </>;
@@ -16384,7 +16382,7 @@ export default function App(){
     {online&&pendingCount>0&&<div style={{background:"#059669",color:"#fff",padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:12,fontWeight:700}}>
       Back online - syncing {pendingCount} order{pendingCount>1?"s":""}...
     </div>}
-    {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)} users={users} setUsers={setUsers}/>}
+    {showAuth&&<Auth onLogin={u=>setUser(u)} onClose={()=>setAuth(false)}/>}
     <main style={{paddingBottom:20,zoom:getUIScale()}}>
       {view==="menu"    &&<MenuV    menu={menu} user={user} branch={branch} onOrder={addOrder} push={push} discounts={discs} restaurant={restaurant}/>}
       {view==="pos"     &&<PosV     menu={menu} onOrder={addOrder} push={push} user={user} branch={branch} tables={tables} setTables={setTables} orders={orders} setOrders={setOrders} stations={stations} setView={setView} customers={customers} setCustomers={setCustomers} setUser={setUser} restaurant={restaurant}/>}
