@@ -4860,16 +4860,22 @@ export async function getAllCommissions() {
 
 // SUPER ADMIN: Mark a restaurant's unpaid commission as paid
 export async function markRestaurantCommissionPaid(restaurantId) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('commission_ledger')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('restaurant_id', restaurantId)
-    .eq('status', 'unpaid');
+    .eq('status', 'unpaid')
+    .select();
   
   if (error) {
     console.error('markRestaurantCommissionPaid:', error);
     return { error };
   }
-  return { success: true };
+  // data is the array of rows that were updated
+  const count = (data || []).length;
+  if (count === 0) {
+    return { error: { message: 'No unpaid commission found to mark as paid.' } };
+  }
+  return { success: true, count };
 }
 

@@ -13879,10 +13879,10 @@ function CommissionsTab(){
     if(!ok)return;
     var result=await dbMarkRestCommPaid(rest.restaurant_id);
     if(result.error){
-      if(window.showAlert)window.showAlert("Error","Could not update: "+result.error.message,"error");
+      if(window.showAlert)window.showAlert("Could Not Mark Paid",(result.error.message||"Something went wrong. If this keeps happening, run the commission permissions SQL."),"error");
       return;
     }
-    if(window.showAlert)window.showAlert("Done","Commission marked as paid.","success");
+    if(window.showAlert)window.showAlert("Done",fmt(rest.unpaid)+" marked as paid ("+(result.count||0)+" charges settled).","success");
     load();
   };
   
