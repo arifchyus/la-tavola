@@ -5604,6 +5604,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
   var [cashHandovers,setCashHandovers]=useState([]);
   var [handoverDriver,setHandoverDriver]=useState("");
+  var [showQRGenerator,setShowQRGenerator]=useState(false);
   var [posUiStyle,setPosUiStyle]=useState(()=>{
     try{return localStorage.getItem("pos_ui_style")||"modern";}catch(e){return "modern";}
   });
@@ -6734,6 +6735,7 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
 
     {editItem&&<MenuEditor item={editItem} onSave={saveItem} onClose={()=>setEditItem(null)} onDelete={deleteItem} modifiers={MODIFIERS0} categories={categories} stations={stations}/>}
+    {showQRGenerator&&restaurant&&<RestaurantQRGenerator restaurant={restaurant} onClose={()=>setShowQRGenerator(false)}/>}
     {editMeal&&<SetMealEditor meal={editMeal} menu={menu} onSave={saveMeal} onClose={()=>setEditMeal(null)} onDelete={deleteMeal}/>}
     {editCat&&<CategoryEditor cat={editCat} onSave={saveCat} onClose={()=>setEditCat(null)} onDelete={deleteCat} menu={menu}/>}
     {showImport&&<MenuImportModal onClose={()=>setShowImport(false)} onImport={bulkImport} categories={categories}/>}
@@ -7679,6 +7681,25 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     </div>}
 
     {tab==="settings"&&<div>
+      {/* PLAN INFO + QR CODE */}
+      <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #a855f7"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <div>
+            <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0x2728)} Your Plan</p>
+            <p style={{fontSize:13,color:"#8a8078"}}>
+              {restaurant?.billing_type==="commission"
+                ?"Commission plan - "+(restaurant.commission_rate||0)+"% per online order"
+                :(restaurant?.plan||"Starter").charAt(0).toUpperCase()+(restaurant?.plan||"starter").slice(1)+" plan"+(restaurant?.plan_price?" - "+fmt(restaurant.plan_price)+"/month":"")}
+            </p>
+          </div>
+          <button onClick={()=>setShowQRGenerator&&setShowQRGenerator(true)} style={{padding:"10px 16px",background:"linear-gradient(135deg,#059669,#047857)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:15}}>{String.fromCharCode(0xD83D,0xDCF1)}</span>
+            <span>Get QR Code & Link</span>
+          </button>
+        </div>
+        <p style={{fontSize:11,color:"#8a8078",marginTop:9}}>{String.fromCharCode(0xD83D,0xDCA1)} Share your QR code on tables, flyers, and social media so customers can order online.</p>
+      </div>
+      
       {/* DISPLAY SIZE - touchscreen comfort */}
       <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #0891b2"}}>
         <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83D,0xDD0D)} Display Size</p>
@@ -16615,13 +16636,10 @@ export default function App(){
     
     <nav className="nav">
       <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
-      {restaurant&&saasOwner&&<button onClick={()=>setShowQRGenerator(true)} title="Get QR code & link" style={{background:"rgba(34,197,94,.2)",color:"#22c55e",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(34,197,94,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDCF1)} QR</button>}
       {/* STAFF PIN: Login button (only show if logged in as restaurant owner) */}
       {restaurant&&saasOwner&&!activeStaff&&<button onClick={()=>setShowStaffPinModal(true)} title="Switch to staff member" style={{background:"rgba(8,145,178,.2)",color:"#0891b2",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(8,145,178,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDD10)} STAFF</button>}
       {/* SUPER ADMIN: Show admin button only to admins */}
       {isAdmin&&!impersonating&&<button onClick={()=>{setShowSuperAdmin(true);window.history.replaceState({},"","/?admin=lt-secret-2026");}} title="Super Admin Panel" style={{background:"rgba(251,191,36,.2)",color:"#fbbf24",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(251,191,36,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDC51)} ADMIN</button>}
-      {restaurant&&saasOwner&&<span title="Your plan" style={{background:"rgba(124,58,237,.2)",color:"#a855f7",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(124,58,237,.3)",whiteSpace:"nowrap"}}>{restaurant.plan==="trial"?String.fromCharCode(0x23F1,0xFE0F)+" TRIAL":String.fromCharCode(0x2728)+" "+(restaurant.plan||"PRO").toUpperCase()}</span>}
-      <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))setBranch(null);}} title="Click to change branch" style={{background:"rgba(212,149,42,.15)",color:"#d4952a",borderRadius:7,padding:"4px 11px",fontSize:11,fontWeight:700,border:"1px solid rgba(212,149,42,.3)",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>{EM.pin} {branch.name} {String.fromCharCode(0x25BC)}</button>
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
         {notifs.length>0&&<span style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>{notifs.length}</span>}
