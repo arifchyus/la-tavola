@@ -16625,7 +16625,9 @@ export default function App(){
       <div className="ntabs">{tabs.map(k=><button key={k} className={"ntab"+(view===k?" on":"")} onClick={()=>setView(k)}>{tl[k]||k}</button>)}</div>
       <div className="nright">
         {notifs.length>0&&<span style={{background:"#bf4626",color:"#fff",borderRadius:"50%",width:17,height:17,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700}}>{notifs.length}</span>}
-        {user?<><div className="av">{user.avatar}</div><button onClick={()=>{setUser(null);setView("menu");}} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></>:<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>}
+        {/* Customer sign-in/out - only when NOT a restaurant owner (owners use the Logout below) */}
+        {!saasOwner&&(user?<><div className="av">{user.avatar}</div><button onClick={()=>{setUser(null);setView("menu");}} style={{color:"#888",fontSize:11,border:"none",background:"none",cursor:"pointer"}}>Out</button></>:<button onClick={()=>setAuth(true)} style={{border:"1px solid rgba(255,255,255,.2)",color:"#fff",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:600,background:"none",cursor:"pointer"}}>Sign in</button>)}
+        {/* Restaurant owner logout */}
         {saasOwner&&<button onClick={handleSaasLogout} title="Sign out of platform" style={{color:"#dc2626",fontSize:10,border:"1px solid rgba(220,38,38,.3)",background:"none",cursor:"pointer",padding:"3px 7px",borderRadius:5}}>{String.fromCharCode(0x21AA,0xFE0F)} Logout</button>}
       </div>
     </nav>
