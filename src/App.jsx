@@ -6021,6 +6021,42 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
     setOrders(os=>os.map(o=>o.id===id?{...o,status:st}:o));
     push({title:"Updated",body:id+" -> "+SL[st],color:SC[st]});
     dbUpdateOrderStatus(id,st).catch(e=>console.log("Admin status save failed:",e));
+    
+    // AUTO-FREE the table when a dine-in order is completed
+    if(order&&(order.type==="dine-in"||order.type==="eatin")&&(st==="delivered"||st==="collected"||st==="cancelled")){
+      // Find the table - try tableId field first, fall back to customer field "Table N"
+      var tblId=order.tableId;
+      if(!tblId&&order.customer){
+        var match=String(order.customer).match(/\d+/);
+        if(match)tblId=parseInt(match[0]);
+      }
+      if(tblId&&tables){
+        // Check if any OTHER unfinished orders still on this table
+        var otherActive=orders.filter(function(o){
+          if(o.id===id)return false; // skip current
+          if(o.status==="delivered"||o.status==="collected"||o.status==="cancelled")return false;
+          if(o.type!=="dine-in"&&o.type!=="eatin")return false;
+          var otId=o.tableId;
+          if(!otId&&o.customer){
+            var m=String(o.customer).match(/\d+/);
+            if(m)otId=parseInt(m[0]);
+          }
+          return otId===tblId;
+        });
+        // Only free the table if no other active orders on it
+        if(otherActive.length===0&&setTables){
+          setTables(function(ts){
+            return ts.map(function(t){
+              if((t.id===tblId||t.id===String(tblId))&&t.status==="occupied"){
+                if(t.dbId)dbUpdateTableStatus(t.dbId,"free",{}).catch(function(e){console.log("Table free failed:",e);});
+                return{...t,status:"free",since:null,guests:null,orderId:null};
+              }
+              return t;
+            });
+          });
+        }
+      }
+    }
   };
   var addCode=()=>{if(!nc.code||!nc.value)return;setDiscounts(ds=>[...ds,{code:nc.code.toUpperCase(),type:nc.type,value:+nc.value,desc:nc.desc,active:true,uses:0,max:9999}]);setNC({code:"",type:"percent",value:"",desc:""});};
   var saveItem=item=>{
@@ -12050,7 +12086,14 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     onOrder(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
-      setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied",guests:parseInt(guests)||1}:t));
+      setTables(ts=>ts.map(t=>{
+        if((t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id){
+          // Also save to DB so all views see it
+          if(t.dbId)dbUpdateTableStatus(t.dbId,"occupied",{}).catch(e=>console.log("Table save failed:",e));
+          return{...t,status:"occupied",guests:parseInt(guests)||1};
+        }
+        return t;
+      }));
     }
     var msgBody=phoneCust?(phoneCust.name+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(total));
     push({title:paid?"Paid - sent to kitchen":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
@@ -12332,7 +12375,13 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
     onOrder(o);
     if(type==="dine-in"&&tbl){
       var tnum=parseInt(tbl);
-      setTables(ts=>ts.map(t=>(t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id?{...t,status:"occupied"}:t));
+      setTables(ts=>ts.map(t=>{
+        if((t.id===tnum||t.id===String(tnum))&&t.branchId===branch?.id){
+          if(t.dbId)dbUpdateTableStatus(t.dbId,"occupied",{}).catch(e=>console.log("Table save failed:",e));
+          return{...t,status:"occupied"};
+        }
+        return t;
+      }));
     }
     var msgBody=phoneCust?(phoneCust.name+(deliveryCode?" - Code: "+deliveryCode:"")):(o.id+" - "+fmt(total));
     push({title:paid?"Paid - sent":(phoneCust?"Phone order sent":"Sent to kitchen"),body:msgBody,color:paid?"#059669":"#2563eb"});
