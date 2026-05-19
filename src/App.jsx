@@ -8437,9 +8437,9 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
   // Mark all table orders as paid and free the table
   var payAll=(method)=>{
     tableOrders.forEach(o=>{
-      setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:method}:x));
-      // Save to DB
+      setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:method,status:"collected"}:x));
       dbUpdateOrderPayment(o.id,true,method).catch(e=>console.log("Payment save failed:",e));
+      dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
     });
     updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
     push({title:"Payment received",body:fmt(total)+" by "+method+" - Table "+selected+" cleared",color:"#059669"});
@@ -8454,11 +8454,11 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
     setPaidSplits(ps=>[...ps,{amount,method,at:nowT()}]);
     var totalPaid=paidSplits.reduce((s,p)=>s+p.amount,0)+amount;
     if(totalPaid>=total-0.01){
-      // All paid, close out
+      // All paid, close out - mark orders paid AND completed (dine-in = collected)
       tableOrders.forEach(o=>{
-        setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:"split"}:x));
-        // Save to DB
+        setOrders(os=>os.map(x=>x.id===o.id?{...x,paid:true,payMethod:"split",status:"collected"}:x));
         dbUpdateOrderPayment(o.id,true,"split").catch(e=>console.log("Payment save failed:",e));
+        dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
       });
       updateTable(selected,{status:"free",since:null,guests:null,orderId:null});
       push({title:"Bill fully paid",body:"Table "+selected+" cleared",color:"#059669"});
@@ -11865,20 +11865,13 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     {/* DINE IN - Table picker popup */}
     {showTablePicker&&(()=>{
       var branchTables=(tables||[]).filter(function(t){return !branch||!t.branchId||t.branchId===branch.id;});
-      // Which tables have active orders
-      var activeOrders=(orders||[]).filter(function(o){return (o.type==="dine-in"||o.type==="eatin")&&o.status!=="delivered"&&o.status!=="collected"&&o.status!=="cancelled";});
-      var tableStatus={};
-      activeOrders.forEach(function(o){
-        var tn=(o.customer||"").replace(/[^0-9]/g,"");
-        if(tn)tableStatus[tn]=true;
-      });
       return <div onClick={function(){setShowTablePicker(false);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
         <div onClick={function(e){e.stopPropagation();}} style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",maxHeight:"85vh",overflowY:"auto",padding:22}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <h3 style={{fontSize:19,fontWeight:700}}>{String.fromCharCode(0xD83E,0xDE91)} Pick a Table</h3>
             <button onClick={function(){setShowTablePicker(false);}} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,padding:"6px 12px",fontWeight:700,cursor:"pointer"}}>Close</button>
           </div>
-          <p style={{fontSize:12,color:"#8a8078",marginBottom:16}}>Select which table the customers are sitting at.</p>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:16}}>Select which table the customers are sitting at. You can add to a table that's already in use.</p>
           {branchTables.length===0?
             <div style={{textAlign:"center",padding:24}}>
               <p style={{fontSize:13,color:"#8a8078"}}>No tables set up yet.</p>
@@ -11887,7 +11880,12 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
             :
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:10}}>
               {branchTables.map(function(t){
-                var busy=tableStatus[String(t.id)];
+                // Use the table's own status field - single source of truth
+                var busy=t.status==="occupied";
+                var reserved=t.status==="reserved";
+                var borderC=busy?"#f59e0b":reserved?"#a855f7":"#10b981";
+                var bgC=busy?"#fffbeb":reserved?"#faf5ff":"#ecfdf5";
+                var txtC=busy?"#92400e":reserved?"#7c3aed":"#065f46";
                 return <button key={t.id} onClick={function(){
                   try{
                     window.__posInitialType="dine-in";
@@ -11895,9 +11893,9 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
                   }catch(e){}
                   setShowTablePicker(false);
                   onOpenPos();
-                }} style={{padding:"16px 8px",borderRadius:12,border:"2px solid "+(busy?"#f59e0b":"#10b981"),background:busy?"#fffbeb":"#ecfdf5",cursor:"pointer",textAlign:"center"}}>
-                  <div style={{fontSize:24,fontWeight:700,color:busy?"#92400e":"#065f46"}}>{t.id}</div>
-                  <div style={{fontSize:10,color:busy?"#92400e":"#059669",fontWeight:700,marginTop:3}}>{busy?"In use":"Free"}</div>
+                }} style={{padding:"16px 8px",borderRadius:12,border:"2px solid "+borderC,background:bgC,cursor:"pointer",textAlign:"center"}}>
+                  <div style={{fontSize:24,fontWeight:700,color:txtC}}>{t.id}</div>
+                  <div style={{fontSize:10,color:txtC,fontWeight:700,marginTop:3}}>{busy?"In use":reserved?"Reserved":"Free"}</div>
                   {t.seats&&<div style={{fontSize:9,color:"#8a8078",marginTop:2}}>{t.seats} seats</div>}
                 </button>;
               })}
