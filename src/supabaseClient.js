@@ -4879,3 +4879,20 @@ export async function markRestaurantCommissionPaid(restaurantId) {
   return { success: true, count };
 }
 
+
+// ===========================================================
+// RESTAURANT LOGO
+// ===========================================================
+
+// Save (or remove) a restaurant's logo URL
+export async function saveRestaurantLogo(restaurantId, logoUrl) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ logo_url: logoUrl || null })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  if (error) console.error('saveRestaurantLogo:', error);
+  return { data, error };
+}
+

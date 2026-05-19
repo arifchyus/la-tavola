@@ -1,7 +1,7 @@
 import{useState,useEffect,useRef,useCallback}from"react";
 import{t,LANGUAGES,getCurrentLanguage,setLanguage}from"./translations";
 // eslint-disable-next-line no-unused-vars
-import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,sendTeamMessage as dbSendTeamMsg,fetchTeamMessages as dbFetchTeamMsgs,recordCommission as dbRecordCommission,getRestaurantCommission as dbGetRestCommission,getAllCommissions as dbGetAllCommissions,markRestaurantCommissionPaid as dbMarkRestCommPaid,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
+import{saveOrderToDb,fetchOrders,updateOrderStatus as dbUpdateOrderStatus,submitReview as dbSubmitReview,fetchReviews as dbFetchReviews,fetchMenu as dbFetchMenu,saveMenuItem as dbSaveMenuItem,deleteMenuItem as dbDeleteMenuItem,fetchCategories as dbFetchCategories,saveCategory as dbSaveCategory,deleteCategory as dbDeleteCategory,fetchSetMeals as dbFetchSetMeals,saveSetMeal as dbSaveSetMeal,deleteSetMeal as dbDeleteSetMeal,fetchOpeningHours as dbFetchHours,saveOpeningHours as dbSaveHours,saveReservation as dbSaveReservation,fetchReservations as dbFetchReservations,updateReservationStatus as dbUpdateReservationStatus,fetchTables as dbFetchTables,updateTableStatus as dbUpdateTableStatus,saveTable as dbSaveTable,deleteTable as dbDeleteTable,updateOrderPayment as dbUpdateOrderPayment,registerCustomer as dbRegisterCustomer,loginCustomer as dbLoginCustomer,fetchAllDeliverySettings as dbFetchAllDelivery,saveDeliverySettings as dbSaveDelivery,fetchDiscountCodes as dbFetchCodes,saveDiscountCode as dbSaveCode,deleteDiscountCode as dbDeleteCode,fetchAutoDiscounts as dbFetchAutoDiscounts,saveAutoDiscount as dbSaveAutoDiscount,fetchCustomers as dbFetchCustomers,saveCustomer as dbSaveCustomer,updateCustomerStats as dbUpdateCustomerStats,deleteAutoDiscount as dbDeleteAutoDiscount,fetchStations as dbFetchStations,saveStation as dbSaveStation,deleteStation as dbDeleteStation,updateStationProgress as dbUpdateStationProgress,verifyDeliveryCode as dbVerifyCode,recordCashCollected as dbRecordCash,fetchCashHandovers as dbFetchHandovers,recordCashHandover as dbRecordHandover,fetchCustomerLoyalty as dbFetchLoyalty,awardLoyaltyPoints as dbAwardPoints,redeemLoyaltyPoints as dbRedeemPoints,fetchLoyaltyHistory as dbLoyaltyHistory,fetchDietaryPrefs as dbFetchPrefs,saveDietaryPrefs as dbSavePrefs,fetchSchedules as dbFetchSchedules,saveSchedule as dbSaveSchedule,deleteSchedule as dbDeleteSchedule,clockIn as dbClockIn,clockOut as dbClockOut,fetchClockRecords as dbFetchClockRecords,fetchCurrentlyClockedIn as dbFetchClockedIn,fetchBranchHours as dbFetchBranchHours,saveBranchHours as dbSaveBranchHours,deleteBranchHours as dbDeleteBranchHours,fetchBranchHolidays as dbFetchHolidays,saveBranchHoliday as dbSaveHoliday,deleteBranchHoliday as dbDeleteHoliday,fetchBranchHoursConfig as dbFetchHoursConfig,saveBranchHoursConfig as dbSaveHoursConfig,recordPayment as dbRecordPayment,openShift as dbOpenShift,closeShift as dbCloseShift,fetchOpenShift as dbFetchOpenShift,fetchShifts as dbFetchShifts,updateShiftSales as dbUpdateShiftSales,recordVoid as dbRecordVoid,verifyManagerPin as dbVerifyPin,recordDrawerEvent as dbRecordDrawer,fetchExpenseCategories as dbFetchExpenseCats,saveExpenseCategory as dbSaveExpenseCat,deleteExpenseCategory as dbDeleteExpenseCat,fetchExpenses as dbFetchExpenses,saveExpense as dbSaveExpense,deleteExpense as dbDeleteExpense,fetchRecurringExpenses as dbFetchRecurring,saveRecurringExpense as dbSaveRecurring,deleteRecurringExpense as dbDeleteRecurring,updateRecurringLastGenerated as dbUpdateRecurringDate,fetchRestaurant as dbFetchRestaurant,autoDetectMyRestaurant,signupRestaurant as dbSignup,loginRestaurant as dbLogin,verifyEmail as dbVerifyEmail,resendVerification as dbResendVer,getCurrentOwner as dbGetOwner,saveCurrentOwner as dbSaveOwner,logoutSaaS as dbLogoutSaaS,getCurrentSaasRestaurant as dbGetSaasRest,switchRestaurant as dbSwitchRest,fetchAllRestaurants as dbFetchAllRests,updateRestaurant as dbUpdateRestaurant,detectRestaurantFromUrl as dbDetectFromUrl,fetchPublicRestaurants as dbFetchPublicRests,updateRestaurantOrderTypes as dbUpdateOrderTypes,isSuperAdmin as dbIsSuperAdmin,fetchAllRestaurantsWithStats as dbFetchAllRestStats,fetchPlatformStats as dbFetchPlatStats,fetchPlatformActivity as dbFetchPlatActivity,updateRestaurantPlan as dbUpdatePlan,toggleRestaurantActive as dbToggleActive,impersonateRestaurant as dbImpersonate,stopImpersonation as dbStopImpersonate,isImpersonating as dbIsImpersonating,adminCreateRestaurant as dbAdminCreate,adminUpdateRestaurant as dbAdminUpdate,adminDeleteRestaurant as dbAdminDelete,adminResetOwnerPassword as dbAdminResetPwd,fetchStaffMembers as dbFetchStaff,fetchStaffMember as dbFetchOneStaff,fetchDrivers as dbFetchDrivers,createStaffMember as dbCreateStaff,updateStaffMember as dbUpdateStaff,deleteStaffMember as dbDeleteStaff,employeeClockIn as dbStaffClockIn,employeeClockOut as dbStaffClockOut,fetchEmployeeClockRecords as dbFetchClock,fetchCurrentlyClocked as dbFetchCurrentClocked,fetchStaffSchedules as dbFetchSchedules2,saveStaffSchedule as dbSaveSchedule2,deleteStaffSchedule as dbDeleteSchedule2,calculatePayroll as dbCalcPayroll,saveStaffPayroll as dbSavePayroll,fetchPayrollHistory as dbFetchPayroll,verifyStaffPIN as dbVerifyStaffPIN,setActiveStaff as dbSetActiveStaff,getActiveStaff as dbGetActiveStaff,clearActiveStaff as dbClearActiveStaff,staffHasPermission as dbStaffHasPerm,hasFeature,hasService,getFeatureLimit,updateServiceTypes as dbUpdateServiceTypes,updateAddonFeatures as dbUpdateAddonFeats,getFeatureLockState,canOwnerToggle,updateFeatureLocks as dbUpdateLocks,checkSubscriptionStatus,uploadMenuImage as dbUploadMenuImage,deleteMenuImage as dbDeleteMenuImage,fetchAllReps as dbFetchAllReps,fetchRepPerformance as dbFetchRepPerf,createRep as dbCreateRep,updateRep as dbUpdateRep,deleteRep as dbDeleteRep,loginRep as dbLoginRep,saveCurrentRep as dbSaveRep,getCurrentRep as dbGetRep,logoutRep as dbLogoutRep,fetchRepSubscriptions as dbFetchRepSubs,fetchRepCommissions as dbFetchRepComm,fetchAllCommissions as dbFetchAllComm,createCommission as dbCreateComm,markCommissionPaid as dbMarkCommPaid,calculateSignupCommission,assignRepToRestaurant as dbAssignRep,fetchCredits as dbFetchCredits,buyCredits as dbBuyCredits,completePurchase as dbCompletePurchase,fetchPurchases as dbFetchPurchases,fetchCampaigns as dbFetchCampaigns,createCampaign as dbCreateCampaign,deleteCampaign as dbDeleteCampaign,sendCampaign as dbSendCampaign,getAudienceCount as dbGetAudienceCount,getAudienceCustomers as dbGetAudienceCustomers,createStripeCheckout as dbStripeCheckout,recordManualPayment as dbManualPayment,approveManualPayment as dbApproveManual,sendSmsCampaignReal as dbSendSmsReal,sendEmailCampaignReal as dbSendEmailReal,fetchAllPendingPurchases as dbFetchPendingPurchases,fetchAllPurchases as dbFetchAllPurchases,rejectManualPayment as dbRejectManual,loginDriverByEmail as dbDriverEmail,loginDriverByPin as dbDriverPin,saveCurrentDriver as dbSaveDriver,getCurrentDriver as dbGetDriver,logoutDriver as dbLogoutDriver,fetchDriverOrders as dbFetchDriverOrders,claimOrder as dbClaimOrder,unclaimOrder as dbUnclaimOrder,startDelivery as dbStartDelivery,recordDriverCashCollection as dbDriverCash,markOrderDelivered as dbMarkDelivered,setCurrentRestaurantId as dbSetRestaurantId,getDriverCashToHandover as dbCashToHandover,initiateHandover as dbInitiateHandover,getDriverPendingHandover as dbPendingHandover,cancelHandover as dbCancelHandover,getHandoverHistory as dbHandoverHistory,getPendingHandovers as dbGetPendingHandovers,confirmHandover as dbConfirmHandover,sendTeamMessage as dbSendTeamMsg,fetchTeamMessages as dbFetchTeamMsgs,recordCommission as dbRecordCommission,getRestaurantCommission as dbGetRestCommission,getAllCommissions as dbGetAllCommissions,markRestaurantCommissionPaid as dbMarkRestCommPaid,saveRestaurantLogo as dbSaveLogo,SMS_PACKAGES,EMAIL_PACKAGES,PLAN_FEATURES}from"./supabaseClient";
 
 //  OFFLINE STORAGE 
 // Safe localStorage wrappers - fail silently in sandboxed environments
@@ -5599,6 +5599,79 @@ function PayrollView({staff, push}){
 // END STAFF MANAGEMENT MODULE
 // ============================================================
 
+// Restaurant logo upload card (shown in Settings)
+function RestaurantLogoCard({restaurant,setRestaurant,push}){
+  var [uploading,setUploading]=useState(false);
+  var [logoUrl,setLogoUrl]=useState(restaurant?.logo_url||"");
+  var fileRef=useRef(null);
+  
+  var handleFile=async function(e){
+    var file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    setUploading(true);
+    try{
+      // Reuse the menu image upload (same storage bucket)
+      var result=await dbUploadMenuImage(file,restaurant?.id);
+      if(result.error){
+        if(window.showAlert)window.showAlert("Upload Failed",result.error.message||"Could not upload logo.","error");
+        setUploading(false);
+        return;
+      }
+      var url=result.url||result.data;
+      // Save the URL to the restaurant
+      var saveResult=await dbSaveLogo(restaurant.id,url);
+      if(saveResult.error){
+        if(window.showAlert)window.showAlert("Save Failed","Logo uploaded but could not save. Try again.","error");
+        setUploading(false);
+        return;
+      }
+      setLogoUrl(url);
+      if(setRestaurant)setRestaurant(function(r){return r?{...r,logo_url:url}:r;});
+      if(push)push({title:"Logo updated",color:"#059669"});
+    }catch(err){
+      if(window.showAlert)window.showAlert("Error","Could not upload logo: "+(err.message||"unknown error"),"error");
+    }
+    setUploading(false);
+  };
+  
+  var removeLogo=async function(){
+    var ok=await window.showConfirm("Remove Logo","Remove your logo? The restaurant name will show as text instead.","Remove","Cancel","warning");
+    if(!ok)return;
+    var result=await dbSaveLogo(restaurant.id,null);
+    if(result.error){
+      if(window.showAlert)window.showAlert("Error","Could not remove logo.","error");
+      return;
+    }
+    setLogoUrl("");
+    if(setRestaurant)setRestaurant(function(r){return r?{...r,logo_url:null}:r;});
+    if(push)push({title:"Logo removed",color:"#8a8078"});
+  };
+  
+  return <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #bf4626"}}>
+    <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83C,0xDFA8)} Restaurant Logo</p>
+    <p style={{fontSize:11,color:"#8a8078",marginBottom:12}}>Upload your logo to show it instead of text. Appears on your ordering page and receipts.</p>
+    
+    {/* Current logo preview */}
+    <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+      <div style={{width:90,height:90,borderRadius:12,border:"2px dashed #ddd",display:"flex",alignItems:"center",justifyContent:"center",background:"#f7f3ee",overflow:"hidden",flexShrink:0}}>
+        {logoUrl?
+          <img src={logoUrl} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+          :
+          <span style={{fontSize:11,color:"#8a8078",textAlign:"center",padding:6}}>No logo<br/>(text shown)</span>
+        }
+      </div>
+      <div style={{flex:1,minWidth:160}}>
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} style={{display:"none"}}/>
+        <button onClick={function(){fileRef.current&&fileRef.current.click();}} disabled={uploading} style={{padding:"10px 16px",background:uploading?"#8a8078":"linear-gradient(135deg,#bf4626,#7c2d12)",color:"#fff",border:"none",borderRadius:9,fontWeight:700,fontSize:13,cursor:uploading?"not-allowed":"pointer",width:"100%",marginBottom:7}}>
+          {uploading?"Uploading...":(logoUrl?String.fromCharCode(0xD83D,0xDD04)+" Change Logo":String.fromCharCode(0xD83D,0xDCE4)+" Upload Logo")}
+        </button>
+        {logoUrl&&<button onClick={removeLogo} style={{padding:"8px 16px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:9,fontWeight:700,fontSize:12,cursor:"pointer",width:"100%"}}>Remove Logo</button>}
+      </div>
+    </div>
+    <p style={{fontSize:10,color:"#8a8078",marginTop:10}}>{String.fromCharCode(0xD83D,0xDCA1)} Best: square image (e.g. 200x200px), PNG with transparent background. Max 5MB.</p>
+  </div>;
+}
+
 function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branches,setMeals,setSetMeals,categories,setCategories,tables,setTables,branch,stations,setStations,user,restaurant,setRestaurant}){
   var [tab,setTab]=useState("orders"),[bf,setBF]=useState("all"),[nc,setNC]=useState({code:"",type:"percent",value:"",desc:""});
   var [editItem,setEditItem]=useState(null),[editMeal,setEditMeal]=useState(null),[editCat,setEditCat]=useState(null),[showImport,setShowImport]=useState(false),[editTable,setEditTable]=useState(null),[adminBranch,setAdminBranch]=useState(branch?.id||"b1"),[editStation,setEditStation]=useState(null);
@@ -7699,6 +7772,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
         </div>
         <p style={{fontSize:11,color:"#8a8078",marginTop:9}}>{String.fromCharCode(0xD83D,0xDCA1)} Share your QR code on tables, flyers, and social media so customers can order online.</p>
       </div>
+      
+      {/* RESTAURANT LOGO */}
+      <RestaurantLogoCard restaurant={restaurant} setRestaurant={setRestaurant} push={push}/>
       
       {/* DISPLAY SIZE - touchscreen comfort */}
       <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #0891b2"}}>
@@ -16635,7 +16711,11 @@ export default function App(){
     />}
     
     <nav className="nav">
-      <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
+      {restaurant?.logo_url?
+        <img src={restaurant.logo_url} alt={restaurant.name} style={{height:34,maxWidth:130,objectFit:"contain"}}/>
+        :
+        <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
+      }
       {/* STAFF PIN: Login button (only show if logged in as restaurant owner) */}
       {restaurant&&saasOwner&&!activeStaff&&<button onClick={()=>setShowStaffPinModal(true)} title="Switch to staff member" style={{background:"rgba(8,145,178,.2)",color:"#0891b2",borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,border:"1px solid rgba(8,145,178,.3)",cursor:"pointer",whiteSpace:"nowrap"}}>{String.fromCharCode(0xD83D,0xDD10)} STAFF</button>}
       {/* SUPER ADMIN: Show admin button only to admins */}
