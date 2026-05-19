@@ -4896,3 +4896,15 @@ export async function saveRestaurantLogo(restaurantId, logoUrl) {
   return { data, error };
 }
 
+// Save a restaurant's logo display size
+export async function saveRestaurantLogoSize(restaurantId, size) {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .update({ logo_size: size || 'medium' })
+    .eq('id', restaurantId)
+    .select()
+    .single();
+  if (error) console.error('saveRestaurantLogoSize:', error);
+  return { data, error };
+}
+
