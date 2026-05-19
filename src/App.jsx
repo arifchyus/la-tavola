@@ -9786,20 +9786,40 @@ function IncomingOrdersV({orders,setOrders,push,branch,customers,tables,setTable
             setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"ready"}:x));
             dbUpdateOrderStatus(o.id,"ready").catch(e=>console.log("Status save failed:",e));
           }} style={{flex:1,padding:"9px",fontSize:12}}>Mark Ready</button>
-          <button className="btn btn-d" onClick={()=>{
-            var isCOD=o.payMethod==="cod"&&!o.paid;
-            var newStatus=o.type==="delivery"?"delivered":"collected";
+          {/* Collection orders: counter staff marks Collected. Delivery: only the driver. */}
+          {o.type!=="delivery"&&<button className="btn btn-d" onClick={()=>{
+            var isCOD=!o.paid;
             if(isCOD){
-              if(!window.confirm("COD order - did driver collect "+fmt(o.total)+" cash?\n\nOK = Yes, cash collected\nCancel = No, not paid"))return;
-              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:newStatus,paid:true,payMethod:"cash"}:x));
-              push({title:"Cash collected",body:o.id+" - "+fmt(o.total),color:"#059669"});
+              if(!window.confirm("Customer collecting - did they pay "+fmt(o.total)+"?\n\nOK = Yes, paid\nCancel = Not paid yet"))return;
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"collected",paid:true,payMethod:"cash"}:x));
+              push({title:"Order collected",body:o.id+" - "+fmt(o.total),color:"#059669"});
               dbUpdateOrderPayment(o.id,true,"cash").catch(e=>console.log("Save failed:",e));
-              dbUpdateOrderStatus(o.id,newStatus).catch(e=>console.log("Status save failed:",e));
+              dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
             }else{
-              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:newStatus}:x));
-              dbUpdateOrderStatus(o.id,newStatus).catch(e=>console.log("Status save failed:",e));
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"collected"}:x));
+              dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
             }
-          }} style={{flex:1,padding:"9px",fontSize:12}}>Complete</button>
+          }} style={{flex:1,padding:"9px",fontSize:12}}>{String.fromCharCode(0x2705)} Mark Collected</button>}
+        </div>}
+        {/* Delivery order that's ready - waiting for a driver */}
+        {o.status==="ready"&&o.type==="delivery"&&<div style={{padding:"9px 11px",background:"#dbeafe",borderRadius:8,fontSize:12,color:"#1e40af",fontWeight:700,textAlign:"center"}}>
+          {String.fromCharCode(0xD83D,0xDEF5)} Ready - driver will collect & deliver
+        </div>}
+        {/* Collection order that's ready - waiting for customer */}
+        {o.status==="ready"&&o.type!=="delivery"&&<div style={{display:"flex",gap:6}}>
+          <button className="btn btn-d" onClick={()=>{
+            var isCOD=!o.paid;
+            if(isCOD){
+              if(!window.confirm("Customer collecting - did they pay "+fmt(o.total)+"?\n\nOK = Yes, paid\nCancel = Not paid yet"))return;
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"collected",paid:true,payMethod:"cash"}:x));
+              push({title:"Order collected",body:o.id+" - "+fmt(o.total),color:"#059669"});
+              dbUpdateOrderPayment(o.id,true,"cash").catch(e=>console.log("Save failed:",e));
+              dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
+            }else{
+              setOrders(os=>os.map(x=>x.id===o.id?{...x,status:"collected"}:x));
+              dbUpdateOrderStatus(o.id,"collected").catch(e=>console.log("Status save failed:",e));
+            }
+          }} style={{flex:1,padding:"10px",fontSize:13}}>{String.fromCharCode(0x2705)} Customer Collected - Mark Done</button>
         </div>}
       </div>;
     })}
