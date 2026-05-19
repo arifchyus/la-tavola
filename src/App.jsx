@@ -8631,29 +8631,54 @@ function TablesV({tables,setTables,push,branch,orders,setOrders,onGoToPos,onEdit
         </div>}
       </div>}
 
-      {/* SPLIT BILL UI */}
+      {/* SPLIT BILL UI - simplified */}
       {t.status==="occupied"&&paymentStep==="split"&&<div>
-        <div style={{background:"#f5f3ff",borderRadius:10,padding:12,marginBottom:12,border:"2px solid #7c3aed"}}>
-          <p style={{fontSize:12,fontWeight:700,color:"#7c3aed",marginBottom:4}}>SPLIT BILL - Total {fmt(total)}</p>
-          <p style={{fontSize:11,color:"#8a8078"}}>Paid so far: {fmt(paidSplits.reduce((s,p)=>s+p.amount,0))} / Remaining: {fmt(total-paidSplits.reduce((s,p)=>s+p.amount,0))}</p>
+        <div style={{background:"#f5f3ff",borderRadius:10,padding:14,marginBottom:14,border:"2px solid #7c3aed"}}>
+          <p style={{fontSize:13,fontWeight:700,color:"#7c3aed"}}>{String.fromCharCode(0xD83E,0xDDFE)} Splitting the Bill</p>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:13}}>
+            <span style={{color:"#8a8078"}}>Total bill</span>
+            <span style={{fontWeight:700}}>{fmt(total)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:3,fontSize:13}}>
+            <span style={{color:"#059669"}}>Paid so far</span>
+            <span style={{fontWeight:700,color:"#059669"}}>{fmt(paidSplits.reduce((s,p)=>s+p.amount,0))}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",marginTop:3,fontSize:15,paddingTop:8,borderTop:"1px solid #ddd6f3"}}>
+            <span style={{fontWeight:700}}>Still to pay</span>
+            <span style={{fontWeight:700,color:"#dc2626"}}>{fmt(total-paidSplits.reduce((s,p)=>s+p.amount,0))}</span>
+          </div>
         </div>
-        <div style={{display:"flex",gap:6,marginBottom:12}}>
-          {[["amount","By People"],["item","By Item"],["mixed","Mixed Cash+Card"]].map(([k,l])=><button key={k} onClick={()=>setSplitMode(k)} style={{flex:1,padding:"9px 4px",fontSize:11,fontWeight:700,background:splitMode===k?"#1a1208":"#fff",color:splitMode===k?"#fff":"#1a1208",border:"2px solid "+(splitMode===k?"#1a1208":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{l}</button>)}
+        
+        {/* Two simple choices */}
+        <p style={{fontSize:12,fontWeight:700,marginBottom:8}}>How do they want to split?</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+          <button onClick={()=>setSplitMode("amount")} style={{padding:"14px 8px",fontSize:13,fontWeight:700,background:splitMode==="amount"?"#7c3aed":"#fff",color:splitMode==="amount"?"#fff":"#1a1208",border:"2px solid "+(splitMode==="amount"?"#7c3aed":"#ede8de"),borderRadius:10,cursor:"pointer"}}>
+            {String.fromCharCode(0xD83D,0xDC65)}<br/>Split Equally
+          </button>
+          <button onClick={()=>setSplitMode("item")} style={{padding:"14px 8px",fontSize:13,fontWeight:700,background:splitMode==="item"?"#7c3aed":"#fff",color:splitMode==="item"?"#fff":"#1a1208",border:"2px solid "+(splitMode==="item"?"#7c3aed":"#ede8de"),borderRadius:10,cursor:"pointer"}}>
+            {String.fromCharCode(0xD83C,0xDF7D,0xFE0F)}<br/>Pay for Own Items
+          </button>
         </div>
 
-        {/* Split by amount */}
+        {/* Split equally */}
         {splitMode==="amount"&&<>
-          <p style={{fontSize:11,fontWeight:700,color:"#8a8078",marginBottom:6}}>Number of people</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4,marginBottom:12}}>
-            {[2,3,4,5,6,8].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"10px 4px",fontSize:13,fontWeight:700,background:splitN===n?"#7c3aed":"#fff",color:splitN===n?"#fff":"#1a1208",border:"2px solid "+(splitN===n?"#7c3aed":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{n}</button>)}
+          <p style={{fontSize:12,fontWeight:700,color:"#8a8078",marginBottom:8,textAlign:"center"}}>How many people are splitting?</p>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:14}}>
+            <button onClick={()=>setSplitN(Math.max(2,splitN-1))} style={{width:48,height:48,borderRadius:"50%",border:"2px solid #7c3aed",background:"#fff",color:"#7c3aed",fontSize:24,fontWeight:700,cursor:"pointer"}}>{String.fromCharCode(0x2212)}</button>
+            <div style={{textAlign:"center",minWidth:60}}>
+              <p style={{fontSize:36,fontWeight:700,color:"#1a1208"}}>{splitN}</p>
+              <p style={{fontSize:10,color:"#8a8078"}}>people</p>
+            </div>
+            <button onClick={()=>setSplitN(Math.min(12,splitN+1))} style={{width:48,height:48,borderRadius:"50%",border:"2px solid #7c3aed",background:"#fff",color:"#7c3aed",fontSize:24,fontWeight:700,cursor:"pointer"}}>+</button>
           </div>
-          <div style={{background:"#fafaf5",borderRadius:8,padding:12,marginBottom:12,textAlign:"center"}}>
-            <p style={{fontSize:11,color:"#8a8078"}}>Each person pays</p>
-            <p style={{fontSize:28,fontWeight:700,color:"#bf4626"}}>{fmt(total/splitN)}</p>
+          <div style={{background:"#fef2f0",borderRadius:10,padding:16,marginBottom:14,textAlign:"center",border:"2px solid #f5c4b8"}}>
+            <p style={{fontSize:12,color:"#8a8078"}}>Each person pays</p>
+            <p style={{fontSize:34,fontWeight:700,color:"#bf4626"}}>{fmt(total/splitN)}</p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <button className="btn btn-d" onClick={()=>paySplitPortion(total/splitN,"cash")} style={{padding:"12px",fontSize:13}}>Cash {fmt(total/splitN)}</button>
-            <button className="btn btn-p" onClick={()=>paySplitPortion(total/splitN,"card")} style={{padding:"12px",fontSize:13}}>Card {fmt(total/splitN)}</button>
+          <p style={{fontSize:11,color:"#8a8078",textAlign:"center",marginBottom:8}}>Tap below each time a person pays their share:</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <button onClick={()=>paySplitPortion(total/splitN,"cash")} style={{padding:"15px",fontSize:14,fontWeight:700,background:"#059669",color:"#fff",border:"none",borderRadius:10,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCB5)} Cash<br/><span style={{fontSize:16}}>{fmt(total/splitN)}</span></button>
+            <button onClick={()=>paySplitPortion(total/splitN,"card")} style={{padding:"15px",fontSize:14,fontWeight:700,background:"#2563eb",color:"#fff",border:"none",borderRadius:10,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDCB3)} Card<br/><span style={{fontSize:16}}>{fmt(total/splitN)}</span></button>
           </div>
         </>}
 
