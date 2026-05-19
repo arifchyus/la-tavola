@@ -11613,6 +11613,7 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
   var [currentShift,setCurrentShift]=useState(null);
   var [showShiftOpen,setShowShiftOpen]=useState(false);
   var [showShiftClose,setShowShiftClose]=useState(false);
+  var [showTablePicker,setShowTablePicker]=useState(false);
   // eslint-disable-next-line no-unused-vars
   var [, setFsTick]=useState(0); // Re-render trigger when fullscreen changes
   var shiftsEnabled=(()=>{try{return localStorage.getItem("shifts_enabled")==="1";}catch(e){return false;}})();
@@ -11705,7 +11706,7 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
   // Tile config - each tile has: icon, label, color, badge count, action
   var tiles=[
     // ROW 1: TAKE NEW ORDERS (4 tiles)
-    ...(hasService(restaurant,"dine_in")?[{icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{try{window.__posInitialType="dine-in";}catch(e){}onOpenPos();}}]:[]),
+    ...(hasService(restaurant,"dine_in")?[{icon:EM.cook,label:"Dine In",color:"#bf4626",bgGradient:"linear-gradient(135deg,#bf4626,#dc2626)",badge:dineInActive>0?dineInActive:null,sublabel:"Customer at table",onClick:()=>{setShowTablePicker(true);}}]:[]),
     ...(hasService(restaurant,"collection")||hasService(restaurant,"delivery")?[{icon:EM.bag,label:"Walk-in Takeaway",color:"#d97706",bgGradient:"linear-gradient(135deg,#d97706,#f59e0b)",badge:takeawayActive>0?takeawayActive:null,sublabel:"At counter",onClick:()=>{try{window.__posInitialType="takeaway";}catch(e){}onOpenPos();}}]:[]),
     ...(hasService(restaurant,"phone_orders")?[{icon:EM.phone,label:"Phone Order",color:"#2563eb",bgGradient:"linear-gradient(135deg,#2563eb,#3b82f6)",badge:deliveryActive>0?deliveryActive:null,sublabel:"Delivery / collection",onClick:()=>{try{window.__posOpenPhonePopup=true;}catch(e){}onOpenPos();}}]:[]),
     {icon:EM.bag,label:"Incoming",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#ef4444)",badge:pendingIncoming>0?pendingIncoming:null,sublabel:"Online & QR orders",onClick:()=>setModalView("incoming"),pulse:pendingIncoming>0},
@@ -11815,6 +11816,51 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     {/* SHIFT MANAGEMENT */}
     {showShiftOpen&&<ShiftOpenScreen branch={branch} user={user} onCancel={()=>setShowShiftOpen(false)} onOpened={(s)=>{setCurrentShift(s);setShowShiftOpen(false);push&&push({title:"Shift opened",body:"Float: "+fmt(s.opening_float),color:"#059669"});}}/>}
     {showShiftClose&&currentShift&&<ShiftCloseScreen shift={currentShift} branch={branch} push={push} onCancel={()=>setShowShiftClose(false)} onClosed={(s)=>{setCurrentShift(null);setShowShiftClose(false);}}/>}
+    
+    {/* DINE IN - Table picker popup */}
+    {showTablePicker&&(()=>{
+      var branchTables=(tables||[]).filter(function(t){return !branch||!t.branchId||t.branchId===branch.id;});
+      // Which tables have active orders
+      var activeOrders=(orders||[]).filter(function(o){return (o.type==="dine-in"||o.type==="eatin")&&o.status!=="delivered"&&o.status!=="collected"&&o.status!=="cancelled";});
+      var tableStatus={};
+      activeOrders.forEach(function(o){
+        var tn=(o.customer||"").replace(/[^0-9]/g,"");
+        if(tn)tableStatus[tn]=true;
+      });
+      return <div onClick={function(){setShowTablePicker(false);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",zIndex:9500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={function(e){e.stopPropagation();}} style={{background:"#fff",borderRadius:16,maxWidth:560,width:"100%",maxHeight:"85vh",overflowY:"auto",padding:22}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <h3 style={{fontSize:19,fontWeight:700}}>{String.fromCharCode(0xD83E,0xDE91)} Pick a Table</h3>
+            <button onClick={function(){setShowTablePicker(false);}} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:8,padding:"6px 12px",fontWeight:700,cursor:"pointer"}}>Close</button>
+          </div>
+          <p style={{fontSize:12,color:"#8a8078",marginBottom:16}}>Select which table the customers are sitting at.</p>
+          {branchTables.length===0?
+            <div style={{textAlign:"center",padding:24}}>
+              <p style={{fontSize:13,color:"#8a8078"}}>No tables set up yet.</p>
+              <p style={{fontSize:11,color:"#8a8078",marginTop:4}}>Add tables in Admin {String.fromCharCode(0x2192)} Tables.</p>
+            </div>
+            :
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:10}}>
+              {branchTables.map(function(t){
+                var busy=tableStatus[String(t.id)];
+                return <button key={t.id} onClick={function(){
+                  try{
+                    window.__posInitialType="dine-in";
+                    window.__preselectedTable=t.id;
+                  }catch(e){}
+                  setShowTablePicker(false);
+                  onOpenPos();
+                }} style={{padding:"16px 8px",borderRadius:12,border:"2px solid "+(busy?"#f59e0b":"#10b981"),background:busy?"#fffbeb":"#ecfdf5",cursor:"pointer",textAlign:"center"}}>
+                  <div style={{fontSize:24,fontWeight:700,color:busy?"#92400e":"#065f46"}}>{t.id}</div>
+                  <div style={{fontSize:10,color:busy?"#92400e":"#059669",fontWeight:700,marginTop:3}}>{busy?"In use":"Free"}</div>
+                  {t.seats&&<div style={{fontSize:9,color:"#8a8078",marginTop:2}}>{t.seats} seats</div>}
+                </button>;
+              })}
+            </div>
+          }
+        </div>
+      </div>;
+    })()}
 
     {/* MODAL VIEWS - Click tile opens these as overlays */}
     {modalView&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px 14px"}}>
@@ -11861,7 +11907,7 @@ function PosVClassic({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [cart,setCart]=useState([]);
   var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   useEffect(()=>{if(restaurant&&!hasService(restaurant,"dine_in")&&type==="dine-in")setType("takeaway");},[restaurant,type]);
-  var [tbl,setTbl]=useState("");
+  var [tbl,setTbl]=useState(()=>{try{if(window.__preselectedTable){var v=window.__preselectedTable;window.__preselectedTable=null;return v;}}catch(e){}return "";});
   var [guests,setGuests]=useState("1");
   var [discPct,setDiscPct]=useState(0);
   var [showDiscModal,setShowDiscModal]=useState(false);
@@ -12165,7 +12211,7 @@ function PosVCompact({menu,onOrder,push,user,branch,tables,setTables,orders,onBa
   var [cart,setCart]=useState([]);
   var [type,setType]=useState(()=>{try{var t=window.__posInitialType;if(t){window.__posInitialType=null;return t;}}catch(e){}return "dine-in";});
   useEffect(()=>{if(restaurant&&!hasService(restaurant,"dine_in")&&type==="dine-in")setType("takeaway");},[restaurant,type]);
-  var [tbl,setTbl]=useState("");
+  var [tbl,setTbl]=useState(()=>{try{if(window.__preselectedTable){var v=window.__preselectedTable;window.__preselectedTable=null;return v;}}catch(e){}return "";});
   var [showCart,setShowCart]=useState(false);
   var [search,setSearch]=useState("");
   var [posDeliv,setPosDeliv]=useState(null);
