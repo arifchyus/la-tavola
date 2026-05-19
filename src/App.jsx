@@ -567,7 +567,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 
 /* Bigger nav tabs - easier to hit */
 .ntab{padding:10px 18px;font-size:13px;border-radius:9px;min-height:42px}
-.nav{height:64px;padding:0 18px}
+.nav{min-height:64px;height:auto;padding:6px 18px}
 .nlogo{font-size:21px}
 
 /* Bigger avatar */
@@ -2111,9 +2111,8 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
           </div>
           <LanguagePicker compact={true}/>
         </div>
-        {branch&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:6,flexWrap:"wrap"}}>
+        {branch&&<div style={{display:"flex",alignItems:"center",gap:10,marginTop:6,flexWrap:"wrap"}}>
           <p style={{color:"rgba(255,255,255,.5)",fontSize:13}}>{EM.pin} {branch.addr}</p>
-          <button onClick={()=>{if(window.confirm("Change branch? Your cart will be cleared."))window.location.href="/";}} style={{padding:"5px 11px",fontSize:11,background:"rgba(212,149,42,.2)",color:"#d4952a",border:"1px solid rgba(212,149,42,.4)",borderRadius:6,cursor:"pointer",fontWeight:700}}>Change Branch</button>
         </div>}
         {user&&<p style={{color:"#d4952a",fontSize:13,marginTop:6}}>{EM.wave} Hello, {user.name.split(" ")[0]}!</p>}
       </div>
@@ -5658,8 +5657,8 @@ function RestaurantLogoCard({restaurant,setRestaurant,push}){
   };
   
   // Preview height by size
-  var sizeHeights={small:26,medium:34,large:46};
-  var navHeight=sizeHeights[logoSize]||34;
+  var sizeHeights={small:32,medium:44,large:58,xlarge:74};
+  var navHeight=sizeHeights[logoSize]||44;
   
   return <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #bf4626"}}>
     <p style={{fontSize:15,fontWeight:700,marginBottom:4}}>{String.fromCharCode(0xD83C,0xDFA8)} Restaurant Logo</p>
@@ -5686,11 +5685,11 @@ function RestaurantLogoCard({restaurant,setRestaurant,push}){
     {/* Logo SIZE selector - only if logo uploaded */}
     {logoUrl&&<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid #ede8de"}}>
       <p style={{fontSize:12,fontWeight:700,marginBottom:8}}>Logo Size</p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-        {[["small","Small"],["medium","Medium"],["large","Large"]].map(function(s){
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7}}>
+        {[["small","Small"],["medium","Medium"],["large","Large"],["xlarge","Extra Large"]].map(function(s){
           var isActive=logoSize===s[0];
-          return <button key={s[0]} onClick={function(){changeSize(s[0]);}} style={{padding:"10px 6px",borderRadius:9,border:"2px solid "+(isActive?"#bf4626":"#ede8de"),background:isActive?"#fef2f0":"#fff",cursor:"pointer",textAlign:"center"}}>
-            <p style={{fontWeight:700,fontSize:12,color:isActive?"#bf4626":"#8a8078"}}>{s[1]}</p>
+          return <button key={s[0]} onClick={function(){changeSize(s[0]);}} style={{padding:"10px 4px",borderRadius:9,border:"2px solid "+(isActive?"#bf4626":"#ede8de"),background:isActive?"#fef2f0":"#fff",cursor:"pointer",textAlign:"center"}}>
+            <p style={{fontWeight:700,fontSize:11,color:isActive?"#bf4626":"#8a8078"}}>{s[1]}</p>
           </button>;
         })}
       </div>
@@ -16745,7 +16744,7 @@ export default function App(){
     
     <nav className="nav">
       {restaurant?.logo_url?
-        <img src={restaurant.logo_url} alt={restaurant.name} style={{height:({small:26,medium:34,large:46})[restaurant.logo_size||"medium"],maxWidth:170,objectFit:"contain"}}/>
+        <img src={restaurant.logo_url} alt={restaurant.name} style={{height:({small:32,medium:44,large:58,xlarge:74})[restaurant.logo_size||"medium"],maxWidth:220,objectFit:"contain"}}/>
         :
         <span className="nlogo">{restaurant?.name||"La Tavola"}</span>
       }
