@@ -5670,18 +5670,117 @@ function DashboardCustomizeCard({push}){
   };
   
   var [expanded,setExpanded]=useState(false);
-  // Common emoji choices for quick swap
+  // Many emoji choices grouped by category
   var EMOJI_OPTIONS=[
-    String.fromCharCode(0xD83C,0xDF73),String.fromCharCode(0xD83D,0xDED2),String.fromCharCode(0xD83D,0xDCDE),
-    String.fromCharCode(0xD83D,0xDCCD),String.fromCharCode(0xD83D,0xDCC5),String.fromCharCode(0xD83D,0xDCCA),
-    String.fromCharCode(0xD83D,0xDCB0),String.fromCharCode(0xD83C,0xDF05),String.fromCharCode(0x2699,0xFE0F),
-    String.fromCharCode(0xD83D,0xDDA5,0xFE0F),String.fromCharCode(0xD83D,0xDCBB),String.fromCharCode(0x21AA,0xFE0F),
-    String.fromCharCode(0xD83C,0xDF7D,0xFE0F),String.fromCharCode(0xD83C,0xDF55),String.fromCharCode(0xD83C,0xDF54),
-    String.fromCharCode(0xD83E,0xDD63),String.fromCharCode(0xD83C,0xDF7A),String.fromCharCode(0xD83C,0xDF66),
-    String.fromCharCode(0xD83D,0xDC65),String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),
-    String.fromCharCode(0xD83D,0xDE9A),String.fromCharCode(0xD83C,0xDFAB),String.fromCharCode(0x2705),
-    String.fromCharCode(0x274C),String.fromCharCode(0xD83D,0xDD14),String.fromCharCode(0x2B50),
+    // Food & drink
+    String.fromCharCode(0xD83C,0xDF73),String.fromCharCode(0xD83C,0xDF7D,0xFE0F),
+    String.fromCharCode(0xD83C,0xDF55),String.fromCharCode(0xD83C,0xDF54),
+    String.fromCharCode(0xD83C,0xDF5F),String.fromCharCode(0xD83C,0xDF2D),
+    String.fromCharCode(0xD83C,0xDF2E),String.fromCharCode(0xD83C,0xDF2F),
+    String.fromCharCode(0xD83C,0xDF5B),String.fromCharCode(0xD83C,0xDF5C),
+    String.fromCharCode(0xD83C,0xDF5D),String.fromCharCode(0xD83C,0xDF5E),
+    String.fromCharCode(0xD83C,0xDF63),String.fromCharCode(0xD83C,0xDF71),
+    String.fromCharCode(0xD83C,0xDF72),String.fromCharCode(0xD83C,0xDF74),
+    String.fromCharCode(0xD83C,0xDF75),String.fromCharCode(0xD83C,0xDF76),
+    String.fromCharCode(0xD83C,0xDF77),String.fromCharCode(0xD83C,0xDF78),
+    String.fromCharCode(0xD83C,0xDF79),String.fromCharCode(0xD83C,0xDF7A),
+    String.fromCharCode(0xD83C,0xDF7B),String.fromCharCode(0xD83C,0xDF7E),
+    String.fromCharCode(0xD83C,0xDF7F),String.fromCharCode(0xD83C,0xDF80),
+    String.fromCharCode(0xD83C,0xDF81),String.fromCharCode(0xD83C,0xDF82),
+    String.fromCharCode(0xD83C,0xDF66),String.fromCharCode(0xD83C,0xDF67),
+    String.fromCharCode(0xD83C,0xDF68),String.fromCharCode(0xD83C,0xDF69),
+    String.fromCharCode(0xD83C,0xDF6A),String.fromCharCode(0xD83C,0xDF6B),
+    String.fromCharCode(0xD83C,0xDF6C),String.fromCharCode(0xD83C,0xDF6D),
+    String.fromCharCode(0xD83C,0xDF6E),String.fromCharCode(0xD83C,0xDF6F),
+    String.fromCharCode(0xD83C,0xDF70),String.fromCharCode(0xD83E,0xDD63),
+    String.fromCharCode(0xD83E,0xDD64),String.fromCharCode(0xD83E,0xDD66),
+    String.fromCharCode(0xD83E,0xDD68),String.fromCharCode(0xD83E,0xDD69),
+    String.fromCharCode(0xD83E,0xDD6A),String.fromCharCode(0xD83E,0xDD6B),
+    String.fromCharCode(0xD83E,0xDD6E),String.fromCharCode(0xD83E,0xDD6F),
+    String.fromCharCode(0xD83E,0xDDC0),String.fromCharCode(0xD83E,0xDDC1),
+    String.fromCharCode(0xD83E,0xDDC2),String.fromCharCode(0xD83E,0xDDC3),
+    String.fromCharCode(0xD83E,0xDDC8),String.fromCharCode(0xD83E,0xDD50),
+    String.fromCharCode(0xD83E,0xDD51),String.fromCharCode(0xD83E,0xDD52),
+    String.fromCharCode(0xD83E,0xDD53),String.fromCharCode(0xD83E,0xDD54),
+    String.fromCharCode(0xD83E,0xDD55),String.fromCharCode(0xD83E,0xDD56),
+    String.fromCharCode(0xD83E,0xDD57),String.fromCharCode(0xD83E,0xDD58),
+    String.fromCharCode(0xD83E,0xDD59),String.fromCharCode(0xD83E,0xDD5A),
+    String.fromCharCode(0xD83E,0xDD5B),String.fromCharCode(0xD83E,0xDD5C),
+    String.fromCharCode(0xD83E,0xDD5D),String.fromCharCode(0xD83E,0xDD5E),
+    String.fromCharCode(0xD83E,0xDD5F),String.fromCharCode(0xD83E,0xDD60),
+    String.fromCharCode(0xD83E,0xDD61),String.fromCharCode(0xD83E,0xDD62),
+    // Orders & business
+    String.fromCharCode(0xD83D,0xDED2),String.fromCharCode(0xD83D,0xDECD,0xFE0F),
+    String.fromCharCode(0xD83D,0xDCB0),String.fromCharCode(0xD83D,0xDCB5),
+    String.fromCharCode(0xD83D,0xDCB3),String.fromCharCode(0xD83D,0xDCB8),
+    String.fromCharCode(0xD83D,0xDCB2),String.fromCharCode(0xD83E,0xDDFE),
+    String.fromCharCode(0xD83D,0xDCCA),String.fromCharCode(0xD83D,0xDCC8),
+    String.fromCharCode(0xD83D,0xDCC9),String.fromCharCode(0xD83D,0xDCC4),
+    String.fromCharCode(0xD83D,0xDCC1),String.fromCharCode(0xD83D,0xDCC2),
+    String.fromCharCode(0xD83D,0xDCC5),String.fromCharCode(0xD83D,0xDCC6),
+    String.fromCharCode(0xD83D,0xDCC7),String.fromCharCode(0xD83D,0xDCDD),
+    String.fromCharCode(0xD83D,0xDCE6),String.fromCharCode(0xD83D,0xDCE7),
+    String.fromCharCode(0xD83D,0xDCE8),String.fromCharCode(0xD83D,0xDCE9),
+    String.fromCharCode(0xD83D,0xDCEC),String.fromCharCode(0xD83D,0xDCED),
+    String.fromCharCode(0xD83D,0xDCEE),String.fromCharCode(0xD83D,0xDCEF),
+    // People & roles
+    String.fromCharCode(0xD83D,0xDC65),String.fromCharCode(0xD83D,0xDC64),
+    String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),
+    String.fromCharCode(0xD83D,0xDC69,0x200D,0xD83C,0xDF73),
+    String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83D,0xDCBC),
+    String.fromCharCode(0xD83D,0xDC69,0x200D,0xD83D,0xDCBC),
+    String.fromCharCode(0xD83E,0xDDD1,0x200D,0xD83C,0xDF73),
+    String.fromCharCode(0xD83D,0xDC6E),String.fromCharCode(0xD83D,0xDC77),
+    String.fromCharCode(0xD83D,0xDC81),String.fromCharCode(0xD83D,0xDE4B),
+    // Locations & transport
+    String.fromCharCode(0xD83D,0xDCCD),String.fromCharCode(0xD83C,0xDFE0),
+    String.fromCharCode(0xD83C,0xDFEA),String.fromCharCode(0xD83C,0xDFEC),
+    String.fromCharCode(0xD83C,0xDFED),String.fromCharCode(0xD83C,0xDFE2),
+    String.fromCharCode(0xD83D,0xDE97),String.fromCharCode(0xD83D,0xDE99),
+    String.fromCharCode(0xD83D,0xDE9A),String.fromCharCode(0xD83D,0xDEB2),
+    String.fromCharCode(0xD83D,0xDEF5),String.fromCharCode(0xD83D,0xDEF4),
+    String.fromCharCode(0xD83D,0xDEF6),
+    // Communication
+    String.fromCharCode(0xD83D,0xDCDE),String.fromCharCode(0xD83D,0xDCF1),
+    String.fromCharCode(0xD83D,0xDCAC),String.fromCharCode(0xD83D,0xDCAD),
+    String.fromCharCode(0xD83D,0xDCE2),String.fromCharCode(0xD83D,0xDCE3),
+    String.fromCharCode(0xD83D,0xDD14),String.fromCharCode(0xD83D,0xDD15),
+    // Tools & system
+    String.fromCharCode(0x2699,0xFE0F),String.fromCharCode(0xD83D,0xDD27),
+    String.fromCharCode(0xD83D,0xDD28),String.fromCharCode(0xD83D,0xDEE0,0xFE0F),
+    String.fromCharCode(0xD83D,0xDDA5,0xFE0F),String.fromCharCode(0xD83D,0xDCBB),
+    String.fromCharCode(0xD83D,0xDCFA),String.fromCharCode(0xD83D,0xDCF7),
+    String.fromCharCode(0xD83D,0xDD0D),String.fromCharCode(0xD83D,0xDD0E),
+    String.fromCharCode(0xD83D,0xDD11),String.fromCharCode(0xD83D,0xDD12),
+    String.fromCharCode(0xD83D,0xDD13),String.fromCharCode(0xD83D,0xDD10),
+    // Time
+    String.fromCharCode(0xD83C,0xDF05),String.fromCharCode(0xD83C,0xDF06),
+    String.fromCharCode(0xD83C,0xDF07),String.fromCharCode(0xD83C,0xDF19),
+    String.fromCharCode(0x231A),String.fromCharCode(0x23F0),
+    String.fromCharCode(0x23F1,0xFE0F),String.fromCharCode(0x23F2,0xFE0F),
+    String.fromCharCode(0x23F3),String.fromCharCode(0x231B),
+    // Symbols & status
+    String.fromCharCode(0x2705),String.fromCharCode(0x274C),
+    String.fromCharCode(0x2B50),String.fromCharCode(0xD83C,0xDF1F),
+    String.fromCharCode(0x2728),String.fromCharCode(0xD83D,0xDCAF),
+    String.fromCharCode(0x2764,0xFE0F),String.fromCharCode(0xD83D,0xDC4D),
+    String.fromCharCode(0xD83D,0xDC4E),String.fromCharCode(0xD83D,0xDC4C),
+    String.fromCharCode(0xD83D,0xDC4A),String.fromCharCode(0x270B),
+    String.fromCharCode(0x270C,0xFE0F),String.fromCharCode(0xD83D,0xDE4F),
+    String.fromCharCode(0xD83D,0xDCAA),String.fromCharCode(0xD83D,0xDD25),
+    String.fromCharCode(0x26A1),String.fromCharCode(0xD83D,0xDCA1),
+    String.fromCharCode(0xD83C,0xDFAF),String.fromCharCode(0xD83C,0xDFC6),
+    String.fromCharCode(0xD83C,0xDFAB),String.fromCharCode(0xD83C,0xDFAA),
+    String.fromCharCode(0xD83C,0xDF89),String.fromCharCode(0xD83C,0xDF8A),
+    String.fromCharCode(0x21AA,0xFE0F),String.fromCharCode(0x27A1,0xFE0F),
+    String.fromCharCode(0x2B05,0xFE0F),String.fromCharCode(0x2B06,0xFE0F),
+    String.fromCharCode(0x2B07,0xFE0F),String.fromCharCode(0x2197,0xFE0F),
+    String.fromCharCode(0x2198,0xFE0F),String.fromCharCode(0x2196,0xFE0F),
+    String.fromCharCode(0x2199,0xFE0F),String.fromCharCode(0xD83D,0xDD04),
+    String.fromCharCode(0xD83D,0xDD03),String.fromCharCode(0x267B,0xFE0F),
   ];
+  
+  var [pickerFor,setPickerFor]=useState(null); // tile label whose emoji is being changed
   
   return <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #f59e0b"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
@@ -5702,12 +5801,8 @@ function DashboardCustomizeCard({push}){
               <button onClick={function(){move(lbl,-1);}} disabled={i===0} style={{padding:"3px 7px",fontSize:10,background:i===0?"#f3f4f6":"#fef3c7",color:i===0?"#999":"#92400e",border:"none",borderRadius:4,cursor:i===0?"not-allowed":"pointer",fontWeight:700}}>{String.fromCharCode(0x25B2)}</button>
               <button onClick={function(){move(lbl,1);}} disabled={i===orderedLabels.length-1} style={{padding:"3px 7px",fontSize:10,background:i===orderedLabels.length-1?"#f3f4f6":"#fef3c7",color:i===orderedLabels.length-1?"#999":"#92400e",border:"none",borderRadius:4,cursor:i===orderedLabels.length-1?"not-allowed":"pointer",fontWeight:700}}>{String.fromCharCode(0x25BC)}</button>
             </div>
-            <span style={{fontSize:22,minWidth:28,textAlign:"center"}}>{icon}</span>
+            <button onClick={function(){setPickerFor(lbl);}} title="Change icon" style={{padding:"5px 9px",fontSize:24,minWidth:42,background:"#f9fafb",border:"1px solid #ede8de",borderRadius:7,cursor:"pointer"}}>{icon}</button>
             <span style={{flex:1,fontSize:13,fontWeight:600,textDecoration:hidden?"line-through":"none"}}>{lbl}</span>
-            <select value={icon} onChange={function(e){setIcon(lbl,e.target.value);}} style={{padding:"5px 6px",borderRadius:6,border:"1px solid #ede8de",fontSize:15,cursor:"pointer",maxWidth:56}}>
-              {EMOJI_OPTIONS.map(function(e){return <option key={e} value={e}>{e}</option>;})}
-              {def&&!EMOJI_OPTIONS.includes(def.defaultIcon)&&<option value={def.defaultIcon}>{def.defaultIcon}</option>}
-            </select>
             <button onClick={function(){toggleHide(lbl);}} style={{padding:"5px 9px",background:hidden?"#fef3c7":"#fee2e2",color:hidden?"#92400e":"#dc2626",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>{hidden?"Show":"Hide"}</button>
           </div>;
         })}
@@ -5715,6 +5810,24 @@ function DashboardCustomizeCard({push}){
       <button onClick={resetAll} style={{marginTop:10,padding:"9px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD04)} Reset All to Defaults</button>
       <p style={{fontSize:10,color:"#8a8078",marginTop:8}}>{String.fromCharCode(0xD83D,0xDCA1)} Changes apply on the next page load. Refresh the dashboard to see them.</p>
     </>}
+    
+    {/* EMOJI PICKER MODAL */}
+    {pickerFor&&<div onClick={function(){setPickerFor(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:9700,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      <div onClick={function(e){e.stopPropagation();}} style={{background:"#fff",borderRadius:14,maxWidth:500,width:"100%",maxHeight:"80vh",overflowY:"auto",padding:18}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:11}}>
+          <p style={{fontSize:15,fontWeight:700}}>Pick an icon for "{pickerFor}"</p>
+          <button onClick={function(){setPickerFor(null);}} style={{padding:"6px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>Close</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(46px,1fr))",gap:5}}>
+          {EMOJI_OPTIONS.map(function(e,i){
+            var current=(cust[pickerFor]&&cust[pickerFor].icon)||((ALL_TILES.find(function(t){return t.label===pickerFor;})||{}).defaultIcon);
+            var isCurrent=e===current;
+            return <button key={i} onClick={function(){setIcon(pickerFor,e);setPickerFor(null);}} style={{padding:"8px 4px",fontSize:22,background:isCurrent?"#fef3c7":"#fff",border:"1.5px solid "+(isCurrent?"#f59e0b":"#ede8de"),borderRadius:7,cursor:"pointer"}}>{e}</button>;
+          })}
+        </div>
+        <p style={{fontSize:11,color:"#8a8078",marginTop:11,textAlign:"center"}}>{EMOJI_OPTIONS.length} icons available {String.fromCharCode(0x2022)} tap one to select</p>
+      </div>
+    </div>}
   </div>;
 }
 
