@@ -1926,8 +1926,9 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
     
     {/* Estimated time */}
     <div style={{padding:"14px 18px",background:"#fef3c7",borderRadius:11,marginBottom:14,border:"1px solid #fde68a"}}>
-      <p style={{fontSize:11,letterSpacing:2,color:"#92400e",fontWeight:700,marginBottom:5}}>{String.fromCharCode(0x23F1,0xFE0F)} ESTIMATED {last?.type==="delivery"?"DELIVERY":"COLLECTION"}</p>
+      <p style={{fontSize:11,letterSpacing:2,color:"#92400e",fontWeight:700,marginBottom:5}}>{String.fromCharCode(0x23F1,0xFE0F)} {last?.type==="delivery"?"ESTIMATED DELIVERY":(last?.type==="dine-in"||last?.type==="eatin")?"FOOD READY IN":"ESTIMATED COLLECTION"}</p>
       <p style={{fontSize:24,color:"#1a1208",fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{last?.type==="delivery"?"30-45 min":"15-20 min"}</p>
+      {(last?.type==="dine-in"||last?.type==="eatin")&&<p style={{fontSize:11,color:"#92400e",marginTop:5}}>{String.fromCharCode(0xD83C,0xDF7D,0xFE0F)} A staff member will bring your food to your table</p>}
     </div>
     
     {/* Delivery Code (if delivery) */}
@@ -1950,7 +1951,11 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
         <span style={{color:"#bf4626"}}>{fmt(last?.total||0)}</span>
       </div>
       <div style={{marginTop:7,padding:"7px 9px",background:last?.paid?"#d1fae5":"#fef3c7",borderRadius:7,fontSize:12,fontWeight:700,color:last?.paid?"#065f46":"#92400e",textAlign:"center"}}>
-        {last?.paid?String.fromCharCode(0x2713)+" Paid Online":(last?.payMethod==="cod"?String.fromCharCode(0xD83D,0xDCB5)+" Cash on Delivery":String.fromCharCode(0xD83D,0xDCB5)+" Pay on Collection")}
+        {last?.paid?String.fromCharCode(0x2713)+" Paid Online":(
+          last?.type==="delivery"?String.fromCharCode(0xD83D,0xDCB5)+" Cash on Delivery":
+          (last?.type==="dine-in"||last?.type==="eatin")?String.fromCharCode(0xD83D,0xDCB5)+" Pay at the Table":
+          String.fromCharCode(0xD83D,0xDCB5)+" Pay on Collection"
+        )}
       </div>
     </div>
     
