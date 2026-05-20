@@ -5603,6 +5603,121 @@ function PayrollView({staff, push}){
 // END STAFF MANAGEMENT MODULE
 // ============================================================
 
+// Dashboard tile customization card (icons + order + hide)
+function DashboardCustomizeCard({push}){
+  // All possible tile labels (must match exactly what's in PosDashboard)
+  var ALL_TILES=[
+    {label:"Dine In",defaultIcon:String.fromCharCode(0xD83C,0xDF73)},
+    {label:"Walk-in Takeaway",defaultIcon:String.fromCharCode(0xD83D,0xDED2)},
+    {label:"Phone Order",defaultIcon:String.fromCharCode(0xD83D,0xDCDE)},
+    {label:"Incoming",defaultIcon:String.fromCharCode(0xD83D,0xDED2)},
+    {label:"Kitchen",defaultIcon:String.fromCharCode(0xD83C,0xDF73)},
+    {label:"Tables",defaultIcon:String.fromCharCode(0xD83D,0xDCCD)},
+    {label:"Driver",defaultIcon:String.fromCharCode(0xD83D,0xDED2)},
+    {label:"Bookings",defaultIcon:String.fromCharCode(0xD83D,0xDCC5)},
+    {label:"Reports",defaultIcon:String.fromCharCode(0xD83D,0xDCCA)},
+    {label:"Open Shift",defaultIcon:String.fromCharCode(0xD83C,0xDF05)},
+    {label:"Close Shift",defaultIcon:String.fromCharCode(0xD83C,0xDF05)},
+    {label:"Admin",defaultIcon:String.fromCharCode(0x2699,0xFE0F)},
+    {label:"Fullscreen POS",defaultIcon:String.fromCharCode(0xD83D,0xDDA5,0xFE0F)},
+    {label:"Open POS",defaultIcon:String.fromCharCode(0xD83D,0xDCBB)},
+    {label:"Exit / Logout",defaultIcon:String.fromCharCode(0x21AA,0xFE0F)},
+  ];
+  
+  var loadCust=function(){
+    try{return JSON.parse(localStorage.getItem("tile_customization")||"{}");}catch(e){return {};}
+  };
+  
+  var [cust,setCust]=useState(loadCust);
+  // Build the working list: saved order first, then any not-yet-ordered tiles
+  var orderedLabels=Array.isArray(cust._order)?cust._order.slice():[];
+  ALL_TILES.forEach(function(t){if(!orderedLabels.includes(t.label))orderedLabels.push(t.label);});
+  
+  var saveCust=function(next){
+    setCust(next);
+    try{localStorage.setItem("tile_customization",JSON.stringify(next));}catch(e){}
+  };
+  
+  var setIcon=function(label,icon){
+    var next={...cust};
+    if(!next[label])next[label]={};
+    next[label]={...next[label],icon:icon};
+    saveCust(next);
+  };
+  
+  var toggleHide=function(label){
+    var next={...cust};
+    if(!next[label])next[label]={};
+    next[label]={...next[label],hidden:!next[label].hidden};
+    saveCust(next);
+  };
+  
+  var move=function(label,direction){
+    var idx=orderedLabels.indexOf(label);
+    var target=idx+direction;
+    if(target<0||target>=orderedLabels.length)return;
+    var newOrder=orderedLabels.slice();
+    newOrder.splice(idx,1);
+    newOrder.splice(target,0,label);
+    saveCust({...cust,_order:newOrder});
+  };
+  
+  var resetAll=async function(){
+    var ok=await window.showConfirm("Reset Dashboard","Reset all tile customization back to defaults?","Reset","Cancel","warning");
+    if(!ok)return;
+    saveCust({});
+    if(push)push({title:"Dashboard reset",body:"Defaults restored",color:"#059669"});
+  };
+  
+  var [expanded,setExpanded]=useState(false);
+  // Common emoji choices for quick swap
+  var EMOJI_OPTIONS=[
+    String.fromCharCode(0xD83C,0xDF73),String.fromCharCode(0xD83D,0xDED2),String.fromCharCode(0xD83D,0xDCDE),
+    String.fromCharCode(0xD83D,0xDCCD),String.fromCharCode(0xD83D,0xDCC5),String.fromCharCode(0xD83D,0xDCCA),
+    String.fromCharCode(0xD83D,0xDCB0),String.fromCharCode(0xD83C,0xDF05),String.fromCharCode(0x2699,0xFE0F),
+    String.fromCharCode(0xD83D,0xDDA5,0xFE0F),String.fromCharCode(0xD83D,0xDCBB),String.fromCharCode(0x21AA,0xFE0F),
+    String.fromCharCode(0xD83C,0xDF7D,0xFE0F),String.fromCharCode(0xD83C,0xDF55),String.fromCharCode(0xD83C,0xDF54),
+    String.fromCharCode(0xD83E,0xDD63),String.fromCharCode(0xD83C,0xDF7A),String.fromCharCode(0xD83C,0xDF66),
+    String.fromCharCode(0xD83D,0xDC65),String.fromCharCode(0xD83D,0xDC68,0x200D,0xD83C,0xDF73),
+    String.fromCharCode(0xD83D,0xDE9A),String.fromCharCode(0xD83C,0xDFAB),String.fromCharCode(0x2705),
+    String.fromCharCode(0x274C),String.fromCharCode(0xD83D,0xDD14),String.fromCharCode(0x2B50),
+  ];
+  
+  return <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #f59e0b"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+      <p style={{fontSize:15,fontWeight:700}}>{String.fromCharCode(0xD83C,0xDFA8)} Customize Dashboard Tiles</p>
+      <button onClick={function(){setExpanded(!expanded);}} style={{padding:"6px 12px",background:expanded?"#fee2e2":"#fef3c7",color:expanded?"#dc2626":"#92400e",border:"none",borderRadius:7,fontWeight:700,fontSize:12,cursor:"pointer"}}>{expanded?"Done":"Edit"}</button>
+    </div>
+    <p style={{fontSize:11,color:"#8a8078",marginBottom:expanded?12:0}}>Reorder tiles, change their icons, or hide tiles you don't use.</p>
+    
+    {expanded&&<>
+      <div style={{display:"grid",gap:6,marginTop:10}}>
+        {orderedLabels.map(function(lbl,i){
+          var def=ALL_TILES.find(function(t){return t.label===lbl;});
+          var custData=cust[lbl]||{};
+          var icon=custData.icon||(def?def.defaultIcon:"");
+          var hidden=custData.hidden;
+          return <div key={lbl} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 10px",background:hidden?"#f3f4f6":"#fff",border:"1px solid "+(hidden?"#d1d5db":"#ede8de"),borderRadius:9,opacity:hidden?0.55:1}}>
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              <button onClick={function(){move(lbl,-1);}} disabled={i===0} style={{padding:"3px 7px",fontSize:10,background:i===0?"#f3f4f6":"#fef3c7",color:i===0?"#999":"#92400e",border:"none",borderRadius:4,cursor:i===0?"not-allowed":"pointer",fontWeight:700}}>{String.fromCharCode(0x25B2)}</button>
+              <button onClick={function(){move(lbl,1);}} disabled={i===orderedLabels.length-1} style={{padding:"3px 7px",fontSize:10,background:i===orderedLabels.length-1?"#f3f4f6":"#fef3c7",color:i===orderedLabels.length-1?"#999":"#92400e",border:"none",borderRadius:4,cursor:i===orderedLabels.length-1?"not-allowed":"pointer",fontWeight:700}}>{String.fromCharCode(0x25BC)}</button>
+            </div>
+            <span style={{fontSize:22,minWidth:28,textAlign:"center"}}>{icon}</span>
+            <span style={{flex:1,fontSize:13,fontWeight:600,textDecoration:hidden?"line-through":"none"}}>{lbl}</span>
+            <select value={icon} onChange={function(e){setIcon(lbl,e.target.value);}} style={{padding:"5px 6px",borderRadius:6,border:"1px solid #ede8de",fontSize:15,cursor:"pointer",maxWidth:56}}>
+              {EMOJI_OPTIONS.map(function(e){return <option key={e} value={e}>{e}</option>;})}
+              {def&&!EMOJI_OPTIONS.includes(def.defaultIcon)&&<option value={def.defaultIcon}>{def.defaultIcon}</option>}
+            </select>
+            <button onClick={function(){toggleHide(lbl);}} style={{padding:"5px 9px",background:hidden?"#fef3c7":"#fee2e2",color:hidden?"#92400e":"#dc2626",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>{hidden?"Show":"Hide"}</button>
+          </div>;
+        })}
+      </div>
+      <button onClick={resetAll} style={{marginTop:10,padding:"9px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer"}}>{String.fromCharCode(0xD83D,0xDD04)} Reset All to Defaults</button>
+      <p style={{fontSize:10,color:"#8a8078",marginTop:8}}>{String.fromCharCode(0xD83D,0xDCA1)} Changes apply on the next page load. Refresh the dashboard to see them.</p>
+    </>}
+  </div>;
+}
+
 // Restaurant logo upload card (shown in Settings)
 function RestaurantLogoCard({restaurant,setRestaurant,push}){
   var [uploading,setUploading]=useState(false);
@@ -7853,6 +7968,9 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
       
       {/* RESTAURANT LOGO */}
       <RestaurantLogoCard restaurant={restaurant} setRestaurant={setRestaurant} push={push}/>
+      
+      {/* CUSTOMIZE DASHBOARD TILES */}
+      <DashboardCustomizeCard push={push}/>
       
       {/* DISPLAY SIZE - touchscreen comfort */}
       <div className="card" style={{padding:18,marginBottom:12,borderLeft:"4px solid #0891b2"}}>
@@ -11836,6 +11954,34 @@ function PosDashboard({orders,setOrders,user,branch,tables,setTables,stations,me
     {icon:EM.cart,label:"Open POS",color:"#bf4626",bgGradient:"linear-gradient(135deg,#1a1208,#3d2e22)",badge:null,sublabel:"Direct to ordering",onClick:()=>onOpenPos()},
     {icon:String.fromCharCode(0x21AA,0xFE0F),label:"Exit / Logout",color:"#dc2626",bgGradient:"linear-gradient(135deg,#dc2626,#991b1b)",badge:null,sublabel:"Sign out from system",onClick:()=>{if(window.confirm("Sign out and return to login screen?")){if(setUser)setUser(null);if(setView)setView("menu");}}},
   ];
+  
+  // OWNER CUSTOMIZATION - apply saved tile icon overrides, hide flags, and order
+  try{
+    var tileCust=JSON.parse(localStorage.getItem("tile_customization")||"{}");
+    // 1. Apply custom icons + hide flags
+    tiles=tiles.map(function(t){
+      var c=tileCust[t.label];
+      if(!c)return t;
+      var newTile={...t};
+      if(c.icon)newTile.icon=c.icon;
+      if(c.hidden)newTile._hidden=true;
+      return newTile;
+    }).filter(function(t){return !t._hidden;});
+    // 2. Apply custom order
+    if(tileCust._order&&Array.isArray(tileCust._order)){
+      var orderMap={};
+      tileCust._order.forEach(function(lbl,i){orderMap[lbl]=i;});
+      tiles.sort(function(a,b){
+        var ai=orderMap[a.label];
+        var bi=orderMap[b.label];
+        // Tiles not in saved order go to the end (in original order)
+        if(ai===undefined&&bi===undefined)return 0;
+        if(ai===undefined)return 1;
+        if(bi===undefined)return -1;
+        return ai-bi;
+      });
+    }
+  }catch(e){console.log("Tile customization load failed:",e);}
   
   // STAFF PERMISSION FILTERING - hide dashboard tiles staff can't access
   var dashStaff=(typeof window!=="undefined")?dbGetActiveStaff():null;
