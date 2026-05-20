@@ -7042,12 +7042,17 @@ function AdminV({orders,setOrders,menu,setMenu,discounts,setDiscounts,push,branc
             var branchTables=tables.filter(t=>t.branchId===adminBranch).sort((a,b)=>(+a.id)-(+b.id));
             if(branchTables.length===0){alert("No tables for this branch yet. Add tables first.");return;}
             var baseUrl=window.location.origin+window.location.pathname;
+            // Critical: include the restaurant slug so customer lands on the right restaurant page
+            var slug=(typeof window!=="undefined"&&window.__currentRestaurant&&window.__currentRestaurant.slug)?window.__currentRestaurant.slug:(restaurant&&restaurant.slug?restaurant.slug:null);
+            if(!slug){alert("Restaurant not detected. Please refresh and try again.");return;}
             var win=window.open("","","width=900,height=700");
             if(!win){alert("Please allow pop-ups to print QR codes");return;}
+            var restName=(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:(restaurant?restaurant.name:"Restaurant"));
             var cards=branchTables.map(t=>{
-              var url=baseUrl+"?branch="+adminBranch+"&table="+t.id;
+              // URL with restaurant slug + branch + table
+              var url=baseUrl+"?r="+encodeURIComponent(slug)+"&branch="+adminBranch+"&table="+t.id;
               var qrImgUrl="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data="+encodeURIComponent(url);
-              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>"+(((branches.find(b=>b.id===adminBranch)||{}).name||(typeof window!=="undefined"&&window.__currentRestaurant?window.__currentRestaurant.name:"Restaurant")).toUpperCase())+"</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
+              return "<div style='border:2px dashed #8a8078;border-radius:14px;padding:20px 16px;text-align:center;page-break-inside:avoid;margin:8px;width:280px;display:inline-block;vertical-align:top;background:#fff'><div style='font-size:12px;color:#8a8078;letter-spacing:2px;margin-bottom:4px'>"+restName.toUpperCase()+"</div><div style='font-size:14px;color:#666;margin-bottom:14px'>"+(branches.find(b=>b.id===adminBranch)||{}).name+"</div><div style='font-size:42px;font-weight:bold;color:#bf4626;margin-bottom:14px'>TABLE "+t.id+"</div><img src='"+qrImgUrl+"' style='width:220px;height:220px'/><p style='font-size:13px;color:#333;margin-top:14px;font-weight:600'>Scan to order</p><p style='font-size:10px;color:#8a8078;margin-top:4px;word-break:break-all'>"+url+"</p></div>";
             }).join("");
             win.document.write("<html><head><title>QR Codes - "+(branches.find(b=>b.id===adminBranch)||{}).name+"</title><style>body{font-family:system-ui,sans-serif;padding:20px;background:#f5f5f5}h1{text-align:center;margin-bottom:20px}.print-hint{text-align:center;color:#666;margin-bottom:20px}@media print{body{background:#fff;padding:0}.print-hint{display:none}}</style></head><body><h1>QR Codes - Stick on Tables</h1><p class='print-hint'>Use Cmd/Ctrl+P to print. Stick each QR code on its corresponding table.</p>"+cards+"</body></html>");
             win.document.close();
