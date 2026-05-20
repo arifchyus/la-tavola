@@ -14056,7 +14056,7 @@ function MarketingPaymentsTab({loadData}){
       </div>
       <div style={{background:"linear-gradient(135deg,#1e3a8a,#1e40af)",borderRadius:11,padding:14,color:"#fff"}}>
         <p style={{fontSize:10,letterSpacing:2,opacity:.85,fontWeight:700}}>TOTAL REVENUE</p>
-        <p style={{fontSize:24,fontWeight:700,marginTop:5}}>\u00A3{history.filter(p=>p.payment_status==="completed").reduce((s,p)=>s+parseFloat(p.price||0),0).toFixed(2)}</p>
+        <p style={{fontSize:24,fontWeight:700,marginTop:5}}>{String.fromCharCode(0x00A3)}{history.filter(p=>p.payment_status==="completed").reduce((s,p)=>s+parseFloat(p.price||0),0).toFixed(2)}</p>
         <p style={{fontSize:11,opacity:.85}}>From completed</p>
       </div>
     </div>
