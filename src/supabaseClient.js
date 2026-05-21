@@ -273,6 +273,17 @@ export async function deleteMenuItem(dbId) {
   return { error };
 }
 
+// Update specific fields on a menu item (e.g. just availability)
+export async function updateMenuItem(dbId, updates) {
+  const { data, error } = await supabase.from('menu_items')
+    .update(updates)
+    .eq('id', dbId)
+    .select()
+    .single();
+  if (error) console.error('updateMenuItem error:', error);
+  return { data, error };
+}
+
 // ---- CATEGORY HELPERS -------------------------------------------------------
 
 export async function fetchCategories() {
