@@ -2006,23 +2006,34 @@ function MenuV({menu,user,branch,onOrder,push,discounts,restaurant}){
         {type==="delivery"&&<div style={{marginBottom:5}}>
           <div style={{marginBottom:9}}><label className="lbl">Your Name</label><input className="field" value={cname} onChange={e=>setCname(e.target.value)} placeholder="Alex Smith"/></div>
           <div style={{marginBottom:9}}><label className="lbl">Phone</label><input className="field" type="tel" value={table} onChange={e=>setTable(e.target.value)} placeholder="07700 900000"/></div>
-          <div style={{marginBottom:9}}><label className="lbl">Delivery Address</label><input className="field" value={addr.line1} onChange={e=>setAddr({...addr,line1:e.target.value})} placeholder="123 Brick Lane"/></div>
-          <div style={{marginBottom:9}}><label className="lbl">Postcode</label>
+          {/* POSTCODE FIRST - so customer sees if we deliver before typing more */}
+          <div style={{marginBottom:9}}><label className="lbl">{String.fromCharCode(0xD83D,0xDCCD)} Postcode (enter this first)</label>
             <div style={{display:"flex",gap:6}}>
-              <input className="field" value={addr.postcode} onChange={e=>{setAddr({...addr,postcode:e.target.value.toUpperCase()});setPostcodeData(null);}} onBlur={()=>{if(addr.postcode&&addr.postcode.length>=5)checkPostcode(addr.postcode);}} placeholder="E1 6QL" style={{flex:1}}/>
+              <input className="field" value={addr.postcode} onChange={e=>{
+                var v=e.target.value.toUpperCase();
+                setAddr({...addr,postcode:v});
+                setPostcodeData(null);
+                // Auto-check when full UK postcode format reached (e.g. "E1 6QL" or "E16QL")
+                var clean=v.replace(/\s+/g,"");
+                if(/^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/.test(clean)){
+                  checkPostcode(v);
+                }
+              }} onBlur={()=>{if(addr.postcode&&addr.postcode.length>=5)checkPostcode(addr.postcode);}} placeholder="E1 6QL" style={{flex:1,fontSize:16}}/>
               <button onClick={()=>checkPostcode(addr.postcode)} disabled={!addr.postcode||checkingPc} style={{padding:"9px 14px",fontSize:12,fontWeight:700,background:"#1a1208",color:"#fff",border:"none",borderRadius:8,cursor:"pointer"}}>{checkingPc?"Checking...":"Check"}</button>
             </div>
-            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>{String.fromCharCode(0xD83D,0xDCA1)} Postcode will be checked automatically</p>
+            <p style={{fontSize:10,color:"#8a8078",marginTop:4}}>{String.fromCharCode(0xD83D,0xDCA1)} We'll auto-check if we deliver to your area</p>
           </div>
-          <div style={{marginBottom:9}}><label className="lbl">Delivery notes (optional)</label><input className="field" value={addr.notes} onChange={e=>setAddr({...addr,notes:e.target.value})} placeholder="Ring bell, flat 2..."/></div>
           {postcodeData&&postcodeData.valid&&<div style={{padding:"10px 12px",background:"#d1fae5",borderRadius:7,fontSize:12,color:"#065f46",marginBottom:9}}>
             <strong>{EM.check} We deliver here!</strong><br/>
             {postcodeData.miles} miles - {postcodeData.fee>0?"Delivery fee "+fmt(postcodeData.fee):"FREE delivery"}
-            {postcodeData.town&&<><br/>Area: {postcodeData.town}</>}
+            {postcodeData.town&&<><br/>{String.fromCharCode(0xD83D,0xDCCD)} Area: {postcodeData.town}</>}
           </div>}
           {postcodeData&&!postcodeData.valid&&<div style={{padding:"10px 12px",background:"#fee2e2",borderRadius:7,fontSize:12,color:"#991b1b",marginBottom:9}}>
             <strong>{EM.cross}</strong> {postcodeData.reason}
           </div>}
+          {/* Street - shown after postcode validated */}
+          <div style={{marginBottom:9}}><label className="lbl">House Number & Street</label><input className="field" value={addr.line1} onChange={e=>setAddr({...addr,line1:e.target.value})} placeholder="123 Brick Lane"/></div>
+          <div style={{marginBottom:9}}><label className="lbl">Delivery notes (optional)</label><input className="field" value={addr.notes} onChange={e=>setAddr({...addr,notes:e.target.value})} placeholder="Ring bell, flat 2..."/></div>
           {dbDelivery&&dbDelivery.minOrder&&sub<dbDelivery.minOrder&&<div style={{padding:"9px 11px",background:"#fffbeb",borderRadius:7,fontSize:12,color:"#92400e",marginBottom:9}}>
             Minimum order for delivery: {fmt(dbDelivery.minOrder)} - add {fmt(dbDelivery.minOrder-sub)} more
           </div>}
