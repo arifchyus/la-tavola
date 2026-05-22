@@ -15796,14 +15796,6 @@ function SaaSAuthScreen({onAuthSuccess}){
           <div style={{textAlign:"center",fontSize:12,color:"#8a8078",marginBottom:11}}>or</div>
           
           <button onClick={()=>{setMode("signup");setError("");}} style={{width:"100%",padding:"13px",background:"#fff",color:"#bf4626",border:"2px solid #bf4626",borderRadius:9,fontWeight:700,fontSize:13,cursor:"pointer"}}>{String.fromCharCode(0x2728)} Start Free 14-day Trial</button>
-          
-          <div style={{marginTop:18,padding:11,background:"#f7f3ee",borderRadius:7,fontSize:11,color:"#8a8078"}}>
-            <p style={{fontWeight:700,marginBottom:5}}>{String.fromCharCode(0xD83D,0xDD11)} Demo Accounts (for testing):</p>
-            <p>arif@latavola.app / demo123 (La Tavola - Pro)</p>
-            <p>mario@example.com / test123 (Mario's Pizza - Trial)</p>
-            <p>rahul@example.com / test123 (Curry Point - Trial)</p>
-            <p>sarah@example.com / test123 (Burger Spot - Trial)</p>
-          </div>
         </div>}
         
         {/* MODE: SIGNUP */}
