@@ -139,6 +139,21 @@ export async function updateOrderStatus(orderId, newStatus) {
   }
   
   if (result.error) console.error('updateOrderStatus error:', result.error);
+  
+  // AUTO COMMISSION HANDLING
+  // When order is delivered/collected + paid → record commission
+  // When order is cancelled → reverse any existing commission
+  try {
+    const order = result.data && result.data[0];
+    if (order && order.restaurant_id) {
+      if ((newStatus === 'delivered' || newStatus === 'collected') && order.paid) {
+        await maybeRecordCommissionForOrder(order);
+      } else if (newStatus === 'cancelled') {
+        await reverseCommission(order.id, order.order_number);
+      }
+    }
+  } catch (e) { console.log('Commission auto-handle skipped:', e); }
+  
   return result;
 }
 
@@ -160,7 +175,44 @@ export async function updateOrderPayment(orderId, paid, payMethod) {
   }
   
   if (result.error) console.error('updateOrderPayment error:', result.error);
+  
+  // AUTO COMMISSION HANDLING
+  // If payment is now true AND status is already delivered/collected → record commission
+  try {
+    const order = result.data && result.data[0];
+    if (order && order.restaurant_id && paid === true) {
+      if (order.status === 'delivered' || order.status === 'collected') {
+        await maybeRecordCommissionForOrder(order);
+      }
+    }
+  } catch (e) { console.log('Commission auto-handle (payment) skipped:', e); }
+  
   return result;
+}
+
+// Internal helper - look up restaurant and record commission if eligible
+async function maybeRecordCommissionForOrder(order) {
+  // Skip non-online orders
+  const src = order.source;
+  if (src === 'phone' || src === 'pos' || src === 'walk-in' || src === 'staff') return;
+  
+  // Get restaurant
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('id, name, billing_type, commission_rate')
+    .eq('id', order.restaurant_id)
+    .single();
+  
+  if (!rest || rest.billing_type !== 'commission') return;
+  
+  // Use the public recordCommission (already idempotent)
+  const orderObj = {
+    dbId: order.id,
+    id: order.order_number,
+    total: order.total,
+    source: order.source,
+  };
+  await recordCommission(orderObj, rest);
 }
 
 // ---- CUSTOMER HELPERS -------------------------------------------------------
@@ -4792,6 +4844,22 @@ export async function recordCommission(order, restaurant) {
   const commissionAmount = orderTotal * (rate / 100);
   if (commissionAmount <= 0) return null;
   
+  // Check if commission already exists for this order (prevent duplicates)
+  if (order.dbId || order.id) {
+    const orderIdToCheck = order.dbId;
+    const orderNumberToCheck = order.id || order.order_number;
+    const { data: existing } = await supabase
+      .from('commission_ledger')
+      .select('id, status')
+      .or(`order_id.eq.${orderIdToCheck},order_number.eq.${orderNumberToCheck}`)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      // Already has a commission entry - don't duplicate
+      console.log('Commission already exists for order:', orderNumberToCheck);
+      return existing[0];
+    }
+  }
+  
   const { data, error } = await supabase
     .from('commission_ledger')
     .insert({
@@ -4808,6 +4876,23 @@ export async function recordCommission(order, restaurant) {
     .single();
   
   if (error) console.error('recordCommission:', error);
+  return data;
+}
+
+// Reverse a commission entry (when order is cancelled/refunded)
+// Marks it as 'reversed' so it doesn't count in monthly billing
+export async function reverseCommission(orderId, orderNumber) {
+  if (!orderId && !orderNumber) return null;
+  const filter = orderId 
+    ? `order_id.eq.${orderId}` 
+    : `order_number.eq.${orderNumber}`;
+  const { data, error } = await supabase
+    .from('commission_ledger')
+    .update({ status: 'reversed' })
+    .or(filter)
+    .eq('status', 'unpaid')  // only reverse if not yet paid
+    .select();
+  if (error) console.error('reverseCommission:', error);
   return data;
 }
 
@@ -4829,8 +4914,10 @@ export async function getRestaurantCommission(restaurantId) {
     .reduce((s, e) => s + parseFloat(e.commission_amount || 0), 0);
   const paid = entries.filter(e => e.status === 'paid')
     .reduce((s, e) => s + parseFloat(e.commission_amount || 0), 0);
+  const reversed = entries.filter(e => e.status === 'reversed')
+    .reduce((s, e) => s + parseFloat(e.commission_amount || 0), 0);
   
-  return { unpaid, paid, entries };
+  return { unpaid, paid, reversed, entries };
 }
 
 // SUPER ADMIN: Get commission owed by all restaurants
@@ -4855,6 +4942,7 @@ export async function getAllCommissions() {
         restaurant_name: e.restaurant_name,
         unpaid: 0,
         paid: 0,
+        reversed: 0,
         orderCount: 0,
         entries: [],
       };
@@ -4863,7 +4951,8 @@ export async function getAllCommissions() {
     r.entries.push(e);
     r.orderCount++;
     if (e.status === 'unpaid') r.unpaid += parseFloat(e.commission_amount || 0);
-    else r.paid += parseFloat(e.commission_amount || 0);
+    else if (e.status === 'paid') r.paid += parseFloat(e.commission_amount || 0);
+    else if (e.status === 'reversed') r.reversed += parseFloat(e.commission_amount || 0);
   });
   
   return Object.values(byRestaurant);
