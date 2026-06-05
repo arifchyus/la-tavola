@@ -12897,6 +12897,7 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
   var [showPayment,setShowPayment]=useState(false);
   var [tip,setTip]=useState(0),[discPct,setDiscPct]=useState(0),[discReason,setDiscReason]=useState("");
   var [splitN,setSplitN]=useState(1);
+  var [adjOpen,setAdjOpen]=useState(false);
   var [lastOrder,setLastOrder]=useState(null);
   var [posDeliv,setPosDeliv]=useState(null); // delivery settings for service charge
   useEffect(()=>{
@@ -13157,7 +13158,9 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
             var displayPrice=getItemPrice(item,type);
             return <button key={item.dbId||item.id} onClick={()=>add(item)} disabled={item.stock===0} style={{background:inCart?"#fff5f3":"#fff",border:"2px solid "+(inCart?"#bf4626":"transparent"),borderRadius:10,padding:10,cursor:item.stock===0?"not-allowed":"pointer",opacity:item.stock===0?.4:1,boxShadow:inCart?"0 4px 16px rgba(191,70,38,.25)":"0 2px 8px rgba(0,0,0,.08)",display:"flex",flexDirection:"column",alignItems:"center",gap:5,minHeight:115,transition:"all .15s",position:"relative"}} onMouseDown={e=>e.currentTarget.style.transform="scale(.93)"} onMouseUp={e=>e.currentTarget.style.transform="scale(1)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"} onTouchStart={e=>e.currentTarget.style.transform="scale(.93)"} onTouchEnd={e=>e.currentTarget.style.transform="scale(1)"}>
               {inCart&&<div style={{position:"absolute",top:-6,right:-6,background:"#bf4626",color:"#fff",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,boxShadow:"0 2px 8px rgba(191,70,38,.5)",border:"2px solid #fff"}}>{inCart.qty}</div>}
-              <span style={{fontSize:28}}>{EM[item.icon]||""}</span>
+              {item.image?
+                <img src={item.image} alt={item.name} style={{width:"100%",height:62,objectFit:"cover",borderRadius:8,marginBottom:1}}/>
+                :<div style={{width:"100%",height:62,borderRadius:8,marginBottom:1,background:"linear-gradient(135deg,#f3ede3,#e9e0d2)",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:22,fontWeight:800,color:"#c9bba4"}}>{(item.name||"?").trim().charAt(0).toUpperCase()}</span></div>}
               <p style={{fontSize:11,fontWeight:700,textAlign:"center",lineHeight:1.2}}>{item.name}</p>
               <p style={{fontSize:13,fontWeight:700,color:"#bf4626"}}>{fmt(displayPrice)}</p>
             </button>;
@@ -13191,32 +13194,33 @@ function PosVModern({menu,onOrder,push,user,branch,tables,setTables,orders,onBac
           </div>)}
         </div>
         <div className="pos-cart-footer">
-          {/* Tip selector */}
-          {cart.length>0&&<div style={{marginBottom:8}}>
-            <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:4}}>TIP</p>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
-              {[0,0.05,0.10,0.125,0.15].map(p=><button key={p} onClick={()=>setTip(rawSub*p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#fff",color:Math.abs(tip-rawSub*p)<0.01?"#fff":"#1a1208",border:"2px solid "+(Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#ede8de"),cursor:"pointer"}}>{p===0?"None":(p*100)+"%"}</button>)}
-            </div>
-          </div>}
-
-          {/* Discount selector */}
-          {cart.length>0&&<div style={{marginBottom:8}}>
-            <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,marginBottom:4}}>DISCOUNT</p>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
-              {[[0,"None"],[10,"10%"],[20,"20%"],[50,"50%"]].map(([p,lb])=><button key={p} onClick={()=>setDiscPct(p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:discPct===p?"#dc2626":"#fff",color:discPct===p?"#fff":"#1a1208",border:"2px solid "+(discPct===p?"#dc2626":"#ede8de"),cursor:"pointer"}}>{lb}</button>)}
-            </div>
-            {discPct>0&&<input value={discReason} onChange={e=>setDiscReason(e.target.value)} placeholder="Reason (staff, loyalty, complaint...)" style={{width:"100%",padding:"6px 8px",border:"1px solid #ede8de",borderRadius:6,fontSize:11,marginTop:4}}/>}
-          </div>}
-
-          {/* Split bill */}
-          {cart.length>0&&<div style={{marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1}}>SPLIT BILL</p>
-              {splitN>1&&<button onClick={()=>setSplitN(1)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>Reset</button>}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4}}>
-              {[1,2,3,4,5,6].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:splitN===n?"#7c3aed":"#fff",color:splitN===n?"#fff":"#1a1208",border:"2px solid "+(splitN===n?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{n===1?"No":n+"x"}</button>)}
-            </div>
+          {/* Adjustments (Tip / Discount / Split) - collapsible to save footer space */}
+          {cart.length>0&&<div style={{marginBottom:8,border:"1px solid #ede8de",borderRadius:8,overflow:"hidden",background:"#fff"}}>
+            <button onClick={()=>setAdjOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 10px",border:"none",background:"none",cursor:"pointer"}}>
+              <span style={{fontSize:11,color:"#8a8078",fontWeight:600,textAlign:"left"}}>{[posServiceApplies&&serviceCharge>0?"Service "+(posDeliv.serviceChargePercent)+"%":null,tip>0?"Tip":null,discPct>0?"Disc "+discPct+"%":null,splitN>1?"Split "+splitN+"x":null].filter(Boolean).join("  \u00b7  ")||"No tip \u00b7 No discount"}</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#bf4626",whiteSpace:"nowrap"}}>{adjOpen?"Hide \u25b2":"Tip \u00b7 Discount \u00b7 Split \u25be"}</span>
+            </button>
+            {adjOpen&&<div style={{padding:"2px 10px 10px"}}>
+              {/* Tip selector */}
+              <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,margin:"6px 0 4px"}}>TIP</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:4}}>
+                {[0,0.05,0.10,0.125,0.15].map(p=><button key={p} onClick={()=>setTip(rawSub*p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#fff",color:Math.abs(tip-rawSub*p)<0.01?"#fff":"#1a1208",border:"2px solid "+(Math.abs(tip-rawSub*p)<0.01?"#d4952a":"#ede8de"),cursor:"pointer"}}>{p===0?"None":(p*100)+"%"}</button>)}
+              </div>
+              {/* Discount selector */}
+              <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1,margin:"10px 0 4px"}}>DISCOUNT</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
+                {[[0,"None"],[10,"10%"],[20,"20%"],[50,"50%"]].map(([p,lb])=><button key={p} onClick={()=>setDiscPct(p)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:discPct===p?"#dc2626":"#fff",color:discPct===p?"#fff":"#1a1208",border:"2px solid "+(discPct===p?"#dc2626":"#ede8de"),cursor:"pointer"}}>{lb}</button>)}
+              </div>
+              {discPct>0&&<input value={discReason} onChange={e=>setDiscReason(e.target.value)} placeholder="Reason (staff, loyalty, complaint...)" style={{width:"100%",padding:"6px 8px",border:"1px solid #ede8de",borderRadius:6,fontSize:11,marginTop:4}}/>}
+              {/* Split bill */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"10px 0 4px"}}>
+                <p style={{fontSize:10,fontWeight:700,color:"#8a8078",letterSpacing:1}}>SPLIT BILL</p>
+                {splitN>1&&<button onClick={()=>setSplitN(1)} style={{fontSize:10,color:"#dc2626",border:"none",background:"none",cursor:"pointer",fontWeight:700}}>Reset</button>}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4}}>
+                {[1,2,3,4,5,6].map(n=><button key={n} onClick={()=>setSplitN(n)} style={{padding:"7px 2px",borderRadius:6,fontSize:11,fontWeight:700,background:splitN===n?"#7c3aed":"#fff",color:splitN===n?"#fff":"#1a1208",border:"2px solid "+(splitN===n?"#7c3aed":"#ede8de"),cursor:"pointer"}}>{n===1?"No":n+"x"}</button>)}
+              </div>
+            </div>}
           </div>}
 
           {/* Totals */}
